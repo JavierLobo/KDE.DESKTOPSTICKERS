@@ -135,13 +135,41 @@ Window {
                 }
             }
 
-            TextEdit {
-                id: textArea
+            Item {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                text: stickerText
-                wrapMode: TextEdit.Wrap
-                padding: 10
+
+                MarkdownView {
+                    id: preview
+                    anchors.fill: parent
+                    text: stickerText
+                    visible: !editArea.visible
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            editArea.visible = true
+                            editArea.forceActiveFocus()
+                        }
+                    }
+                }
+
+                TextEdit {
+                    id: editArea
+                    anchors.fill: parent
+                    text: stickerText
+                    wrapMode: TextEdit.Wrap
+                    padding: 10
+                    visible: false
+
+                    onActiveFocusChanged: {
+                        if (!activeFocus) {
+                            stickerText = text
+                            Manager.updateText(stickerId, text)
+                            visible = false
+                        }
+                    }
+                }
             }
         }
     }

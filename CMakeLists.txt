@@ -19,6 +19,7 @@ qt_add_qml_module(kde-stickers
     QML_FILES
         src/qml/Main.qml
         src/qml/StickerWindow.qml
+        src/qml/MarkdownView.qml
     SOURCES
         src/filestorage.h
         src/filestorage.cpp

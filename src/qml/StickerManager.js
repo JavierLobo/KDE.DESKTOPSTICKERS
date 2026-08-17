@@ -15,3 +15,10 @@ function updatePosition(id, x, y) {
     sticker.y = y
     Storage.saveSticker(sticker.id, sticker.text, sticker.color, x, y)
 }
+
+function updateText(id, text) {
+    var sticker = stickers.find(function(s) { return s.id === id })
+    if (!sticker) return
+    sticker.text = text
+    Storage.saveSticker(sticker.id, text, sticker.color, sticker.x, sticker.y)
+}
