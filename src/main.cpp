@@ -1,4 +1,4 @@
-#include <QGuiApplication>
+#include <QApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlEngine>
 
@@ -6,7 +6,14 @@
 
 int main(int argc, char *argv[])
 {
-    QGuiApplication app(argc, argv);
+    // QApplication (not QGuiApplication) is required here even though this
+    // is a QML-only UI: Qt.labs.platform's ColorDialog (used by
+    // ColorPalette.qml's custom-color "+" button) has no portal-backed
+    // native implementation on this setup and falls back to a QtWidgets
+    // dialog, which aborts at runtime ("No native ColorDialog implementation
+    // available. Qt Labs Platform requires Qt Widgets on this setup.") under
+    // plain QGuiApplication. Confirmed via journalctl during Task 5.
+    QApplication app(argc, argv);
     app.setApplicationName("kde-stickers");
     app.setOrganizationName("org.kde.stickers");
     // The Wayland app-id / X11 WM_CLASS, used by the KWin window rule

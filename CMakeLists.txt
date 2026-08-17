@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick Widgets)
 
 qt_standard_project_setup(REQUIRES 6.5)
 
@@ -20,6 +20,7 @@ qt_add_qml_module(kde-stickers
         src/qml/Main.qml
         src/qml/StickerWindow.qml
         src/qml/MarkdownView.qml
+        src/qml/ColorPalette.qml
     SOURCES
         src/filestorage.h
         src/filestorage.cpp
@@ -56,6 +57,7 @@ target_link_libraries(kde-stickers
         Qt6::Gui
         Qt6::Qml
         Qt6::Quick
+        Qt6::Widgets
 )
 
 install(TARGETS kde-stickers DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)

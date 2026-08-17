@@ -22,3 +22,10 @@ function updateText(id, text) {
     sticker.text = text
     Storage.saveSticker(sticker.id, text, sticker.color, sticker.x, sticker.y)
 }
+
+function updateColor(id, color) {
+    var sticker = stickers.find(function(s) { return s.id === id })
+    if (!sticker) return
+    sticker.color = color
+    Storage.saveSticker(sticker.id, sticker.text, color, sticker.x, sticker.y)
+}

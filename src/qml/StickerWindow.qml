@@ -127,6 +127,13 @@ Window {
                     }
 
                     Button {
+                        text: "🎨"
+                        Layout.preferredWidth: 28
+                        Layout.preferredHeight: 28
+                        onClicked: colorPopup.open()
+                    }
+
+                    Button {
                         text: "✕"
                         Layout.preferredWidth: 28
                         Layout.preferredHeight: 28
@@ -170,6 +177,36 @@ Window {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    Popup {
+        id: colorPopup
+        x: (mainWindow.width - width) / 2
+        y: 40
+        padding: 8
+
+        ColorPalette {
+            onColorSelected: function(selectedColor) {
+                // selectedColor arrives as a QML `color` value (the signal
+                // parameter is typed `color`, so even the plain hex strings
+                // from ColorPalette's swatchColors get converted to a color
+                // object before this handler runs). Persisting that object
+                // as-is makes JSON.stringify() serialize it as a full
+                // {r,g,b,a,...} record instead of a "#rrggbb" string.
+                // Storage round-trips through JSON.parse() on the next
+                // launch, so Main.qml's createObject() then tries to set
+                // the plain-object value onto stickerColor (a `property
+                // string`), which QML cannot coerce -- verified empirically
+                // as "Could not set initial property stickerColor" in the
+                // log, with the sticker silently reverting to its default
+                // color. Converting to a hex string here keeps both the
+                // live property and the persisted JSON as plain strings.
+                var colorStr = selectedColor.toString()
+                stickerColor = colorStr
+                Manager.updateColor(stickerId, colorStr)
+                colorPopup.close()
             }
         }
     }
