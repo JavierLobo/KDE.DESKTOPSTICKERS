@@ -29,3 +29,17 @@ function updateColor(id, color) {
     sticker.color = color
     Storage.saveSticker(sticker.id, sticker.text, color, sticker.x, sticker.y)
 }
+
+function createSticker(originX, originY) {
+    var id = Storage.newStickerId()
+    var sticker = {
+        id: id,
+        text: "Nuevo sticker...",
+        color: "#FFD700",
+        x: originX + 30,
+        y: originY + 30
+    }
+    stickers.push(sticker)
+    Storage.saveSticker(sticker.id, sticker.text, sticker.color, sticker.x, sticker.y)
+    return sticker
+}

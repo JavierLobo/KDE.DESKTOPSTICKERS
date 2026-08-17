@@ -12,6 +12,16 @@ Window {
     property string stickerColor: "#FFD700"
     property int posX: 100
     property int posY: 100
+    // Window (unlike Item) has no QML-visible "parent" property, so
+    // mainWindow.parent.createNewSticker(...) -- the brief's literal "+"
+    // button handler -- evaluates mainWindow.parent as undefined and
+    // throws "TypeError: Cannot call method 'createNewSticker' of
+    // undefined" (confirmed via journalctl when actually clicking "+").
+    // createObject(root, {...}) in Main.qml only sets root as this
+    // window's QObject parent for lifetime management, which QML does not
+    // surface as a readable "parent" property on a Window. An explicit
+    // reference, set from Main.qml at creation time, is required instead.
+    property var appRoot: null
 
     width: 300
     height: 250
@@ -124,6 +134,13 @@ Window {
                         font.bold: true
                         Layout.fillWidth: true
                         font.pixelSize: 12
+                    }
+
+                    Button {
+                        text: "+"
+                        Layout.preferredWidth: 28
+                        Layout.preferredHeight: 28
+                        onClicked: mainWindow.appRoot.createNewSticker(mainWindow.x, mainWindow.y)
                     }
 
                     Button {

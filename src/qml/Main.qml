@@ -1,4 +1,5 @@
 import QtQuick
+import Qt.labs.platform as Platform
 import "StickerManager.js" as Manager
 
 Item {
@@ -22,7 +23,8 @@ Item {
             stickerText: sticker.text,
             stickerColor: sticker.color,
             posX: sticker.x,
-            posY: sticker.y
+            posY: sticker.y,
+            appRoot: root
         })
         // StickerWindow declares "visible: true", but a Window instantiated
         // dynamically via createObject() -- parented to a plain Item, not
@@ -36,5 +38,28 @@ Item {
             w.show()
         }
         return w
+    }
+
+    function createNewSticker(originX, originY) {
+        var sticker = Manager.createSticker(originX, originY)
+        createStickerWindow(sticker)
+    }
+
+    Platform.SystemTrayIcon {
+        id: trayIcon
+        visible: true
+        icon.name: "document-properties"
+        tooltip: "KDE Stickers"
+
+        menu: Platform.Menu {
+            Platform.MenuItem {
+                text: "Nuevo sticker"
+                onTriggered: root.createNewSticker(100, 100)
+            }
+            Platform.MenuItem {
+                text: "Salir"
+                onTriggered: Qt.quit()
+            }
+        }
     }
 }
