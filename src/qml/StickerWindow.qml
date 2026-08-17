@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
+import "StickerManager.js" as Manager
 
 Window {
     id: mainWindow
@@ -23,6 +24,53 @@ Window {
     // No per-window multi-desktop registration needed here — the KWin
     // window rule installed in Task 1 (matched by the app's WM_CLASS)
     // covers every window this app creates automatically.
+
+    // Persist position on change, debounced. startSystemMove() (see the
+    // header MouseArea below) hands the interactive move grab off to the
+    // compositor for the whole gesture -- there is no onReleased to hook
+    // a persist call to -- so we watch x/y instead and persist a short
+    // idle period after they stop changing.
+    //
+    // settled guards against a real startup artifact (Task 3 empirical
+    // finding, reproduced with a minimal standalone QtQuick.Window too, so
+    // it is a Qt6-Wayland-QPA platform behavior, not specific to this app's
+    // dynamic window creation): x/y read back the correct posX/posY for one
+    // tick, then the Wayland QPA plugin resets them to (0, 0) shortly after
+    // the surface is actually mapped, since xdg-toplevel's configure event
+    // carries no position -- Wayland gives clients no absolute-position
+    // feedback at all. Without this guard, that reset would fire
+    // onXChanged/onYChanged and silently overwrite the loaded position with
+    // (0, 0) in storage before the user ever touches the window.
+    property bool positionDirty: false
+    property bool settled: false
+
+    Timer {
+        interval: 1000
+        running: true
+        onTriggered: settled = true
+    }
+
+    onXChanged: {
+        if (!settled) return
+        positionDirty = true
+        persistTimer.restart()
+    }
+    onYChanged: {
+        if (!settled) return
+        positionDirty = true
+        persistTimer.restart()
+    }
+
+    Timer {
+        id: persistTimer
+        interval: 300
+        onTriggered: {
+            if (positionDirty) {
+                Manager.updatePosition(stickerId, mainWindow.x, mainWindow.y)
+                positionDirty = false
+            }
+        }
+    }
 
     Rectangle {
         id: stickerContainer
@@ -48,17 +96,20 @@ Window {
                     // Window (not an Item), so it cannot be a drag target
                     // directly ("Unable to assign ... to QQuickItem" at
                     // component creation, which aborts the whole window).
-                    // Track the press position and move the window manually
-                    // instead -- the standard pattern for dragging a
-                    // frameless Window by a header MouseArea.
-                    property point pressPos: Qt.point(0, 0)
-
+                    // Manual onPressed/onPositionChanged assignment to
+                    // mainWindow.x/y (the original workaround here) was
+                    // empirically verified (Task 3) to be a no-op on this
+                    // Wayland/KWin session -- assigning position on an
+                    // already-mapped xdg-toplevel is not honored by the
+                    // compositor, and even the QWindow's own x/y readback
+                    // stayed unchanged. startSystemMove() hands the move
+                    // off to the compositor instead, which is the
+                    // standard, compositor-cooperative way to interactively
+                    // move a Wayland top-level.
                     onPressed: (mouse) => {
-                        pressPos = Qt.point(mouse.x, mouse.y)
-                    }
-                    onPositionChanged: (mouse) => {
-                        mainWindow.x += mouse.x - pressPos.x
-                        mainWindow.y += mouse.y - pressPos.y
+                        if (mouse.button === Qt.LeftButton) {
+                            mainWindow.startSystemMove()
+                        }
                     }
                 }
 
