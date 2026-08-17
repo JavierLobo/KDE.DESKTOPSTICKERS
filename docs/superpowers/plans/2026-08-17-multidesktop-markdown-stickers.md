@@ -4,17 +4,18 @@
 
 **Goal:** Rebuild KDE Stickers as a standalone Qt6/QML+C++ application (dropping the inconsistent `Plasma/Applet` packaging) where sticky notes are draggable, visible on every virtual desktop, editable in Markdown with click-to-edit/blur-to-preview, colorable from a palette, and creatable/deletable via tray icon and per-sticker buttons.
 
-**Architecture:** A single background process (autostarted, no visible main window) owns a `StickerManager.js` singleton that loads/persists stickers via the existing `storage.js` JSON module and dynamically instantiates one independent top-level `StickerWindow` per sticker. Each window self-registers as visible on all virtual desktops through a minimal C++ bridge (`DesktopHelper`) wrapping KDE's `KWindowSystem::setOnAllDesktops()` — the only C++ needed, since this API isn't reliably exposed to QML directly.
+**Architecture:** A single background process (autostarted, no visible main window) owns a `StickerManager.js` singleton that loads/persists stickers via the existing `storage.js` JSON module and dynamically instantiates one independent top-level `StickerWindow` per sticker. Multi-desktop visibility is achieved via a **KWin window rule** (`~/.config/kwinrulesrc`, forcing `desktopsrule=Force` for any window matching the app's `WM_CLASS`), installed once by `scripts/install.sh` and applied compositor-side — not by any C++/QML code the app runs per-window. (Revision note: the original design used a C++ `DesktopHelper` wrapping `KWindowSystem::setOnAllDesktops()`; Task 1's spike proved that API is X11-only in KF6 and a no-op under this Wayland session. See the spec's "Multi-desktop: mecánica exacta" section for the empirical findings.)
 
-**Tech Stack:** Qt6 (Core, Gui, Qml, Quick), KDE Frameworks 6 (`KF6::WindowSystem`), CMake, QML/JavaScript, `Qt.labs.platform` (SystemTrayIcon, ColorDialog), Bash (install script).
+**Tech Stack:** Qt6 (Core, Gui, Qml, Quick), CMake, QML/JavaScript, `Qt.labs.platform` (SystemTrayIcon, ColorDialog), Bash (install script, KWin rule installation via `kwriteconfig6`/D-Bus).
 
 **Spec:** `docs/superpowers/specs/2026-08-17-multidesktop-markdown-stickers-design.md`
 
 ## Global Constraints
 
-- Target environment: Plasma 6.7.4, confirmed **Wayland** session (`XDG_SESSION_TYPE=wayland`).
+- Target environment: Plasma 6.7.4, KWin 6.7.4, confirmed **Wayland** session (`XDG_SESSION_TYPE=wayland`).
 - Qt6 only — QML imports use unversioned syntax (`import QtQuick`, not `import QtQuick 2.15`).
-- `KWindowSystem` (KF6) is required; CMake links `KF6::WindowSystem`. It abstracts X11/Wayland internally — no per-platform code branches.
+- No `KWindowSystem`/`KF6::WindowSystem` dependency and no custom C++ classes anywhere in the project — multi-desktop is handled entirely by a KWin window rule, not app code. `src/main.cpp` is the only C++ file in the whole project.
+- QML entry-point files that must be loadable via `qt_add_qml_module`/`loadFromModule` need an **uppercase-leading filename** (`Main.qml`, not `main.qml`) — Qt's QML module tooling only registers uppercase-named files as module types. (Discovered during Task 1's spike.)
 - No automated test framework. Verification is compile success + documented manual QA (explicit spec decision, not a gap).
 - Single persistence file `~/.stickers/stickers.json`; JSON schema (`id`, `text`, `color`, `x`, `y`, `created`, `modified`) is unchanged from the current `storage.js`.
 - Sticker position is global (same `x`/`y` on every virtual desktop) — there is no per-desktop position concept.
@@ -25,22 +26,47 @@
 
 ---
 
-## Task 1: Build skeleton + multi-desktop risk verification
+## Task 1: Build skeleton + multi-desktop risk verification (REVISED)
 
-This is the highest-risk item in the whole project (per spec): confirm `KWindowSystem::setOnAllDesktops()` actually keeps a window visible across virtual desktops under this Wayland/KWin session, before building anything else on top of it. If this fails, **stop and report to the user** — do not proceed to Task 2.
+> **Revision note:** this task was originally written around a C++ `DesktopHelper` wrapping `KWindowSystem::setOnAllDesktops()`. A first dispatch of this task proved that API is X11-only in KF6 and a confirmed no-op under this Wayland session (see ledger). A follow-up research spike then empirically verified a working replacement: a **KWin window rule** in `~/.config/kwinrulesrc` forcing `desktopsrule=Force` for windows matching the app's `WM_CLASS`, applied live via the `org.kde.KWin.reconfigure` D-Bus call — no app-side C++ needed at all. This revised task reflects that finding. The GATE (Step 8) is still the highest-risk item in the project: confirm the KWin-rule mechanism actually keeps a window visible across virtual desktops, before building anything else on top of it. If it fails, **stop and report to the user** — do not proceed to Task 2.
 
 **Files:**
 - Create: `CMakeLists.txt`
 - Create: `src/main.cpp`
-- Create: `src/desktophelper.h`
-- Create: `src/desktophelper.cpp`
-- Create: `src/qml/main.qml` (temporary content, fully replaced in Task 2)
+- Create: `src/qml/Main.qml` (temporary content, fully replaced in Task 2 — note the uppercase filename, required by `qt_add_qml_module`)
+- Create: `.gitignore` (did not exist in this worktree — see ruling below)
 
 **Interfaces:**
-- Produces: C++ type `DesktopHelper` registered as a QML singleton (`QML_SINGLETON`) under module URI `StickersApp`, with `Q_INVOKABLE void setOnAllDesktops(QWindow *window, bool onAll)`.
 - Produces: executable target `kde-stickers`, buildable via `cmake -B build && cmake --build build`.
+- Produces: a live KWin window rule (in the user's `~/.config/kwinrulesrc`, not a repo file) matching `wmclass=org.kde.stickers`, forcing all-desktops. This rule is the actual production mechanism (not a throwaway spike-only artifact) — leave it in place; Task 8 formalizes writing it into `scripts/install.sh` for future installs.
 
-- [ ] **Step 1: Write `CMakeLists.txt`**
+**Pre-flight ruling carried into this dispatch:** `.gitignore` does not exist anywhere in this worktree's git history (it was untracked in the original repo). Create it fresh as part of this task with the content shown in Step 1.
+
+- [ ] **Step 1: Create `.gitignore`**
+
+```
+# Build
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Runtime
+*.qmlc
+*.jsc
+.qmake.stash
+
+# Temporal
+*.tmp
+*.bak
+```
+
+- [ ] **Step 2: Write `CMakeLists.txt`**
 
 ```cmake
 cmake_minimum_required(VERSION 3.16)
@@ -51,21 +77,18 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick)
-find_package(KF6WindowSystem REQUIRED)
 
 qt_standard_project_setup(REQUIRES 6.5)
 
 qt_add_executable(kde-stickers
     src/main.cpp
-    src/desktophelper.cpp
-    src/desktophelper.h
 )
 
 qt_add_qml_module(kde-stickers
     URI StickersApp
     VERSION 1.0
     QML_FILES
-        src/qml/main.qml
+        src/qml/Main.qml
 )
 
 target_link_libraries(kde-stickers
@@ -74,56 +97,12 @@ target_link_libraries(kde-stickers
         Qt6::Gui
         Qt6::Qml
         Qt6::Quick
-        KF6::WindowSystem
 )
 
 install(TARGETS kde-stickers DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 ```
 
-- [ ] **Step 2: Write `src/desktophelper.h`**
-
-```cpp
-#pragma once
-
-#include <QObject>
-#include <QWindow>
-#include <qqmlintegration.h>
-
-class DesktopHelper : public QObject
-{
-    Q_OBJECT
-    QML_ELEMENT
-    QML_SINGLETON
-
-public:
-    explicit DesktopHelper(QObject *parent = nullptr);
-
-    Q_INVOKABLE void setOnAllDesktops(QWindow *window, bool onAll);
-};
-```
-
-- [ ] **Step 3: Write `src/desktophelper.cpp`**
-
-```cpp
-#include "desktophelper.h"
-
-#include <KWindowSystem>
-
-DesktopHelper::DesktopHelper(QObject *parent)
-    : QObject(parent)
-{
-}
-
-void DesktopHelper::setOnAllDesktops(QWindow *window, bool onAll)
-{
-    if (!window) {
-        return;
-    }
-    KWindowSystem::setOnAllDesktops(window->winId(), onAll);
-}
-```
-
-- [ ] **Step 4: Write `src/main.cpp`**
+- [ ] **Step 3: Write `src/main.cpp`**
 
 ```cpp
 #include <QGuiApplication>
@@ -134,6 +113,10 @@ int main(int argc, char *argv[])
     QGuiApplication app(argc, argv);
     app.setApplicationName("kde-stickers");
     app.setOrganizationName("org.kde.stickers");
+    // The Wayland app-id / X11 WM_CLASS, used by the KWin window rule
+    // (installed separately, see Step 6 and Task 8) to identify which
+    // windows should be forced onto all virtual desktops.
+    app.setDesktopFileName("org.kde.stickers");
     // Sticker windows come and go independently; the app must only quit
     // via the tray icon's "Salir", not when the last sticker closes.
     app.setQuitOnLastWindowClosed(false);
@@ -143,18 +126,17 @@ int main(int argc, char *argv[])
         &engine, &QQmlApplicationEngine::objectCreationFailed,
         &app, []() { QCoreApplication::exit(-1); },
         Qt::QueuedConnection);
-    engine.loadFromModule("StickersApp", "main");
+    engine.loadFromModule("StickersApp", "Main");
 
     return app.exec();
 }
 ```
 
-- [ ] **Step 5: Write temporary `src/qml/main.qml`**
+- [ ] **Step 4: Write temporary `src/qml/Main.qml`**
 
 ```qml
 import QtQuick
 import QtQuick.Window
-import StickersApp
 
 Window {
     id: testWindow
@@ -163,42 +145,64 @@ Window {
     visible: true
     color: "orange"
     title: "kde-stickers spike"
-
-    Component.onCompleted: {
-        DesktopHelper.setOnAllDesktops(testWindow, true)
-    }
 }
 ```
 
-- [ ] **Step 6: Configure and build**
+- [ ] **Step 5: Configure and build**
 
 Run:
 ```bash
 cmake -B build -S . -DCMAKE_BUILD_TYPE=Debug
 cmake --build build
 ```
-Expected: build succeeds, `build/kde-stickers` executable exists. If `find_package(KF6WindowSystem REQUIRED)` fails, the KDE Frameworks 6 `kwindowsystem` development package is missing — install it before continuing (package name varies; on Arch it is typically `kwindowsystem`, confirm with `pacman -Ss kwindowsystem`).
+Expected: build succeeds, `build/kde-stickers` executable exists, no errors (an author warning about `QTP0004` policy is harmless and expected).
 
-- [ ] **Step 7: Manually verify multi-desktop behavior (GATE — do not skip)**
+- [ ] **Step 6: Install the KWin window rule (the actual production mechanism, not a throwaway)**
 
-Run:
+Ensure a section exists in `~/.config/kwinrulesrc` with these semantics (exact key-writing method — `kwriteconfig6` or careful direct file edit — is your call; verify the result by reading the file back):
+
+- A unique, stable rule id (suggested: `kdestickers-alldesktops`) added to `[General]`'s `rules=` value — **append** to any existing comma-separated list, never overwrite it (other rules may already exist for unrelated apps).
+- A section named after that id containing:
+  - `wmclass=org.kde.stickers`
+  - `wmclassmatch=2` (exact match)
+  - `wmclasscomplete=false`
+  - `types=1` (normal window)
+  - `desktops=` (empty)
+  - `desktopsrule=2` (Force)
+
+This step is **idempotent** — if a rule with this id already exists (e.g., you're re-running this task after a partial attempt), don't duplicate it.
+
+After writing, apply it live without restarting anything:
+```bash
+qdbus6 org.kde.KWin /KWin org.kde.KWin.reconfigure
+```
+(If `qdbus6` isn't available, `busctl --user call org.kde.KWin /KWin org.kde.KWin org.kde.KWin.reconfigure` is the D-Bus equivalent.)
+
+- [ ] **Step 7: Run the spike**
+
 ```bash
 ./build/kde-stickers
 ```
-An orange 200x200 window titled "kde-stickers spike" appears. Note which virtual desktop it's on. Switch to a different virtual desktop — use the Pager widget if present on your panel, or the default Plasma shortcut `Ctrl+F2` (desktop 2) / `Meta+Ctrl+Right Arrow` (next desktop).
+An orange 200x200 window titled "kde-stickers spike" appears.
+
+- [ ] **Step 8: Manually verify multi-desktop behavior (GATE — do not skip)**
+
+Note which virtual desktop the window is on. Switch to a different virtual desktop — use the Pager widget if present on your panel, or the default Plasma shortcut `Ctrl+F2` (desktop 2) / `Meta+Ctrl+Right Arrow` (next desktop).
 
 **Expected:** the orange window remains visible after switching desktops.
 
-**If it does NOT remain visible:** stop implementation here. This means `KWindowSystem::setOnAllDesktops()` has no effect under this specific KWin/Wayland configuration — the core multi-desktop requirement cannot be satisfied as designed, and this must be reported back before any further task is attempted.
+**If it does NOT remain visible:** stop implementation here. This means the KWin-rule mechanism has no effect under this specific configuration either — the core multi-desktop requirement cannot be satisfied as currently designed, and this must be reported back before any further task is attempted. Do not attempt further workarounds (e.g. forcing XWayland) — that decision belongs to the human.
 
-Press `Ctrl+C` in the terminal to quit the spike app.
+Leave the spike process running or press `Ctrl+C` to quit it — your choice, it has no bearing on the KWin rule (which persists independently in `kwinrulesrc`, applying to any future window with the same `wmclass`, including the real app built in later tasks).
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
-git add CMakeLists.txt src/main.cpp src/desktophelper.h src/desktophelper.cpp src/qml/main.qml
-git commit -m "feat: bootstrap Qt6/C++ build with multi-desktop DesktopHelper"
+git add .gitignore CMakeLists.txt src/main.cpp src/qml/Main.qml
+git commit -m "feat: bootstrap Qt6 build; multi-desktop via KWin window rule, not C++"
 ```
+
+Note: the KWin rule itself lives in `~/.config/kwinrulesrc` (outside the repo) and is not part of this commit — Task 8 adds the `scripts/install.sh` logic that writes it automatically for future installs.
 
 ---
 
@@ -207,12 +211,11 @@ git commit -m "feat: bootstrap Qt6/C++ build with multi-desktop DesktopHelper"
 **Files:**
 - Create: `src/qml/StickerManager.js`
 - Create: `src/qml/StickerWindow.qml`
-- Modify: `src/qml/main.qml` (replace spike content)
+- Modify: `src/qml/Main.qml` (replace spike content)
 - Modify: `CMakeLists.txt` (register new QML_FILES/SOURCES)
 - Delete: `src/ui/main.qml` (superseded by `StickerWindow.qml`; `src/ui/` becomes empty and can be removed)
 
 **Interfaces:**
-- Consumes: `DesktopHelper.setOnAllDesktops(window: QWindow, onAll: bool): void` (Task 1).
 - Consumes: `Storage.loadAllStickers(): Array<{id, text, color, x, y, created, modified}>` (existing `src/code/storage.js`, unchanged).
 - Produces: `Manager.loadStickers(): Array<sticker>` and `Manager.stickers` (shared array), for use by later tasks.
 - Produces: `StickerWindow` QML type with properties `stickerId: string`, `stickerText: string`, `stickerColor: string`, `posX: int`, `posY: int`.
@@ -238,7 +241,6 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
-import StickersApp
 
 Window {
     id: mainWindow
@@ -257,9 +259,9 @@ Window {
     flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
     color: "transparent"
 
-    Component.onCompleted: {
-        DesktopHelper.setOnAllDesktops(mainWindow, true)
-    }
+    // No per-window multi-desktop registration needed here — the KWin
+    // window rule installed in Task 1 (matched by the app's WM_CLASS)
+    // covers every window this app creates automatically.
 
     Rectangle {
         id: stickerContainer
@@ -320,11 +322,10 @@ Window {
 }
 ```
 
-- [ ] **Step 3: Replace `src/qml/main.qml` with the real entry point**
+- [ ] **Step 3: Replace `src/qml/Main.qml` with the real entry point**
 
 ```qml
 import QtQuick
-import StickersApp
 import "StickerManager.js" as Manager
 
 Item {
@@ -363,7 +364,7 @@ qt_add_qml_module(kde-stickers
     URI StickersApp
     VERSION 1.0
     QML_FILES
-        src/qml/main.qml
+        src/qml/Main.qml
         src/qml/StickerWindow.qml
     SOURCES
         src/qml/StickerManager.js
@@ -387,12 +388,12 @@ chmod +x scripts/test-sticker.sh
 ./scripts/test-sticker.sh
 ./build/kde-stickers
 ```
-Expected: three sticker windows appear, positioned at (100,100), (450,150), (250,400) matching `~/.stickers/stickers.json`, each showing its `#00N` id and its saved text. Switch virtual desktops (as in Task 1 Step 7) and confirm all three remain visible. Press `Ctrl+C` to quit.
+Expected: three sticker windows appear, positioned at (100,100), (450,150), (250,400) matching `~/.stickers/stickers.json`, each showing its `#00N` id and its saved text. Switch virtual desktops (as in Task 1 Step 8) and confirm all three remain visible — this should work automatically via the KWin rule installed in Task 1, with zero per-window code. Press `Ctrl+C` to quit.
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add src/qml/StickerManager.js src/qml/StickerWindow.qml src/qml/main.qml CMakeLists.txt
+git add src/qml/StickerManager.js src/qml/StickerWindow.qml src/qml/Main.qml CMakeLists.txt
 git commit -m "feat: load and display persisted stickers as independent multi-desktop windows"
 ```
 
@@ -574,7 +575,7 @@ qt_add_qml_module(kde-stickers
     URI StickersApp
     VERSION 1.0
     QML_FILES
-        src/qml/main.qml
+        src/qml/Main.qml
         src/qml/StickerWindow.qml
     SOURCES
         src/qml/StickerManager.js
@@ -587,7 +588,7 @@ qt_add_qml_module(kde-stickers
     URI StickersApp
     VERSION 1.0
     QML_FILES
-        src/qml/main.qml
+        src/qml/Main.qml
         src/qml/StickerWindow.qml
         src/qml/MarkdownView.qml
     SOURCES
@@ -774,7 +775,7 @@ qt_add_qml_module(kde-stickers
     URI StickersApp
     VERSION 1.0
     QML_FILES
-        src/qml/main.qml
+        src/qml/Main.qml
         src/qml/StickerWindow.qml
         src/qml/MarkdownView.qml
     SOURCES
@@ -788,7 +789,7 @@ qt_add_qml_module(kde-stickers
     URI StickersApp
     VERSION 1.0
     QML_FILES
-        src/qml/main.qml
+        src/qml/Main.qml
         src/qml/StickerWindow.qml
         src/qml/MarkdownView.qml
         src/qml/ColorPalette.qml
@@ -820,15 +821,15 @@ git commit -m "feat: add fixed color palette and custom color picker"
 ## Task 6: Sticker creation (tray icon + "+" button)
 
 **Files:**
-- Modify: `src/qml/main.qml` (add `SystemTrayIcon`, `createNewSticker`)
+- Modify: `src/qml/Main.qml` (add `SystemTrayIcon`, `createNewSticker`)
 - Modify: `src/qml/StickerWindow.qml` (add "+" button)
 - Modify: `src/qml/StickerManager.js` (add `createSticker`)
 
 **Interfaces:**
 - Consumes: `Storage.newStickerId(): string` (existing `storage.js`).
-- Consumes: `root.createStickerWindow(sticker): StickerWindow` (Task 2, in `main.qml`).
+- Consumes: `root.createStickerWindow(sticker): StickerWindow` (Task 2, in `Main.qml`).
 - Produces: `Manager.createSticker(originX: int, originY: int): {id, text, color, x, y}`.
-- Produces: `root.createNewSticker(originX: int, originY: int): void` (in `main.qml`, callable from any `StickerWindow` via `mainWindow.parent.createNewSticker(...)`).
+- Produces: `root.createNewSticker(originX: int, originY: int): void` (in `Main.qml`, callable from any `StickerWindow` via `mainWindow.parent.createNewSticker(...)`).
 
 - [ ] **Step 1: Add `createSticker` to `src/qml/StickerManager.js`**
 
@@ -850,14 +851,13 @@ function createSticker(originX, originY) {
 }
 ```
 
-- [ ] **Step 2: Add the tray icon and `createNewSticker` to `src/qml/main.qml`**
+- [ ] **Step 2: Add the tray icon and `createNewSticker` to `src/qml/Main.qml`**
 
 Replace the whole file with:
 
 ```qml
 import QtQuick
 import Qt.labs.platform as Platform
-import StickersApp
 import "StickerManager.js" as Manager
 
 Item {
@@ -951,7 +951,7 @@ Click the tray icon, select "Nuevo sticker". Expected: a new yellow sticker with
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/qml/main.qml src/qml/StickerWindow.qml src/qml/StickerManager.js
+git add src/qml/Main.qml src/qml/StickerWindow.qml src/qml/StickerManager.js
 git commit -m "feat: create new stickers from tray icon and per-sticker button"
 ```
 
@@ -1021,17 +1021,19 @@ git commit -m "fix: persist sticker deletion instead of only closing the window"
 
 ---
 
-## Task 8: Autostart packaging
+## Task 8: Autostart packaging (REVISED)
+
+> **Revision note:** Task 1 already installed a working KWin window rule by hand on this dev machine (see Task 1 Step 6) and confirmed it via the GATE. This task formalizes that same mechanism into `scripts/install.sh` so it also works on a fresh install (this machine after a config reset, or a different machine). The `.gitignore` step originally planned here is dropped — Task 1 created `.gitignore` fresh in this worktree (it never existed before), with no obsolete Plasma/Applet lines to clean up.
 
 **Files:**
 - Delete: `metadata.json`
 - Create: `data/org.kde.stickers.desktop`
 - Modify: `scripts/install.sh`
-- Modify: `.gitignore` (drop obsolete Plasma/Applet entries)
 
 **Interfaces:**
 - Produces: installed binary at `~/.local/bin/kde-stickers`.
 - Produces: autostart entry at `~/.config/autostart/org.kde.stickers.desktop`.
+- Produces: idempotent KWin window rule installation (same mechanism as Task 1 Step 6, now scripted).
 
 - [ ] **Step 1: Remove the obsolete Plasma/Applet manifest**
 
@@ -1057,9 +1059,11 @@ X-KDE-autostart-phase=1
 
 - [ ] **Step 3: Rewrite `scripts/install.sh`**
 
+Use the exact same `kwinrulesrc`-writing method Task 1 Step 6 empirically verified works on this system for the rule-writing block below — if Task 1's actual implementation used a different but equivalent method (check its commit/report), match that proven method here instead of the one shown, to avoid two different untested variants existing in the project.
+
 ```bash
 #!/bin/bash
-# kde-stickers: compila el binario Qt6 y registra autostart
+# kde-stickers: compila el binario Qt6, registra autostart y la regla de KWin
 set -e
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -1067,6 +1071,7 @@ BUILD_DIR="$REPO_DIR/build"
 BIN_INSTALL_DIR="$HOME/.local/bin"
 AUTOSTART_DIR="$HOME/.config/autostart"
 BIN_PATH="$BIN_INSTALL_DIR/kde-stickers"
+KWIN_RULE_ID="kdestickers-alldesktops"
 
 echo "📦 Compilando kde-stickers..."
 cmake -B "$BUILD_DIR" -S "$REPO_DIR" -DCMAKE_BUILD_TYPE=Release
@@ -1082,44 +1087,44 @@ sed "s|__KDE_STICKERS_BIN__|$BIN_PATH|" \
     "$REPO_DIR/data/org.kde.stickers.desktop" \
     > "$AUTOSTART_DIR/org.kde.stickers.desktop"
 
+echo "📦 Registrando regla de KWin (todos los escritorios)"
+EXISTING_RULES="$(kreadconfig6 --file kwinrulesrc --group General --key rules 2>/dev/null || true)"
+if [[ ",$EXISTING_RULES," != *",$KWIN_RULE_ID,"* ]]; then
+    NEW_RULES="${EXISTING_RULES:+$EXISTING_RULES,}$KWIN_RULE_ID"
+    kwriteconfig6 --file kwinrulesrc --group General --key rules "$NEW_RULES"
+fi
+kwriteconfig6 --file kwinrulesrc --group "$KWIN_RULE_ID" --key wmclass "org.kde.stickers"
+kwriteconfig6 --file kwinrulesrc --group "$KWIN_RULE_ID" --key wmclassmatch 2
+kwriteconfig6 --file kwinrulesrc --group "$KWIN_RULE_ID" --key wmclasscomplete false
+kwriteconfig6 --file kwinrulesrc --group "$KWIN_RULE_ID" --key types 1
+kwriteconfig6 --file kwinrulesrc --group "$KWIN_RULE_ID" --key desktops ""
+kwriteconfig6 --file kwinrulesrc --group "$KWIN_RULE_ID" --key desktopsrule 2
+qdbus6 org.kde.KWin /KWin org.kde.KWin.reconfigure 2>/dev/null || true
+
 mkdir -p "$HOME/.stickers"
 
 echo "✓ kde-stickers instalado en $BIN_PATH"
 echo "✓ Autostart registrado en $AUTOSTART_DIR/org.kde.stickers.desktop"
+echo "✓ Regla de KWin '$KWIN_RULE_ID' registrada (todos los escritorios)"
 echo ""
 echo "Se iniciará automáticamente en tu próxima sesión de Plasma."
 echo "Para lanzarlo ahora mismo:"
 echo "  $BIN_PATH &"
 ```
 
-- [ ] **Step 4: Update `.gitignore`**
-
-Change:
-```
-# Ignorar instalación local
-~/.stickers/
-~/.local/share/plasma/plasmoids/org.kde.stickers/
-kde_install/
-```
-to:
-```
-# Ignorar instalación local
-~/.stickers/
-```
-
-- [ ] **Step 5: Run and manually verify**
+- [ ] **Step 4: Run and manually verify**
 
 ```bash
 chmod +x scripts/install.sh
 ./scripts/install.sh
 ```
-Expected: build succeeds, `~/.local/bin/kde-stickers` exists and is executable, `~/.config/autostart/org.kde.stickers.desktop` exists with `Exec=` resolved to the real path (no literal `__KDE_STICKERS_BIN__` left). Run `$HOME/.local/bin/kde-stickers &`; expected: tray icon appears, previously-saved stickers load correctly.
+Expected: build succeeds, `~/.local/bin/kde-stickers` exists and is executable, `~/.config/autostart/org.kde.stickers.desktop` exists with `Exec=` resolved to the real path (no literal `__KDE_STICKERS_BIN__` left), `kreadconfig6 --file kwinrulesrc --group General --key rules` includes `kdestickers-alldesktops`. Run the script a second time — expected: no duplicate rule id appended (idempotent). Run `$HOME/.local/bin/kde-stickers &`; expected: tray icon appears, previously-saved stickers load correctly and stay visible across virtual desktop switches.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
-git add data/org.kde.stickers.desktop scripts/install.sh .gitignore
-git commit -m "feat: package as standalone app with freedesktop autostart, drop Plasma/Applet packaging"
+git add data/org.kde.stickers.desktop scripts/install.sh
+git commit -m "feat: package as standalone app with freedesktop autostart and scripted KWin all-desktops rule"
 ```
 
 ---
@@ -1246,15 +1251,16 @@ funcionalidades.
 ## Troubleshooting
 
 **El binario no compila:**
-- Verifica que tienes Qt6 (`Core`, `Gui`, `Qml`, `Quick`) y KDE
-  Frameworks 6 `kwindowsystem` instalados
+- Verifica que tienes Qt6 (`Core`, `Gui`, `Qml`, `Quick`) instalado
 - Revisa el output de `cmake -B build -S .` para el paquete faltante
 
 **Los stickers no aparecen en todos los escritorios:**
-- Confirma tu tipo de sesión: `echo $XDG_SESSION_TYPE`
-- Es una limitación conocida y documentada del compositor bajo
-  ciertas configuraciones Wayland — ver la sección de riesgos en
-  `docs/superpowers/specs/2026-08-17-multidesktop-markdown-stickers-design.md`
+- El mecanismo es una regla de KWin, no código de la app — verifica que existe:
+  `kreadconfig6 --file kwinrulesrc --group General --key rules` debe incluir `kdestickers-alldesktops`
+- Si falta, vuelve a correr `./scripts/install.sh` (la escribe de forma idempotente)
+- Si existe pero no aplica, fuerza la recarga: `qdbus6 org.kde.KWin /KWin org.kde.KWin.reconfigure`
+- Detalle completo del mecanismo en
+  `docs/superpowers/specs/2026-08-17-multidesktop-markdown-stickers-design.md`, sección "Multi-desktop: mecánica exacta"
 
 **Logs:**
 ```bash

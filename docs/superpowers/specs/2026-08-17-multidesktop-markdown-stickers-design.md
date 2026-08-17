@@ -1,7 +1,7 @@
 # Diseño: Sticky Notes Multi-Desktop con Markdown
 
 **Fecha:** 2026-08-17
-**Estado:** Aprobado, pendiente de plan de implementación
+**Estado:** Aprobado. Revisado el mismo día tras spike de Tarea 1: el mecanismo de multi-desktop original (C++/`KWindowSystem`) resultó no funcional bajo Wayland y fue reemplazado por reglas de ventana de KWin — ver sección "Multi-desktop: mecánica exacta".
 
 ## Contexto
 
@@ -17,15 +17,17 @@ Este diseño resuelve esa inconsistencia y especifica el comportamiento completo
 - El color de fondo se elige de una paleta fija o un selector libre
 
 **Entorno de desarrollo confirmado:**
-- Plasma 6.7.4, KWin bajo sesión **Wayland** (`XDG_SESSION_TYPE=wayland`)
-- Qt 6.x (el `qt5-base` detectado en el sistema es un paquete legacy no usado por Plasma 6/KWin)
-- KDE Frameworks 6 (paquete meta `kdeframeworks` no existe como tal; se usan frameworks individuales, en particular `KWindowSystem`)
+- Plasma 6.7.4, KWin 6.7.4 bajo sesión **Wayland** (`XDG_SESSION_TYPE=wayland`)
+- Qt 6.11.1 (el `qt5-base` detectado inicialmente en el sistema es un paquete legacy no usado por Plasma 6/KWin)
+- KDE Frameworks 6.28 (paquete meta `kdeframeworks` no existe como tal; se usan frameworks individuales)
+
+**Hallazgo empírico (spike de Tarea 1):** `KWindowSystem::setOnAllDesktops()` **no existe** en KF6 — se dividió en `KX11Extras`, documentada y confirmada en tiempo de ejecución como **solo-X11** (`"may only be used on X11"`). `KWaylandExtras` no tiene equivalente. Verificado con una ventana Qt6 nativa real: el estado `onAllDesktops` permanece `false` y la ventana desaparece al cambiar de escritorio virtual. Un spike de investigación posterior confirmó además que los protocolos Wayland candidatos (`org_kde_plasma_window_management`, `ext-workspace-v1`, `zkde_virtual_desktop_management_v1`) o no están expuestos por KWin 6.7.4 a clientes sin privilegios, o no están implementados en absoluto en este KWin. La única vía verificada empíricamente que funciona es una **regla de ventana de KWin** (mecanismo de compositor, no una API que la app llame) — ver "Multi-desktop: mecánica exacta".
 
 ## Decisión arquitectónica principal: de "Plasma Applet" a app standalone
 
 El proyecto **deja de ser un plugin `Plasma/Applet`** (KPackage embebido en un Containment) y pasa a ser una **aplicación Qt6/QML nativa con autostart**, gestionada vía *System Settings → Startup and Shutdown → Autostart* (un `.desktop` file estándar freedesktop, no el sistema de "Background Services" de Plasma, que es una confusión terminológica del scaffold original).
 
-Esto es consecuencia directa de que cada sticker necesita ser una ventana top-level independiente marcada como visible en todos los escritorios vía `KWindowSystem::setOnAllDesktops()` — una API que requiere una capa C++ mínima, y que no encaja en el modelo de contención de un Plasma Applet.
+Esto es consecuencia directa de que cada sticker necesita ser una ventana top-level independiente. Originalmente se planeó marcarla como visible en todos los escritorios vía una API C++ (`KWindowSystem::setOnAllDesktops()`), lo cual ya no aplica tras el hallazgo empírico anterior — pero el modelo de app standalone (ventanas top-level independientes, no un Plasma Applet embebido en un Containment) sigue siendo necesario y correcto, ahora por una razón distinta: es la única forma de tener múltiples ventanas de nivel superior cuyo `WM_CLASS`/app-id pueda ser objetivo de una regla de KWin.
 
 Cambios de empaquetado:
 - **Se elimina:** `metadata.json` con `KPackageStructure: Plasma/Applet` (ya no aplica)
@@ -34,33 +36,35 @@ Cambios de empaquetado:
 
 ## Arquitectura de componentes
 
-### Lado C++ (superficie mínima, un solo propósito)
+### Lado C++ (mínimo indispensable — sin lógica de negocio)
 
 | Archivo | Rol |
 |---|---|
-| `src/main.cpp` | Arranca `QGuiApplication` + `QQmlApplicationEngine`, registra `DesktopHelper` como singleton QML |
-| `src/desktophelper.h/.cpp` | Clase `DesktopHelper` con `Q_INVOKABLE void setOnAllDesktops(QWindow*, bool)`, envuelve `KWindowSystem::setOnAllDesktops()`. Única pieza C++ del proyecto — todo lo demás es QML/JS |
+| `src/main.cpp` | Arranca `QGuiApplication` + `QQmlApplicationEngine`. Llama `setDesktopFileName("org.kde.stickers")` para fijar el app-id Wayland que la regla de KWin usa para identificar las ventanas de la app. Sin clases C++ propias — no hay ninguna pieza de lógica de negocio en C++, solo el bootstrap estándar de una app Qt6/QML |
 
-`KWindowSystem` abstrae X11 y Wayland internamente (despacha a `_NET_WM_DESKTOP` en X11, al protocolo `plasma-window-management` en Wayland/KWin) — no se necesitan dos caminos de código.
+No existe ninguna dependencia de `KF6::WindowSystem` ni ninguna clase C++ custom — la Tarea 1 original incluía un `DesktopHelper` envolviendo `KWindowSystem`, descartado tras el hallazgo empírico.
 
 ### Lado QML/JS
 
 | Componente | Rol |
 |---|---|
-| `src/qml/main.qml` | Entry point invisible. Contiene el `StickerManager`, un `Repeater`/instanciación dinámica que crea una `StickerWindow` por cada sticker cargado, y el `SystemTrayIcon` |
+| `src/qml/Main.qml` | Entry point invisible (nombre con mayúscula inicial: requisito de `qt_add_qml_module`/`loadFromModule` para que el archivo sea cargable como tipo del módulo). Contiene el `StickerManager`, instanciación dinámica de una `StickerWindow` por cada sticker cargado, y el `SystemTrayIcon` |
 | `src/qml/StickerManager.js` | Singleton JS: carga stickers al arrancar desde `storage.js`, expone `createSticker()`, `deleteSticker(id)`, `updatePosition(id, x, y)`; mantiene el modelo que alimenta la instanciación de ventanas |
-| `src/qml/StickerWindow.qml` | Ventana individual (refactor del `main.qml` actual). En `Component.onCompleted` llama a `DesktopHelper.setOnAllDesktops(this, true)`. Contiene header (id, botón color, botón "+", botón eliminar) y área de contenido |
+| `src/qml/StickerWindow.qml` | Ventana individual (refactor del `main.qml` actual). Sin registro de "todos los escritorios" en el propio QML — es automático vía la regla de KWin aplicada por `WM_CLASS`. Contiene header (id, botón color, botón "+", botón eliminar) y área de contenido |
 | `src/qml/MarkdownView.qml` | `Text` con `textFormat: Text.MarkdownText` — modo preview, estilizado |
 | `src/qml/ColorPalette.qml` | Fila de swatches fijos + botón "+" que abre `ColorDialog` (`Qt.labs.platform`) para color libre |
 | `src/code/storage.js` | Persistencia JSON existente (`loadAllStickers`, `saveSticker`, `deleteSticker`, `newStickerId`), sin cambios de esquema |
 
-**Flujo de arranque:** `main.cpp` → QML engine carga `main.qml` → `StickerManager` lee `~/.stickers/stickers.json` vía `storage.js` → por cada sticker instancia una `StickerWindow` (`Qt.createComponent().createObject()`) → cada ventana se auto-registra "todos los escritorios" al completarse.
+**Flujo de arranque:** `main.cpp` → QML engine carga `Main.qml` → `StickerManager` lee `~/.stickers/stickers.json` vía `storage.js` → por cada sticker instancia una `StickerWindow` (`Qt.createComponent().createObject()`). Cada ventana nace ya con el `WM_CLASS`/app-id compartido de la app, así que la regla de KWin (aplicada una vez, a nivel de compositor) la cubre automáticamente sin que el código QML tenga que hacer nada por ventana.
 
 ## Multi-desktop: mecánica exacta
 
 1. Cada `StickerWindow` es una ventana top-level física independiente — no hay ventana "padre" oculta ni sincronización de estado entre ventanas, porque es la *misma* ventana la que se muestra sin importar el escritorio activo
-2. `Component.onCompleted: DesktopHelper.setOnAllDesktops(Window.window, true)` marca la ventana a nivel de KWin como perteneciente a todos los escritorios virtuales
-3. **Riesgo conocido:** bajo Wayland, el comportamiento depende de que KWin soporte el protocolo `plasma-window-management` para la app en cuestión. Se considera altamente probable en una instalación estándar de Plasma 6.7 (es funcionalidad básica de escritorio y KWin es el compositor de referencia), pero debe **verificarse empíricamente** antes de construir el resto — ver Plan de implementación
+2. El mecanismo es una **regla de ventana de KWin** (el mismo sistema detrás de *System Settings → Window Management → Window Rules*), almacenada en `~/.config/kwinrulesrc`, que fuerza `desktopsrule=Force` (valor `2`) con `desktops` vacío para cualquier ventana cuyo `wmclass` coincida con el app-id de la aplicación (`org.kde.stickers`, fijado vía `QGuiApplication::setDesktopFileName()` en `main.cpp`)
+3. La regla se aplica **a nivel de compositor**, no vía una llamada que la app haga sobre sí misma — por eso cubre automáticamente cualquier ventana que la app cree (todos los stickers, presentes y futuros) sin necesidad de código QML/C++ adicional
+4. La instalación de la regla ocurre una vez, al instalar la app (`scripts/install.sh`, ver Plan de implementación), escribiendo la sección correspondiente en `kwinrulesrc` y disparando `org.kde.KWin.reconfigure` por D-Bus para que KWin la recargue sin reiniciar sesión
+5. **Verificado empíricamente** (spikes de Tarea 1 e investigación posterior) sobre una ventana Qt6 nativa Wayland real en este KWin 6.7.4: sin la regla, `onAllDesktops=false` y la ventana desaparece al cambiar de escritorio; con la regla activa (aplicada en caliente vía `reconfigure`, sin reiniciar el proceso de la ventana), `onAllDesktops=true` y la ventana permanece visible en todos los escritorios virtuales
+6. **Caveat conocido:** esto es un archivo de configuración local de KWin, no una API que la app controle en tiempo de ejecución — si el usuario borra o edita manualmente esa regla desde *System Settings*, el comportamiento se pierde hasta reinstalar. Aceptable para el MVP; no se implementa detección/reparación automática
 
 ## Modelo de datos y persistencia
 
@@ -124,13 +128,13 @@ Archivo único `~/.stickers/stickers.json` (suficiente para decenas de stickers,
 
 - **JSON corrupto:** `storage.js` ya captura el error de parseo, loguea y devuelve `[]` — arranca sin stickers en vez de crashear
 - **Fallo de escritura** (permisos, disco lleno): se loguea con `console.error`, no bloquea la UI; el usuario pierde ese guardado puntual (visible en `journalctl`)
-- **`setOnAllDesktops` sin efecto:** no es error fatal — el sticker se comporta como ventana normal (visible solo en su escritorio de creación). No se implementa detección/fallback automático en el MVP; se documenta como limitación conocida si el spike revela problemas
+- **Regla de KWin ausente o eliminada por el usuario:** no es error fatal — el sticker se comporta como ventana normal (visible solo en su escritorio de creación). No se implementa detección/reparación automática en el MVP; queda documentado como limitación conocida (ver "Multi-desktop: mecánica exacta", caveat 6)
 
 ## Testing
 
 Sin framework de test automatizado (no se justifica para el alcance actual):
 
-- **Spike manual inicial** (primer paso de implementación): mini-ejecutable que crea una ventana y llama a `setOnAllDesktops(true)`, verificado visualmente cambiando de escritorio virtual bajo la sesión Wayland del usuario
+- **Spike manual inicial** (primer paso de implementación, ya ejecutado): confirmó que la API C++ original no funciona bajo Wayland y validó empíricamente el mecanismo de reemplazo (regla de KWin), verificado visualmente cambiando de escritorio virtual bajo la sesión Wayland del usuario
 - **Checklist manual de QA** para el MVP completo, documentado en `docs/` como guía repetible: crear, mover, editar Markdown, cambiar color, eliminar, cambiar de escritorio, reiniciar sesión y verificar persistencia
 - No se proponen tests unitarios QML/JS — sobre-ingeniería para el alcance actual
 
@@ -138,7 +142,8 @@ Sin framework de test automatizado (no se justifica para el alcance actual):
 
 - Atajo de teclado global para crear stickers (V2)
 - Diálogo de confirmación al eliminar
-- Detección/fallback automático si `setOnAllDesktops` falla bajo algún compositor
+- Detección/reparación automática si la regla de KWin es eliminada o falla bajo algún compositor
 - Multi-desktop "por escritorio" (posición distinta por desktop) — se descartó a favor de posición global única
 - Envío explícito de un sticker a un escritorio específico — es innecesario dado el modelo de posición global
 - Sincronización/backend avanzado (V3 del roadmap original)
+- Forzar XWayland (`QT_QPA_PLATFORM=xcb`) — evaluado como alternativa durante el spike de Tarea 1, descartado a favor de la regla de KWin (no requiere forzar un modo de compatibilidad ni depender de que XWayland siga disponible en futuras versiones de Plasma)
