@@ -1,11 +1,28 @@
 import QtQuick
-import QtQuick.Window
+import "StickerManager.js" as Manager
 
-Window {
-    id: testWindow
-    width: 200
-    height: 200
-    visible: true
-    color: "orange"
-    title: "kde-stickers spike"
+Item {
+    id: root
+
+    Component {
+        id: stickerWindowComponent
+        StickerWindow {}
+    }
+
+    Component.onCompleted: {
+        var loaded = Manager.loadStickers()
+        for (var i = 0; i < loaded.length; i++) {
+            createStickerWindow(loaded[i])
+        }
+    }
+
+    function createStickerWindow(sticker) {
+        return stickerWindowComponent.createObject(root, {
+            stickerId: sticker.id,
+            stickerText: sticker.text,
+            stickerColor: sticker.color,
+            posX: sticker.x,
+            posY: sticker.y
+        })
+    }
 }

@@ -18,6 +18,10 @@ qt_add_qml_module(kde-stickers
     VERSION 1.0
     QML_FILES
         src/qml/Main.qml
+        src/qml/StickerWindow.qml
+    SOURCES
+        src/qml/StickerManager.js
+        src/code/storage.js
 )
 
 target_link_libraries(kde-stickers
