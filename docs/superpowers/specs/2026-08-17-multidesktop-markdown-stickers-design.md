@@ -89,11 +89,22 @@ Sin cambios al esquema JSON existente:
 Archivo único `~/.stickers/stickers.json` (suficiente para decenas de stickers, no se necesita un archivo por sticker).
 
 **Puntos de guardado:**
-- `onReleased` del drag del header → `StickerManager.updatePosition(id, x, y)` → `storage.js.saveSticker()`
+- Cambio de posición (ver limitación conocida abajo) → `StickerManager.updatePosition(id, x, y)` → `storage.js.saveSticker()`
 - Blur del `TextEdit` (fin de edición) → `storage.js.saveSticker()` con el texto actualizado
 - Selección de color → `storage.js.saveSticker()` inmediato
 - Creación → `storage.js.saveSticker()` con valores por defecto
 - Eliminación → `storage.js.deleteSticker(id)` **antes** de cerrar la ventana (fix de bug: hoy el botón "✕" solo hace `mainWindow.close()` sin persistir el borrado)
+
+**Limitación conocida y aceptada — posición no persiste entre sesiones (hallazgo empírico, Tarea 3):**
+
+En Qt6 sobre esta pila KWin/Wayland, `Window.x`/`Window.y` **nunca refleja la posición real en pantalla**, ni siquiera tras un movimiento exitoso dirigido por el compositor (`Window.startSystemMove()`, verificado que sí mueve la ventana de verdad vía introspección de KWin). Es una limitación del propio protocolo Wayland: los eventos `configure` de `xdg-toplevel` no llevan posición, y ningún protocolo estándar informa a un cliente de sus coordenadas absolutas. Se suma a otro hallazgo previo (Tarea 2): KWin tampoco respeta la posición inicial solicitada por el cliente al crear una ventana (aplica su propia política de colocación).
+
+**Consecuencia aceptada para el MVP:**
+- Arrastrar un sticker **sí lo mueve visualmente** de forma real (confirmado con evidencia del compositor)
+- La posición arrastrada **no se puede leer de vuelta** para persistirla correctamente — el valor guardado en el JSON no refleja necesariamente dónde quedó el sticker en pantalla
+- Al reiniciar la app, cada sticker abre en la posición que KWin decida (su política de colocación), no en su última posición arrastrada
+- **Decisión del usuario (2026-08-18):** aceptar esta limitación tal cual, sin forzar XWayland ni investigar un bridge de auto-introspección vía D-Bus/KWin scripting — ambas alternativas quedan documentadas como posibles mejoras futuras, no perseguidas en este MVP
+- El campo `x`/`y` del esquema JSON se mantiene (no se elimina), ya que sigue siendo útil como valor inicial/best-effort y no rompe nada mantenerlo
 
 ## Edición / Preview de Markdown
 
@@ -146,4 +157,6 @@ Sin framework de test automatizado (no se justifica para el alcance actual):
 - Multi-desktop "por escritorio" (posición distinta por desktop) — se descartó a favor de posición global única
 - Envío explícito de un sticker a un escritorio específico — es innecesario dado el modelo de posición global
 - Sincronización/backend avanzado (V3 del roadmap original)
-- Forzar XWayland (`QT_QPA_PLATFORM=xcb`) — evaluado como alternativa durante el spike de Tarea 1, descartado a favor de la regla de KWin (no requiere forzar un modo de compatibilidad ni depender de que XWayland siga disponible en futuras versiones de Plasma)
+- Forzar XWayland (`QT_QPA_PLATFORM=xcb`) — evaluado como alternativa durante el spike de Tarea 1 (para multi-desktop) y de nuevo en la Tarea 3 (para lectura/persistencia de posición real), descartado ambas veces a favor de soluciones nativas de Wayland (no requiere forzar un modo de compatibilidad ni depender de que XWayland siga disponible en futuras versiones de Plasma)
+- Persistencia exacta de la posición de arrastre entre reinicios de la app — limitación empírica de esta pila Qt6/KWin/Wayland (ver "Modelo de datos y persistencia"), aceptada explícitamente por el usuario el 2026-08-18 en vez de perseguir XWayland o un bridge de auto-introspección D-Bus/KWin scripting
+- Bridge de auto-introspección de posición vía D-Bus/KWin scripting (la app consultándose a sí misma su posición real a través del scripting de KWin) — identificado como posible solución futura durante la Tarea 3, no investigado ni implementado en este MVP

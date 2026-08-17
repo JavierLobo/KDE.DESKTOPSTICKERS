@@ -1238,9 +1238,10 @@ Verificación manual repetible del MVP. No hay tests automatizados (decisión de
 
 ## Movimiento
 
-- [ ] Arrastrar un sticker por su header lo mueve visualmente
-- [ ] Al soltar, la nueva posición se guarda en `~/.stickers/stickers.json`
-- [ ] Al reiniciar la app, el sticker abre en la última posición guardada
+- [ ] Arrastrar un sticker por su header lo mueve visualmente (vía `Window.startSystemMove()`)
+- [ ] `~/.stickers/stickers.json` sigue siendo válido tras arrastrar (no se corrompe a `x:0, y:0`)
+
+**Limitación conocida y aceptada (ver spec, sección "Modelo de datos y persistencia"):** por una limitación del protocolo Wayland, la app no puede leer la posición real de una ventana tras moverla, así que la posición arrastrada **no** se persiste con precisión, y al reiniciar la app cada sticker abre en la posición que decida la política de colocación de KWin — **no** en su última posición arrastrada. Esto es intencional para este MVP, no un bug a reportar.
 
 ## Multi-desktop
 
