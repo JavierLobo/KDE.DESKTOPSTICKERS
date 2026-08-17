@@ -14,7 +14,7 @@
 
 - Target environment: Plasma 6.7.4, KWin 6.7.4, confirmed **Wayland** session (`XDG_SESSION_TYPE=wayland`).
 - Qt6 only — QML imports use unversioned syntax (`import QtQuick`, not `import QtQuick 2.15`).
-- No `KWindowSystem`/`KF6::WindowSystem` dependency and no custom C++ classes anywhere in the project — multi-desktop is handled entirely by a KWin window rule, not app code. `src/main.cpp` is the only C++ file in the whole project.
+- No `KWindowSystem`/`KF6::WindowSystem` dependency anywhere — multi-desktop is handled entirely by a KWin window rule, not app code. (Revision note: Task 2's fix loop found that Qt6's QtCore QML module does not expose `QDir`/`QFile`/`QIODevice` as QML-instantiable types at all — only `StandardPaths` is exported — so the original plan's assumption that `storage.js` could call `new QDir()`/`new QFile()` directly from QML JS was never actually valid. A minimal C++ singleton, `FileStorage` (`src/filestorage.h`/`.cpp`), was added to provide the four file-system primitives `storage.js` needs. This is unrelated to multi-desktop/KWindowSystem — it's a pre-existing latent bug in the original scaffold's storage design, unmasked once the app was actually run. `src/main.cpp` and `src/filestorage.h`/`.cpp` are the only C++ files in the project.)
 - QML entry-point files that must be loadable via `qt_add_qml_module`/`loadFromModule` need an **uppercase-leading filename** (`Main.qml`, not `main.qml`) — Qt's QML module tooling only registers uppercase-named files as module types. (Discovered during Task 1's spike.)
 - No automated test framework. Verification is compile success + documented manual QA (explicit spec decision, not a gap).
 - Single persistence file `~/.stickers/stickers.json`; JSON schema (`id`, `text`, `color`, `x`, `y`, `created`, `modified`) is unchanged from the current `storage.js`.
@@ -206,7 +206,9 @@ Note: the KWin rule itself lives in `~/.config/kwinrulesrc` (outside the repo) a
 
 ---
 
-## Task 2: StickerManager + load/display stickers on startup
+## Task 2: StickerManager + load/display stickers on startup (COMPLETE — see revision note)
+
+> **Revision note (post-completion):** the code blocks below are the ORIGINAL plan text; they turned out to be non-functional as written (Qt6's QtCore QML module doesn't expose `QDir`/`QFile`/`QIODevice` as QML types, `import QtCore` isn't valid classic-script syntax, and `drag.target: mainWindow` is a type error since `Window` isn't a `QQuickItem`). A two-round fix loop found and corrected six compounding bugs — see `.superpowers/sdd/2026-08-17-multidesktop-markdown-stickers/task-2-report.md` for the full technical narrative and the ledger for the review trail. **The actual shipped code differs from what's shown below** in these ways: `src/code/storage.js` uses `.import QtCore 6.2 as QC` + `.import Stickers.Storage 1.0 as App` and delegates file I/O to a new `src/filestorage.h`/`.cpp` C++ singleton (function names/signatures/JSON schema unchanged); `CMakeLists.txt` registers `StickerManager.js`/`storage.js` via `qt_target_qml_sources(... NO_CACHEGEN)` instead of `SOURCES`, and adds `filestorage.h`/`.cpp`; `src/qml/Main.qml`'s `createStickerWindow()` calls `w.show()` after `createObject()`; `src/qml/StickerWindow.qml`'s header `MouseArea` uses manual `onPressed`/`onPositionChanged` position tracking instead of `drag.target`/`drag.axis` (this last one is itself superseded again in Task 3 below — see that task's revision note). **Tasks 4, 5, and 7 below are unaffected** — their `StickerWindow.qml` edits target the content area and the ✕ button, neither of which changed.
 
 **Files:**
 - Create: `src/qml/StickerManager.js`
@@ -399,10 +401,12 @@ git commit -m "feat: load and display persisted stickers as independent multi-de
 
 ---
 
-## Task 3: Persist position on drag release
+## Task 3: Persist position on drag release (REVISED — includes drag-mechanism verification)
+
+> **Revision note:** Task 2's fix loop replaced the original `drag.target`/`drag.axis` MouseArea (a type error — `Window` isn't a `QQuickItem`, so it crashed window creation) with manual `onPressed`/`onPositionChanged` position-property assignment, just to unblock windows from appearing at all. That fix was never verified to actually *move* a window on screen, and Task 2's re-review flagged real reason to doubt it does: assigning `Window.x`/`Window.y` on an already-mapped `xdg-toplevel` surface is a well-known Wayland limitation that most compositors (including KWin, for plain client-requested repositioning) simply ignore — positioning an already-shown top-level is compositor-controlled under Wayland, unlike X11. This task's actual job — persist position on drag release — is meaningless if dragging doesn't visually work, so this task now includes verifying that, and fixing it via `Window.startSystemMove()` (the standard, compositor-cooperative way to interactively move a Wayland top-level) if the current approach turns out not to work. This requires real empirical verification, not just code review — assign a capable model, not a cheap transcription-tier one.
 
 **Files:**
-- Modify: `src/qml/StickerWindow.qml` (drag `MouseArea`, add import)
+- Modify: `src/qml/StickerWindow.qml` (header `MouseArea`, add import)
 - Modify: `src/qml/StickerManager.js` (add `updatePosition`)
 
 **Interfaces:**
@@ -423,35 +427,107 @@ function updatePosition(id, x, y) {
 }
 ```
 
-- [ ] **Step 2: Wire the drag release in `src/qml/StickerWindow.qml`**
+- [ ] **Step 2: Verify empirically whether the current drag mechanism actually moves the window**
 
-Add the import near the top, alongside the existing imports:
+The current `src/qml/StickerWindow.qml` header `MouseArea` (as Task 2's fix left it) is:
+
+```qml
+                MouseArea {
+                    id: dragArea
+                    anchors.fill: parent
+                    // drag.target requires a QQuickItem; mainWindow is a
+                    // Window (not an Item), so it cannot be a drag target
+                    // directly ("Unable to assign ... to QQuickItem" at
+                    // component creation, which aborts the whole window).
+                    // Track the press position and move the window manually
+                    // instead -- the standard pattern for dragging a
+                    // frameless Window by a header MouseArea.
+                    property point pressPos: Qt.point(0, 0)
+
+                    onPressed: (mouse) => {
+                        pressPos = Qt.point(mouse.x, mouse.y)
+                    }
+                    onPositionChanged: (mouse) => {
+                        mainWindow.x += mouse.x - pressPos.x
+                        mainWindow.y += mouse.y - pressPos.y
+                    }
+                }
+```
+
+Build and run the app (`cmake --build build`, `./scripts/test-sticker.sh`, `./build/kde-stickers`). Get the real, on-screen geometry of a sticker window via a KWin script querying `workspace.windowList()` (the same ground-truth method used in Tasks 1 and 2 — `org.kde.kwin.Scripting` D-Bus interface). Simulate a drag on the header (a pointer press + move + release — use whatever input-simulation tool is available in this environment, e.g. `ydotool`/`dotool`/`wtype` for Wayland, or a KWin scripting-console-driven synthetic event; if none is reliably available, moving the mouse and checking geometry before/after a manual `onPositionChanged` trigger via a short KWin script is an acceptable substitute — the point is to get the window's *actual compositor-reported position* before and after an attempted drag, not just QML's own `mainWindow.x` property, since those two can diverge exactly when this Wayland limitation is in play). Compare before/after geometry from `workspace.windowList()`.
+
+**If the window's real on-screen position changes to follow the drag:** the current mechanism works. Proceed to Step 3 as originally planned — just add the `onReleased` handler:
+
+```qml
+                MouseArea {
+                    id: dragArea
+                    anchors.fill: parent
+                    property point pressPos: Qt.point(0, 0)
+
+                    onPressed: (mouse) => {
+                        pressPos = Qt.point(mouse.x, mouse.y)
+                    }
+                    onPositionChanged: (mouse) => {
+                        mainWindow.x += mouse.x - pressPos.x
+                        mainWindow.y += mouse.y - pressPos.y
+                    }
+                    onReleased: Manager.updatePosition(stickerId, mainWindow.x, mainWindow.y)
+                }
+```
+
+**If the window's real on-screen position does NOT change** (this is the expected outcome per the revision note above): replace the whole `MouseArea` with the compositor-driven move approach instead:
+
+```qml
+                MouseArea {
+                    id: dragArea
+                    anchors.fill: parent
+                    onPressed: (mouse) => {
+                        if (mouse.button === Qt.LeftButton) {
+                            mainWindow.startSystemMove()
+                        }
+                    }
+                }
+```
+
+`startSystemMove()` hands the interactive move off to the compositor (the `xdg_toplevel::move` request) — there is no `onReleased` in this MouseArea to hook a persist call to, since the compositor owns the grab for the whole gesture. Instead, persist via position-change notification with a short debounce, added to the `Window` itself (near the top, alongside the existing `property` declarations):
+
+```qml
+    property bool positionDirty: false
+
+    onXChanged: {
+        positionDirty = true
+        persistTimer.restart()
+    }
+    onYChanged: {
+        positionDirty = true
+        persistTimer.restart()
+    }
+
+    Timer {
+        id: persistTimer
+        interval: 300
+        onTriggered: {
+            if (positionDirty) {
+                Manager.updatePosition(stickerId, mainWindow.x, mainWindow.y)
+                positionDirty = false
+            }
+        }
+    }
+```
+
+(`Timer` needs `import QtQml` — Qt6 unversioned; add it alongside the file's other imports if not already present via `QtQuick`'s own re-exports — check whether it's needed by attempting the build first, since `Timer` is commonly available through `QtQuick` alone in Qt6.)
+
+Whichever path you take, this is a real empirical decision based on what you observe on this machine, not a preference — pick the one that actually works, and say in your report which one you used and what evidence led you there.
+
+- [ ] **Step 3: Add the import**
+
+Add near the top of `src/qml/StickerWindow.qml`, alongside the existing imports:
 
 ```qml
 import "StickerManager.js" as Manager
 ```
 
-Change:
-```qml
-                MouseArea {
-                    id: dragArea
-                    anchors.fill: parent
-                    drag.target: mainWindow
-                    drag.axis: Drag.XAndYAxis
-                }
-```
-to:
-```qml
-                MouseArea {
-                    id: dragArea
-                    anchors.fill: parent
-                    drag.target: mainWindow
-                    drag.axis: Drag.XAndYAxis
-                    onReleased: Manager.updatePosition(stickerId, mainWindow.x, mainWindow.y)
-                }
-```
-
-- [ ] **Step 3: Build and manually verify persistence**
+- [ ] **Step 4: Build and manually verify persistence end-to-end**
 
 Run:
 ```bash
@@ -459,13 +535,13 @@ cmake --build build
 ./scripts/test-sticker.sh
 ./build/kde-stickers
 ```
-Drag sticker `#001` by its header to a new position. Press `Ctrl+C` to quit. Run:
+Drag sticker `#001` by its header to a visibly different position (confirm via screenshot or `workspace.windowList()` that it actually moved — not just that no error occurred). Wait for the drag/move gesture to fully end (release, or for the debounce timer if you used the `startSystemMove()` path). Then check:
 ```bash
 cat ~/.stickers/stickers.json | jq '.stickers[] | select(.id=="001")'
 ```
-Expected: `x`/`y` reflect the new dragged position, and `modified` is a newer timestamp than `created`. Relaunch `./build/kde-stickers` and confirm sticker `#001` opens at the dragged position.
+Expected: `x`/`y` reflect the new, actually-moved-to position (matching what you observed on screen, not the original seed values), and `modified` is a newer timestamp than `created`. Kill the process, relaunch `./build/kde-stickers`, and confirm sticker `#001` opens at the dragged position.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
 git add src/qml/StickerManager.js src/qml/StickerWindow.qml
@@ -853,6 +929,8 @@ function createSticker(originX, originY) {
 
 - [ ] **Step 2: Add the tray icon and `createNewSticker` to `src/qml/Main.qml`**
 
+> **Revision note:** Task 2's fix loop found that a dynamically-created `Window` needs an explicit `.show()` call after `createObject()` — its declarative `visible: true` binding doesn't take effect otherwise. The replacement below carries that fix forward (it would otherwise silently regress it, since this step replaces the whole file).
+
 Replace the whole file with:
 
 ```qml
@@ -876,13 +954,17 @@ Item {
     }
 
     function createStickerWindow(sticker) {
-        return stickerWindowComponent.createObject(root, {
+        var w = stickerWindowComponent.createObject(root, {
             stickerId: sticker.id,
             stickerText: sticker.text,
             stickerColor: sticker.color,
             posX: sticker.x,
             posY: sticker.y
         })
+        if (w) {
+            w.show()
+        }
+        return w
     }
 
     function createNewSticker(originX, originY) {
