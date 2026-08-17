@@ -6,7 +6,7 @@
 
 **Architecture:** A single background process (autostarted, no visible main window) owns a `StickerManager.js` singleton that loads/persists stickers via the existing `storage.js` JSON module and dynamically instantiates one independent top-level `StickerWindow` per sticker. Multi-desktop visibility is achieved via a **KWin window rule** (`~/.config/kwinrulesrc`, forcing `desktopsrule=Force` for any window matching the app's `WM_CLASS`), installed once by `scripts/install.sh` and applied compositor-side — not by any C++/QML code the app runs per-window. (Revision note: the original design used a C++ `DesktopHelper` wrapping `KWindowSystem::setOnAllDesktops()`; Task 1's spike proved that API is X11-only in KF6 and a no-op under this Wayland session. See the spec's "Multi-desktop: mecánica exacta" section for the empirical findings.)
 
-**Tech Stack:** Qt6 (Core, Gui, Qml, Quick), CMake, QML/JavaScript, `Qt.labs.platform` (SystemTrayIcon, ColorDialog), Bash (install script, KWin rule installation via `kwriteconfig6`/D-Bus).
+**Tech Stack:** Qt6 (Core, Gui, Qml, Quick, **Widgets**), CMake, QML/JavaScript, `Qt.labs.platform` (SystemTrayIcon, ColorDialog), Bash (install script, KWin rule installation via `kwriteconfig6`/D-Bus). (Revision note: `Widgets` and `QApplication`, not `QGuiApplication`, were added in Task 5 — `Qt.labs.platform`'s `ColorDialog` has no portal-backed native implementation on this system and falls back to a QtWidgets-based dialog, which requires `QApplication`. `QApplication` is a strict superset of `QGuiApplication`; nothing else changes.)
 
 **Spec:** `docs/superpowers/specs/2026-08-17-multidesktop-markdown-stickers-design.md`
 
