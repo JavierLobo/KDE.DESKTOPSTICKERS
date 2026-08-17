@@ -1,0 +1,19 @@
+# Build
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Runtime
+*.qmlc
+*.jsc
+.qmake.stash
+
+# Temporal
+*.tmp
+*.bak
