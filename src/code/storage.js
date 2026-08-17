@@ -1,36 +1,39 @@
-import QtCore
+.import QtCore 6.2 as QC
+.import Stickers.Storage 1.0 as App
 
 // Storage v1 - Persistencia en JSON
+//
+// File I/O (exists/ensureDir/readFile/writeFile) is delegated to the
+// FileStorage QML singleton (src/filestorage.h/.cpp) because QDir/QFile/
+// QIODevice are not registered as QML-accessible types in Qt6's QtCore QML
+// module — only StandardPaths is. The JSON schema and all four public
+// functions below are unchanged from the original design.
 function getStickersDir() {
-    let home = StandardPaths.writableLocation(StandardPaths.HomeLocation)
+    // writableLocation() returns a QUrl (e.g. "file:///home/user"), not a
+    // plain path -- FileStorage's QFile/QDir calls need a plain local path,
+    // so the "file://" scheme prefix must be stripped before use.
+    let home = String(QC.StandardPaths.writableLocation(QC.StandardPaths.HomeLocation))
+    if (home.indexOf("file://") === 0) {
+        home = home.substring(7)
+    }
     return home + "/.stickers"
 }
 
 function ensureDir() {
     let dir = getStickersDir()
-    let dirObj = new QDir(dir)
-    if (!dirObj.exists()) {
-        dirObj.mkpath(".")
-    }
+    App.FileStorage.ensureDir(dir)
 }
 
 function loadAllStickers() {
     ensureDir()
     let indexPath = getStickersDir() + "/stickers.json"
-    let file = new QFile(indexPath)
-    
-    if (!file.exists()) {
+
+    if (!App.FileStorage.exists(indexPath)) {
         return []
     }
-    
-    if (!file.open(QIODevice.ReadOnly | QIODevice.Text)) {
-        console.error("No se puede abrir:", indexPath)
-        return []
-    }
-    
-    let data = file.readAll()
-    file.close()
-    
+
+    let data = App.FileStorage.readFile(indexPath)
+
     try {
         let json = JSON.parse(data)
         return json.stickers || []
@@ -42,10 +45,10 @@ function loadAllStickers() {
 
 function saveSticker(id, text, color, x, y) {
     ensureDir()
-    
+
     let stickers = loadAllStickers()
     let idx = stickers.findIndex(s => s.id === id)
-    
+
     let sticker = {
         id: id,
         text: text,
@@ -55,45 +58,37 @@ function saveSticker(id, text, color, x, y) {
         created: new Date().toISOString(),
         modified: new Date().toISOString()
     }
-    
+
     if (idx >= 0) {
         sticker.created = stickers[idx].created
         stickers[idx] = sticker
     } else {
         stickers.push(sticker)
     }
-    
+
     let indexPath = getStickersDir() + "/stickers.json"
-    let file = new QFile(indexPath)
-    
-    if (!file.open(QIODevice.WriteOnly | QIODevice.Text)) {
+    let json = JSON.stringify({stickers: stickers}, null, 2)
+
+    if (!App.FileStorage.writeFile(indexPath, json)) {
         console.error("No se puede escribir:", indexPath)
         return false
     }
-    
-    let json = JSON.stringify({stickers: stickers}, null, 2)
-    file.write(json)
-    file.close()
-    
+
     return true
 }
 
 function deleteSticker(id) {
     let stickers = loadAllStickers()
     stickers = stickers.filter(s => s.id !== id)
-    
+
     let indexPath = getStickersDir() + "/stickers.json"
-    let file = new QFile(indexPath)
-    
-    if (!file.open(QIODevice.WriteOnly | QIODevice.Text)) {
+    let json = JSON.stringify({stickers: stickers}, null, 2)
+
+    if (!App.FileStorage.writeFile(indexPath, json)) {
         console.error("No se puede escribir:", indexPath)
         return false
     }
-    
-    let json = JSON.stringify({stickers: stickers}, null, 2)
-    file.write(json)
-    file.close()
-    
+
     return true
 }
 
@@ -103,6 +98,6 @@ function newStickerId() {
         let num = parseInt(s.id)
         return num > max ? num : max
     }, 0)
-    
+
     return String(maxId + 1).padStart(3, '0')
 }

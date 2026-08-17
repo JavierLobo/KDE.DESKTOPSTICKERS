@@ -1,5 +1,8 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
+#include <QQmlEngine>
+
+#include "filestorage.h"
 
 int main(int argc, char *argv[])
 {
@@ -13,6 +16,13 @@ int main(int argc, char *argv[])
     // Sticker windows come and go independently; the app must only quit
     // via the tray icon's "Salir", not when the last sticker closes.
     app.setQuitOnLastWindowClosed(false);
+
+    // Registered under its own module URI (not "StickersApp") so that
+    // storage.js -- itself part of the StickersApp module -- can .import it
+    // without creating a cyclic module dependency. See filestorage.h.
+    qmlRegisterSingletonType<FileStorage>(
+        "Stickers.Storage", 1, 0, "FileStorage",
+        [](QQmlEngine *, QJSEngine *) -> QObject * { return new FileStorage(); });
 
     QQmlApplicationEngine engine;
     QObject::connect(

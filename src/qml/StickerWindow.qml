@@ -44,8 +44,22 @@ Window {
                 MouseArea {
                     id: dragArea
                     anchors.fill: parent
-                    drag.target: mainWindow
-                    drag.axis: Drag.XAndYAxis
+                    // drag.target requires a QQuickItem; mainWindow is a
+                    // Window (not an Item), so it cannot be a drag target
+                    // directly ("Unable to assign ... to QQuickItem" at
+                    // component creation, which aborts the whole window).
+                    // Track the press position and move the window manually
+                    // instead -- the standard pattern for dragging a
+                    // frameless Window by a header MouseArea.
+                    property point pressPos: Qt.point(0, 0)
+
+                    onPressed: (mouse) => {
+                        pressPos = Qt.point(mouse.x, mouse.y)
+                    }
+                    onPositionChanged: (mouse) => {
+                        mainWindow.x += mouse.x - pressPos.x
+                        mainWindow.y += mouse.y - pressPos.y
+                    }
                 }
 
                 RowLayout {

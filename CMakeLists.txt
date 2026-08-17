@@ -20,8 +20,33 @@ qt_add_qml_module(kde-stickers
         src/qml/Main.qml
         src/qml/StickerWindow.qml
     SOURCES
+        src/filestorage.h
+        src/filestorage.cpp
+)
+
+# StickerManager.js and storage.js use the classic Qt Quick script directives
+# (.pragma library / .import) rather than QML_FILES entries or C++ SOURCES.
+# Two things had to be fixed here:
+#  1. "SOURCES" only registers files with target_sources() for the C++ build;
+#     it does NOT add them to the QML module's resource system, so the QML
+#     engine could never find them at qrc:/qt/qml/StickersApp/... at runtime.
+#     They must be registered as QML_FILES instead.
+#  2. Once registered as QML_FILES, qmlcachegen's AOT compiler tries to
+#     precompile them and fails ("Unexpected token `import'") because it does
+#     not understand the classic ".import"/".pragma library" directives, only
+#     real ECMAScript module syntax or plain QML documents. NO_CACHEGEN tells
+#     Qt to still embed them as resources but skip AOT compilation, so they
+#     are parsed/interpreted at runtime the classic way instead.
+qt_target_qml_sources(kde-stickers
+    QML_FILES
         src/qml/StickerManager.js
         src/code/storage.js
+    NO_CACHEGEN
+)
+
+target_include_directories(kde-stickers
+    PRIVATE
+        src
 )
 
 target_link_libraries(kde-stickers
