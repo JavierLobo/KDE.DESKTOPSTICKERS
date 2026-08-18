@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick Widgets DBus)
 
 qt_standard_project_setup(REQUIRES 6.5)
 
@@ -60,6 +60,7 @@ target_link_libraries(kde-stickers
         Qt6::Qml
         Qt6::Quick
         Qt6::Widgets
+        Qt6::DBus
 )
 
 install(TARGETS kde-stickers DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)

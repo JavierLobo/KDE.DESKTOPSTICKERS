@@ -1,4 +1,7 @@
 #include <QApplication>
+#include <QDBusConnection>
+#include <QDBusError>
+#include <QDebug>
 #include <QQmlApplicationEngine>
 #include <QQmlEngine>
 
@@ -32,9 +35,38 @@ int main(int argc, char *argv[])
         "Stickers.Storage", 1, 0, "FileStorage",
         [](QQmlEngine *, QJSEngine *) -> QObject * { return new FileStorage(); });
 
+    // The KWin script that reads a window's real on-screen geometry
+    // (KWinBridge::queryRealGeometry) reports its answer by calling back into
+    // this process over D-Bus, so the app has to be addressable on the
+    // session bus before any such query can be answered.
+    auto *kwinBridge = new KWinBridge();
+    if (!QDBusConnection::sessionBus().registerService(QStringLiteral("org.kde.stickers"))) {
+        qWarning() << "kde-stickers: could not register D-Bus service org.kde.stickers;"
+                   << "real window positions will not be readable"
+                   << QDBusConnection::sessionBus().lastError().message();
+    }
+    if (!QDBusConnection::sessionBus().registerObject(
+            QStringLiteral("/KWinBridge"), QStringLiteral("org.kde.stickers.KWinBridge"),
+            // ExportScriptableInvokables, not ExportScriptableSlots: moc
+            // classifies a Q_SCRIPTABLE member of a plain public: section as
+            // an invokable *method*, not a slot, so the "Slots" flag alone
+            // exports nothing at all and every callback is silently dropped.
+            // Verified by introspecting the running app with each flag.
+            kwinBridge, QDBusConnection::ExportScriptableInvokables)) {
+        qWarning() << "kde-stickers: could not register D-Bus object /KWinBridge;"
+                   << "real window positions will not be readable"
+                   << QDBusConnection::sessionBus().lastError().message();
+    }
+
     qmlRegisterSingletonType<KWinBridge>(
         "Stickers.KWin", 1, 0, "KWinBridge",
-        [](QQmlEngine *, QJSEngine *) -> QObject * { return new KWinBridge(); });
+        [kwinBridge](QQmlEngine *, QJSEngine *) -> QObject * {
+            // The bridge outlives the QML engine (it is also the D-Bus
+            // object registered above), so ownership must stay in C++ or the
+            // engine would delete it out from under the D-Bus registration.
+            QQmlEngine::setObjectOwnership(kwinBridge, QQmlEngine::CppOwnership);
+            return kwinBridge;
+        });
 
     QQmlApplicationEngine engine;
     QObject::connect(
