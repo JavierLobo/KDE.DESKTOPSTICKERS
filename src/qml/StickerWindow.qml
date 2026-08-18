@@ -12,6 +12,8 @@ Window {
     property string stickerColor: "#FFD700"
     property int posX: 100
     property int posY: 100
+    property int posWidth: 300
+    property int posHeight: 250
     // Window (unlike Item) has no QML-visible "parent" property, so
     // mainWindow.parent.createNewSticker(...) -- the brief's literal "+"
     // button handler -- evaluates mainWindow.parent as undefined and
@@ -23,8 +25,8 @@ Window {
     // reference, set from Main.qml at creation time, is required instead.
     property var appRoot: null
 
-    width: 300
-    height: 250
+    width: posWidth
+    height: posHeight
     x: posX
     y: posY
     visible: true
@@ -100,6 +102,45 @@ Window {
         anchors.fill: parent
         color: stickerColor
         radius: 8
+
+        MouseArea {
+            id: resizeArea
+            width: 14
+            height: 14
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            z: 10
+            cursorShape: Qt.SizeFDiagCursor
+
+            // NOT a delta-from-press-position calculation (that was tried
+            // first and empirically measured, via real synthetic drags
+            // cross-checked against KWin's on-screen window geometry, to
+            // grow the window at only ~50% of the actual cursor travel
+            // distance). Root cause: this MouseArea is anchored to
+            // parent.right/parent.bottom, so its own local origin moves
+            // every time mainWindow.width/height changes -- QML re-evaluates
+            // anchors synchronously, before the next input event is
+            // processed. That makes mouse.x/mouse.y (local coordinates)
+            // measured against a reference frame that has already shifted
+            // by the resize applied on the previous event, so comparing
+            // against the position captured at press time double-counts the
+            // shift and the recursion converges to roughly half the true
+            // delta. Using the CURRENT width/height instead of a press-time
+            // snapshot cancels that shift algebraically: mouse.x is always
+            // relative to the handle's current (already-shifted) origin, so
+            // "current width + (mouse.x - handle width)" reconstructs the
+            // absolute cursor position without compounding prior frames.
+            onPositionChanged: (mouse) => {
+                if (!pressed) return
+                var newWidth = mainWindow.width + (mouse.x - resizeArea.width)
+                var newHeight = mainWindow.height + (mouse.y - resizeArea.height)
+                mainWindow.width = Math.max(150, newWidth)
+                mainWindow.height = Math.max(120, newHeight)
+            }
+            onReleased: {
+                Manager.updateSize(stickerId, mainWindow.width, mainWindow.height)
+            }
+        }
 
         ColumnLayout {
             anchors.fill: parent
