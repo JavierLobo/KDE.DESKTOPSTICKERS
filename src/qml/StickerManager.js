@@ -13,21 +13,36 @@ function updatePosition(id, x, y) {
     if (!sticker) return
     sticker.x = x
     sticker.y = y
-    Storage.saveSticker(sticker.id, sticker.text, sticker.color, x, y)
+    Storage.saveSticker(sticker)
+}
+
+function updateSize(id, width, height) {
+    var sticker = stickers.find(function(s) { return s.id === id })
+    if (!sticker) return
+    sticker.width = width
+    sticker.height = height
+    Storage.saveSticker(sticker)
+}
+
+function updatePinned(id, pinned) {
+    var sticker = stickers.find(function(s) { return s.id === id })
+    if (!sticker) return
+    sticker.pinned = pinned
+    Storage.saveSticker(sticker)
 }
 
 function updateText(id, text) {
     var sticker = stickers.find(function(s) { return s.id === id })
     if (!sticker) return
     sticker.text = text
-    Storage.saveSticker(sticker.id, text, sticker.color, sticker.x, sticker.y)
+    Storage.saveSticker(sticker)
 }
 
 function updateColor(id, color) {
     var sticker = stickers.find(function(s) { return s.id === id })
     if (!sticker) return
     sticker.color = color
-    Storage.saveSticker(sticker.id, sticker.text, color, sticker.x, sticker.y)
+    Storage.saveSticker(sticker)
 }
 
 function createSticker(originX, originY) {
@@ -37,10 +52,13 @@ function createSticker(originX, originY) {
         text: "Nuevo sticker...",
         color: "#FFD700",
         x: originX + 30,
-        y: originY + 30
+        y: originY + 30,
+        width: 300,
+        height: 250,
+        pinned: false
     }
     stickers.push(sticker)
-    Storage.saveSticker(sticker.id, sticker.text, sticker.color, sticker.x, sticker.y)
+    Storage.saveSticker(sticker)
     return sticker
 }
 

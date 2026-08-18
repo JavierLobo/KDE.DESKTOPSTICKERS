@@ -36,34 +36,49 @@ function loadAllStickers() {
 
     try {
         let json = JSON.parse(data)
-        return json.stickers || []
+        let stickers = json.stickers || []
+        return stickers.map(s => ({
+            id: s.id,
+            text: s.text,
+            color: s.color,
+            x: s.x,
+            y: s.y,
+            width: s.width !== undefined ? s.width : 300,
+            height: s.height !== undefined ? s.height : 250,
+            pinned: s.pinned !== undefined ? s.pinned : false,
+            created: s.created,
+            modified: s.modified
+        }))
     } catch (e) {
         console.error("Error parsing JSON:", e)
         return []
     }
 }
 
-function saveSticker(id, text, color, x, y) {
+function saveSticker(sticker) {
     ensureDir()
 
     let stickers = loadAllStickers()
-    let idx = stickers.findIndex(s => s.id === id)
+    let idx = stickers.findIndex(s => s.id === sticker.id)
 
-    let sticker = {
-        id: id,
-        text: text,
-        color: color,
-        x: x,
-        y: y,
+    let record = {
+        id: sticker.id,
+        text: sticker.text,
+        color: sticker.color,
+        x: sticker.x,
+        y: sticker.y,
+        width: sticker.width,
+        height: sticker.height,
+        pinned: sticker.pinned,
         created: new Date().toISOString(),
         modified: new Date().toISOString()
     }
 
     if (idx >= 0) {
-        sticker.created = stickers[idx].created
-        stickers[idx] = sticker
+        record.created = stickers[idx].created
+        stickers[idx] = record
     } else {
-        stickers.push(sticker)
+        stickers.push(record)
     }
 
     let indexPath = getStickersDir() + "/stickers.json"
