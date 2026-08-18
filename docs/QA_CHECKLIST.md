@@ -48,7 +48,7 @@ Verificación manual repetible del MVP. No hay tests automatizados (decisión de
 ## Persistencia entre sesiones
 
 - [ ] Cerrar sesión de Plasma y volver a iniciar sesión levanta la app automáticamente (autostart)
-- [ ] Todos los stickers previamente creados aparecen con su texto, color y posición correctos
+- [ ] Todos los stickers previamente creados aparecen con su texto y color correctos (la posición sigue la limitación conocida de la sección "Movimiento" arriba)
 
 ## Salida
 

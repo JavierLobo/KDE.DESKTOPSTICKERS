@@ -1270,7 +1270,7 @@ Verificación manual repetible del MVP. No hay tests automatizados (decisión de
 ## Persistencia entre sesiones
 
 - [ ] Cerrar sesión de Plasma y volver a iniciar sesión levanta la app automáticamente (autostart)
-- [ ] Todos los stickers previamente creados aparecen con su texto, color y posición correctos
+- [ ] Todos los stickers previamente creados aparecen con su texto y color correctos (la posición sigue la limitación conocida de la sección "Movimiento" arriba)
 
 ## Salida
 
@@ -1305,7 +1305,9 @@ probarla ahora mismo sin reiniciar sesión:
 
 Deberías ver un icono en la bandeja del sistema ("KDE Stickers") y,
 si ya tienes stickers guardados en `~/.stickers/stickers.json`,
-sus ventanas aparecerán en las posiciones guardadas.
+sus ventanas aparecerán (en la posición que decida KWin — la posición
+exacta no se restaura entre sesiones, ver limitación conocida en el
+spec, sección "Modelo de datos y persistencia").
 
 ## Crear tu primer sticker
 
@@ -1334,7 +1336,7 @@ funcionalidades.
 ## Troubleshooting
 
 **El binario no compila:**
-- Verifica que tienes Qt6 (`Core`, `Gui`, `Qml`, `Quick`) instalado
+- Verifica que tienes Qt6 (`Core`, `Gui`, `Qml`, `Quick`, `Widgets`) instalado
 - Revisa el output de `cmake -B build -S .` para el paquete faltante
 
 **Los stickers no aparecen en todos los escritorios:**
