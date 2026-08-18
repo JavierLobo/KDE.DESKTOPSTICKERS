@@ -1,22 +1,22 @@
-.import QtCore 6.2 as QC
 .import Stickers.Storage 1.0 as App
 
 // Storage v1 - Persistencia en JSON
 //
-// File I/O (exists/ensureDir/readFile/writeFile) is delegated to the
-// FileStorage QML singleton (src/filestorage.h/.cpp) because QDir/QFile/
+// File I/O (exists/ensureDir/readFile/writeFile/stickersDir) is delegated to
+// the FileStorage QML singleton (src/filestorage.h/.cpp) because QDir/QFile/
 // QIODevice are not registered as QML-accessible types in Qt6's QtCore QML
 // module — only StandardPaths is. The JSON schema and all four public
 // functions below are unchanged from the original design.
+//
+// getStickersDir() used to compute this itself via QtCore's
+// StandardPaths.writableLocation(), which returns a QUrl whose string form
+// varies ("file:///home/user" vs "file:/home/user"); a hand-rolled
+// "file://" prefix strip missed the single-slash variant and silently
+// produced a bogus relative path. Resolving the path in C++ instead (where
+// QStandardPaths::writableLocation() returns a plain local QString, no URL
+// involved) removes that failure mode entirely.
 function getStickersDir() {
-    // writableLocation() returns a QUrl (e.g. "file:///home/user"), not a
-    // plain path -- FileStorage's QFile/QDir calls need a plain local path,
-    // so the "file://" scheme prefix must be stripped before use.
-    let home = String(QC.StandardPaths.writableLocation(QC.StandardPaths.HomeLocation))
-    if (home.indexOf("file://") === 0) {
-        home = home.substring(7)
-    }
-    return home + "/.stickers"
+    return App.FileStorage.stickersDir()
 }
 
 function ensureDir() {

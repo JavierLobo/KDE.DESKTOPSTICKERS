@@ -38,4 +38,16 @@ public:
     Q_INVOKABLE bool ensureDir(const QString &dirPath) const;
     Q_INVOKABLE QString readFile(const QString &path) const;
     Q_INVOKABLE bool writeFile(const QString &path, const QString &content) const;
+
+    // Returns the app's data directory (~/.stickers) as a plain local path.
+    // Resolved here in C++ via QStandardPaths::writableLocation(), which in
+    // C++ returns a QString local path directly -- unlike the QML/JS-visible
+    // QtCore StandardPaths singleton, whose writableLocation() returns a
+    // QUrl whose string form varies ("file:///home/user" vs "file:/home/user"
+    // are both observed serializations). storage.js used to strip a
+    // hardcoded "file://" prefix from that QUrl's string form, which
+    // silently failed to match the single-slash variant and produced a
+    // bogus relative path (see git history / review notes for the "file:"
+    // directory this created in the repo root).
+    Q_INVOKABLE QString stickersDir() const;
 };

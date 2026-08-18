@@ -4,6 +4,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QIODevice>
+#include <QStandardPaths>
 #include <QTextStream>
 
 FileStorage::FileStorage(QObject *parent) : QObject(parent) {}
@@ -44,4 +45,10 @@ bool FileStorage::writeFile(const QString &path, const QString &content) const
     stream << content;
     file.close();
     return true;
+}
+
+QString FileStorage::stickersDir() const
+{
+    const QString home = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
+    return home + QStringLiteral("/.stickers");
 }
