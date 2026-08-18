@@ -3,7 +3,7 @@
 ## Instalación
 
 ```bash
-cd ~/Repositorios/KDE.STICKERS
+cd <ruta-del-repo>  # navega al directorio donde clonaste el repositorio
 chmod +x scripts/install.sh
 ./scripts/install.sh
 ```
@@ -37,6 +37,10 @@ volver a la vista previa renderizada.
 
 ## Datos de prueba
 
+⚠️ Este script **sobrescribe** `~/.stickers/stickers.json` — si ya tienes
+stickers creados, se perderán. Úsalo solo en una instalación nueva o si no
+te importa perder los datos actuales.
+
 ```bash
 chmod +x scripts/test-sticker.sh
 ./scripts/test-sticker.sh
@@ -65,7 +69,9 @@ funcionalidades.
 
 **Logs:**
 ```bash
-journalctl -u plasmashell -f
+journalctl --user -f
 ```
-(o ejecuta `~/.local/bin/kde-stickers` directamente desde una
-terminal para ver su salida de consola en vivo)
+(la app es un proceso standalone, no parte de plasmashell, así que sus
+mensajes salen en el log de sesión de usuario; ejecutar
+`~/.local/bin/kde-stickers` directamente desde una terminal para ver su
+salida de consola en vivo sigue siendo la opción más fiable)

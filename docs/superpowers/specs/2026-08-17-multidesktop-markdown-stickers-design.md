@@ -40,9 +40,10 @@ Cambios de empaquetado:
 
 | Archivo | Rol |
 |---|---|
-| `src/main.cpp` | Arranca `QGuiApplication` + `QQmlApplicationEngine`. Llama `setDesktopFileName("org.kde.stickers")` para fijar el app-id Wayland que la regla de KWin usa para identificar las ventanas de la app. Sin clases C++ propias — no hay ninguna pieza de lógica de negocio en C++, solo el bootstrap estándar de una app Qt6/QML |
+| `src/main.cpp` | Arranca `QApplication` (no `QGuiApplication`: `Qt.labs.platform`'s `ColorDialog` no tiene implementación nativa vía portal en este sistema y cae a un diálogo basado en QtWidgets, que requiere `QApplication`) + `QQmlApplicationEngine`. Llama `setDesktopFileName("org.kde.stickers")` para fijar el app-id Wayland que la regla de KWin usa para identificar las ventanas de la app. Sin lógica de negocio propia — el único bootstrap estándar de una app Qt6/QML, más el registro del singleton `FileStorage` (ver fila siguiente) |
+| `src/filestorage.h`/`.cpp` | Singleton QML (`FileStorage`) que expone primitivas de sistema de archivos (`exists`, `ensureDir`, `readFile`, `writeFile`, `stickersDir`) a `storage.js`. Necesario porque el módulo QML `QtCore` de Qt6 no registra `QDir`/`QFile`/`QIODevice` como tipos instanciables desde QML — solo `StandardPaths` (y similares) están expuestos — así que ninguna sentencia `import` permite hacer `new QDir()`/`new QFile()` desde JavaScript de QML. Esta clase hace la I/O real en C++, donde `QDir`/`QFile` sí están disponibles |
 
-No existe ninguna dependencia de `KF6::WindowSystem` ni ninguna clase C++ custom — la Tarea 1 original incluía un `DesktopHelper` envolviendo `KWindowSystem`, descartado tras el hallazgo empírico.
+No existe ninguna dependencia de `KF6::WindowSystem` — la Tarea 1 original incluía un `DesktopHelper` envolviendo `KWindowSystem`, descartado tras el hallazgo empírico. Sí existe una clase C++ custom (`FileStorage`, ver tabla arriba), pero no por motivos de multi-desktop: es un puente mínimo de I/O de archivos para `storage.js`, sin ninguna lógica de negocio propia.
 
 ### Lado QML/JS
 
@@ -60,7 +61,7 @@ No existe ninguna dependencia de `KF6::WindowSystem` ni ninguna clase C++ custom
 ## Multi-desktop: mecánica exacta
 
 1. Cada `StickerWindow` es una ventana top-level física independiente — no hay ventana "padre" oculta ni sincronización de estado entre ventanas, porque es la *misma* ventana la que se muestra sin importar el escritorio activo
-2. El mecanismo es una **regla de ventana de KWin** (el mismo sistema detrás de *System Settings → Window Management → Window Rules*), almacenada en `~/.config/kwinrulesrc`, que fuerza `desktopsrule=Force` (valor `2`) con `desktops` vacío para cualquier ventana cuyo `wmclass` coincida con el app-id de la aplicación (`org.kde.stickers`, fijado vía `QGuiApplication::setDesktopFileName()` en `main.cpp`)
+2. El mecanismo es una **regla de ventana de KWin** (el mismo sistema detrás de *System Settings → Window Management → Window Rules*), almacenada en `~/.config/kwinrulesrc`, que fuerza `desktopsrule=Force` (valor `2`) con `desktops` vacío para cualquier ventana cuyo `wmclass` coincida con el app-id de la aplicación (`org.kde.stickers`, fijado vía `QApplication::setDesktopFileName()` en `main.cpp`)
 3. La regla se aplica **a nivel de compositor**, no vía una llamada que la app haga sobre sí misma — por eso cubre automáticamente cualquier ventana que la app cree (todos los stickers, presentes y futuros) sin necesidad de código QML/C++ adicional
 4. La instalación de la regla ocurre una vez, al instalar la app (`scripts/install.sh`, ver Plan de implementación), escribiendo la sección correspondiente en `kwinrulesrc` y disparando `org.kde.KWin.reconfigure` por D-Bus para que KWin la recargue sin reiniciar sesión
 5. **Verificado empíricamente** (spikes de Tarea 1 e investigación posterior) sobre una ventana Qt6 nativa Wayland real en este KWin 6.7.4: sin la regla, `onAllDesktops=false` y la ventana desaparece al cambiar de escritorio; con la regla activa (aplicada en caliente vía `reconfigure`, sin reiniciar el proceso de la ventana), `onAllDesktops=true` y la ventana permanece visible en todos los escritorios virtuales
@@ -126,8 +127,8 @@ En Qt6 sobre esta pila KWin/Wayland, `Window.x`/`Window.y` **nunca refleja la po
 
 **Creación — dos entradas, mismo flujo:**
 - **Tray icon** (`SystemTrayIcon`): menú contextual "Nuevo sticker" / "Salir"
-- **Botón "+"** en el header de cada `StickerWindow`: crea un sticker cercano (offset +30,+30 respecto al originador)
-- Ambos llaman a `StickerManager.createSticker()`: genera ID (`storage.js.newStickerId()`), persiste valores por defecto, instancia dinámicamente la nueva `StickerWindow`, aplica `setOnAllDesktops(true)`
+- **Botón "+"** en el header de cada `StickerWindow`: pide crear un sticker con offset +30,+30 respecto a la posición QML del originador (`mainWindow.x`/`y`). En la práctica, por la limitación conocida de posición descrita abajo, esa lectura vale `0,0` en el momento del click en este stack Wayland, así que el offset persistido es siempre `{x: 30, y: 30}` independientemente de dónde esté realmente el sticker originador en pantalla — y la posición real en la que aparece la ventana nueva la decide la política de colocación de KWin, no estas coordenadas (ver "Modelo de datos y persistencia")
+- Ambos llaman a `StickerManager.createSticker()`: genera ID (`storage.js.newStickerId()`), persiste valores por defecto, instancia dinámicamente la nueva `StickerWindow`. No hay paso adicional de registro multi-desktop por sticker — la nueva ventana ya nace con el `WM_CLASS`/app-id compartido de la app, así que la regla de KWin la cubre automáticamente (ver "Multi-desktop: mecánica exacta")
 
 **Fuera de alcance del MVP (diferido a V2):** atajo de teclado global para crear stickers — requiere registrar shortcuts globales del sistema, complejidad no crítica para el MVP.
 

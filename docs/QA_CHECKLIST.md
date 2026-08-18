@@ -11,7 +11,7 @@ Verificación manual repetible del MVP. No hay tests automatizados (decisión de
 ## Creación
 
 - [ ] Tray icon → "Nuevo sticker" crea un sticker amarillo con texto placeholder
-- [ ] Botón "+" de un sticker existente crea uno nuevo desplazado (+30,+30)
+- [ ] Botón "+" de un sticker existente crea uno nuevo con id incremental (la posición la decide KWin, ver limitación conocida en "Movimiento")
 - [ ] Cada sticker creado obtiene un id incremental único
 
 ## Movimiento

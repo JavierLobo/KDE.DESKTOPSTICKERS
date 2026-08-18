@@ -1,57 +1,65 @@
-# KDE Stickers v1
+# KDE Stickers
 
-Sticky notes flotantes en el escritorio de Plasma.
+Sticky notes flotantes para el escritorio de KDE Plasma. Aplicación
+standalone Qt6/QML (no un plasmoid) que se instala como programa normal con
+autostart — cada sticker es una ventana independiente, sin decoración,
+visible en **todos** los escritorios virtuales a la vez.
 
 ## Requisitos
 
-- Plasma 6.x (verificado con 6.7.4)
-- Qt 5.15+ ó Qt 6.x
-- Bash
+- Plasma 6.x (verificado con 6.7.4) y KWin, sesión Wayland
+- Qt 6.5+ (`Core`, `Gui`, `Qml`, `Quick`, `Widgets`)
+- CMake, Bash
 
 ## Instalación
 
 ```bash
-chmod +x install.sh
-./install.sh
+chmod +x scripts/install.sh
+./scripts/install.sh
 ```
 
-Luego reinicia Plasma:
+Compila el binario, lo instala en `~/.local/bin/kde-stickers`, registra el
+autostart y da de alta la regla de KWin que mantiene los stickers visibles
+en todos los escritorios. Ver `docs/QUICKSTART.md` para la guía completa
+(primer arranque, datos de prueba, troubleshooting) y `docs/QA_CHECKLIST.md`
+para el checklist manual de verificación.
 
-```bash
-kquitapp6 plasmashell
-sleep 1
-kstart6 plasmashell &
-```
+## Features
 
-O abre una terminal nueva y ejecuta:
+- Crear stickers individuales desde el icono de la bandeja o el botón "+"
+  de cualquier sticker existente, con id incremental
+- Arrastrar por el escritorio (movimiento real vía `Window.startSystemMove()`)
+- Visibles simultáneamente en todos los escritorios virtuales, vía una
+  regla de ventana de KWin (no requiere código por sticker)
+- Edición de texto en **Markdown completo** (tablas, código, citas, listas,
+  negrita/cursiva, enlaces, checkboxes), con alternancia automática:
+  click para editar, perder el foco para volver a la vista previa
+  renderizada
+- Color de fondo: paleta fija de 6 tonos pastel o selector de color libre
+- Eliminar stickers (sin diálogo de confirmación)
+- Persistencia en `~/.stickers/stickers.json`
+- Autostart vía `.desktop` freedesktop estándar (no "Background Services"
+  de Plasma)
 
-```bash
-plasmashell
-```
-
-## Estructura
-
-```
-~/.local/share/plasma/plasmoids/org.kde.stickers/
-├── metadata.json          # Metadatos del plugin
-└── contents/
-    ├── ui/
-    │   └── main.qml       # UI del sticker
-    └── code/
-        └── storage.js     # Persistencia JSON
-```
+**Limitación conocida y aceptada:** por una limitación del protocolo
+Wayland, la app no puede leer la posición real de un sticker tras moverlo,
+así que la posición no se restaura con precisión entre reinicios — al
+volver a lanzar la app, cada sticker abre donde decida la política de
+colocación de KWin, no en su última posición arrastrada. El arrastre en sí
+sí mueve la ventana de verdad. Detalle completo en
+`docs/superpowers/specs/2026-08-17-multidesktop-markdown-stickers-design.md`,
+sección "Modelo de datos y persistencia".
 
 ## Almacenamiento
 
-Los stickers se guardan en: `~/.stickers/stickers.json`
+Los stickers se guardan en `~/.stickers/stickers.json`:
 
-Formato:
 ```json
 {
   "stickers": [
     {
       "id": "001",
-      "text": "Contenido del sticker",
+      "text": "Contenido en Markdown",
       "color": "#FFD700",
       "x": 100,
       "y": 200,
@@ -61,51 +69,6 @@ Formato:
   ]
 }
 ```
-
-## Features v1
-
-✅ Crear stickers individuales
-✅ Editar texto en tiempo real
-✅ Arrastrar por pantalla
-✅ Cambiar color (7 colores disponibles)
-✅ Eliminar stickers
-✅ Auto-guardado cada 500ms
-✅ Persistencia en JSON
-
-## Próximas versiones
-
-v2:
-- Soporte para múltiples escritorios
-- Renderizador Markdown
-- Preview mode vs Edit mode
-
-v3:
-- Plugin C++ para sincronización
-- Copiar/pegar entre stickers
-- Resize dinámico
-
-## Debug
-
-Ver logs:
-```bash
-journalctl -u plasmashell -f
-```
-
-Ver estructura de archivos:
-```bash
-tree ~/.local/share/plasma/plasmoids/org.kde.stickers/
-cat ~/.stickers/stickers.json
-```
-
-## Problemas comunes
-
-**El plugin no aparece:**
-- Asegúrate que `~/.local/share/plasma/plasmoids/org.kde.stickers/metadata.json` existe
-- Recarga Plasma: `kquitapp6 plasmashell && kstart6 plasmashell &`
-
-**Los stickers no se guardan:**
-- Verifica que `~/.stickers/` existe y es escribible
-- Revisa los logs: `journalctl -u plasmashell -f`
 
 ## Licencia
 
