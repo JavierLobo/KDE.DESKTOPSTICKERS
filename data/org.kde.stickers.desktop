@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=KDE Stickers
+Name[es]=KDE Stickers
+Comment=Sticky notes flotantes en el escritorio
+Comment[es]=Sticky notes flotantes en el escritorio
+Exec=__KDE_STICKERS_BIN__
+Icon=document-properties
+Terminal=false
+Categories=Utility;
+X-KDE-autostart-phase=1
