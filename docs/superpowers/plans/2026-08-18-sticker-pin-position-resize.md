@@ -850,20 +850,42 @@ Clean up the test rule (same as Step 2) before moving on.
 
 This is the primary candidate mechanism: the app exposes its own D-Bus method; a KWin script (loaded/run via `org.kde.kwin.Scripting`) finds the target window and calls back into the app with its real geometry, turning an inherently async KWin-script callback into a synchronous-looking Qt call via a local blocking event loop with a timeout. This exact mechanism has NOT been tried anywhere in this project before — unlike the rule-writing approach (which reuses proven techniques), this needs real, careful empirical verification of each piece. Test incrementally; don't assume any single piece works until you've checked it.
 
-Add to `src/kwinbridge.h`, inside the class (after `removeRules`'s declaration):
+Change (in `src/kwinbridge.h` — this inserts the new declarations into the existing `public:` block, ahead of the already-present `protected:` section, so there is only ever one `public:` block in the whole class; Task 6 and Task 7 append further methods to this same block later):
 ```cpp
+    Q_INVOKABLE void removeRules(const QString &stickerId) const;
+
+protected:
+```
+to:
+```cpp
+    Q_INVOKABLE void removeRules(const QString &stickerId) const;
     Q_INVOKABLE QPointF queryRealGeometry(const QString &windowTitle);
+
+    // Exposed for the KWin script (via callDBus) to call back into. Not
+    // meant to be called directly from QML.
+    Q_SCRIPTABLE void receiveGeometry(const QString &windowTitle, double x, double y);
 
 signals:
     void geometryReported(const QString &windowTitle, double x, double y);
 
-public:
-    // Exposed for the KWin script (via callDBus) to call back into. Not
-    // meant to be called directly from QML.
-    Q_SCRIPTABLE void receiveGeometry(const QString &windowTitle, double x, double y);
+protected:
 ```
 
-Also add `#include <QPointF>` to the top of `src/kwinbridge.h`.
+Change (also in `src/kwinbridge.h`):
+```cpp
+#pragma once
+
+#include <QObject>
+#include <QString>
+```
+to:
+```cpp
+#pragma once
+
+#include <QObject>
+#include <QPointF>
+#include <QString>
+```
 
 Add to `src/kwinbridge.cpp`:
 ```cpp
