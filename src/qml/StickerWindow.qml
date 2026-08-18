@@ -154,7 +154,10 @@ Window {
                         text: "✕"
                         Layout.preferredWidth: 28
                         Layout.preferredHeight: 28
-                        onClicked: mainWindow.close()
+                        onClicked: {
+                            Manager.removeSticker(stickerId)
+                            mainWindow.close()
+                        }
                     }
                 }
             }

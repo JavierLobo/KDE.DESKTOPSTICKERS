@@ -43,3 +43,8 @@ function createSticker(originX, originY) {
     Storage.saveSticker(sticker.id, sticker.text, sticker.color, sticker.x, sticker.y)
     return sticker
 }
+
+function removeSticker(id) {
+    stickers = stickers.filter(function(s) { return s.id !== id })
+    Storage.deleteSticker(id)
+}
