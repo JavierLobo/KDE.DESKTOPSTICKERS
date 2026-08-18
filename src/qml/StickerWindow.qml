@@ -32,10 +32,11 @@ Window {
     visible: true
     flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
     color: "transparent"
-
-    // No per-window multi-desktop registration needed here — the KWin
-    // window rule installed in Task 1 (matched by the app's WM_CLASS)
-    // covers every window this app creates automatically.
+    // Unique per window so KWin window rules can address one specific
+    // sticker (matched by wmclass + title together) instead of every
+    // window this app creates — needed now that "all desktops" becomes
+    // a per-sticker opt-in (pin) instead of an app-wide static rule.
+    title: "Sticker " + stickerId
 
     // Persist position on change, debounced. startSystemMove() (see the
     // header MouseArea below) hands the interactive move grab off to the
