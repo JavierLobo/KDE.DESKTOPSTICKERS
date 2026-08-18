@@ -64,16 +64,27 @@ funcionalidades.
 ## Troubleshooting
 
 **El binario no compila:**
-- Verifica que tienes Qt6 (`Core`, `Gui`, `Qml`, `Quick`, `Widgets`) instalado
+- Verifica que tienes Qt6 (`Core`, `Gui`, `Qml`, `Quick`, `Widgets`, `DBus`) instalado
 - Revisa el output de `cmake -B build -S .` para el paquete faltante
 
-**Los stickers no aparecen en todos los escritorios:**
-- El mecanismo es una regla de KWin, no código de la app — verifica que existe:
-  `kreadconfig6 --file kwinrulesrc --group General --key rules` debe incluir `kdestickers-alldesktops`
-- Si falta, vuelve a correr `./scripts/install.sh` (la escribe de forma idempotente)
-- Si existe pero no aplica, fuerza la recarga: `qdbus6 org.kde.KWin /KWin org.kde.KWin.reconfigure`
-- Detalle completo del mecanismo en
-  `docs/superpowers/specs/2026-08-17-multidesktop-markdown-stickers-design.md`, sección "Multi-desktop: mecánica exacta"
+**Un sticker no aparece en todos los escritorios:**
+- "Todos los escritorios" es un opt-in **por sticker** vía el botón de pin
+  (📍/📌) del header, no una regla global de la app — primero verifica que
+  el sticker en cuestión tiene el pin activo (📌).
+- Si el pin está activo pero el sticker sigue sin seguirte entre
+  escritorios, verifica la regla de KWin de ese sticker específico:
+  `kreadconfig6 --file kwinrulesrc --group kdestickers-sticker-<id> --key desktopsrule`
+  debe devolver `2` (Force). Si devuelve `1` o está vacío, el pin no llegó a
+  escribirse — reintenta el click en 📌.
+- Verifica también que el grupo está listado:
+  `kreadconfig6 --file kwinrulesrc --group General --key rules` debe incluir
+  `kdestickers-sticker-<id>`.
+- Si los valores son correctos pero no aplica en vivo, fuerza la recarga:
+  `qdbus6 org.kde.KWin /KWin org.kde.KWin.reconfigure`
+- Detalle completo del mecanismo (una regla de KWin por sticker, compartida
+  entre pin y posición) en
+  `docs/superpowers/specs/2026-08-18-sticker-pin-position-resize-design.md`,
+  sección "Arquitectura: de regla global a reglas por-ventana"
 
 **Logs:**
 ```bash

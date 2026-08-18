@@ -11,7 +11,7 @@ Verificación manual repetible del MVP. No hay tests automatizados (decisión de
 ## Creación
 
 - [ ] Tray icon → "Nuevo sticker" crea un sticker amarillo con texto placeholder
-- [ ] Botón "+" de un sticker existente crea uno nuevo con id incremental (la posición la decide KWin, ver limitación conocida en "Movimiento")
+- [ ] Botón "+" de un sticker existente crea uno nuevo con id incremental (la posición inicial la decide KWin — la posición real solo se persiste tras el primer arrastre, ver "Movimiento")
 - [ ] Cada sticker creado obtiene un id incremental único
 
 ## Movimiento
@@ -34,10 +34,12 @@ Verificación manual repetible del MVP. No hay tests automatizados (decisión de
 - [ ] No se puede encoger por debajo de ~150×120px
 - [ ] El tamaño persiste en `~/.stickers/stickers.json` y se restaura al reiniciar la app
 
-## Multi-desktop
+## Combinado: pin + movimiento + resize
 
-- [ ] Todos los stickers son visibles al cambiar de escritorio virtual (Pager o `Ctrl+F2`/`Meta+Ctrl+Right`)
-- [ ] La posición de cada sticker es la misma sin importar el escritorio activo
+- [ ] Un sticker que se pinea, se arrastra a una nueva posición y se
+      redimensiona restaura los tres estados correctamente tras reiniciar la
+      app (pin activo, posición real, tamaño) — sin necesidad de repetir
+      ninguna de las tres acciones tras el reinicio
 
 ## Markdown
 
@@ -61,7 +63,7 @@ Verificación manual repetible del MVP. No hay tests automatizados (decisión de
 ## Persistencia entre sesiones
 
 - [ ] Cerrar sesión de Plasma y volver a iniciar sesión levanta la app automáticamente (autostart)
-- [ ] Todos los stickers previamente creados aparecen con su texto y color correctos (la posición sigue la limitación conocida de la sección "Movimiento" arriba)
+- [ ] Todos los stickers previamente creados aparecen con su texto, color, posición, tamaño y estado de pin correctos
 
 ## Salida
 

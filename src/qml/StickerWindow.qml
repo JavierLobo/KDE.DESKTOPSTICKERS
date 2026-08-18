@@ -87,7 +87,27 @@ Window {
         onTriggered: {
             if (positionDirty) {
                 var realPos = KWin.KWinBridge.queryRealGeometry(mainWindow.title)
-                if (realPos.x >= 0 && realPos.y >= 0) {
+                // KWinBridge::queryRealGeometry() (src/kwinbridge.cpp) uses
+                // QPointF(-1, -1) as its one and only *failure* sentinel --
+                // every early-return path there (query already in flight,
+                // script file failed to open, loadScript() returned a bad
+                // id, or the 2s timeout elapsed with no receiveGeometry()
+                // callback) falls through to that same `return received ?
+                // result : QPointF(-1, -1);`. A sign-based check here
+                // (`realPos.x >= 0 && realPos.y >= 0`) was wrong: on a real
+                // multi-monitor layout where a screen sits left of or above
+                // the primary monitor, KWin's frameGeometry legitimately
+                // reports negative x/y for windows on that screen, so a
+                // sign check would silently reject every real (successful)
+                // geometry read there too, and that sticker would never
+                // persist a position or get a position rule at all. Compare
+                // against the sentinel value exactly instead of testing
+                // sign. (A real, successful read could coincidentally be
+                // exactly (-1,-1) only in the practically-impossible case of
+                // a window whose true position is that exact pixel -- not
+                // worth guarding further, and matches how the C++ side
+                // already treats (-1,-1) as the one and only sentinel.)
+                if (realPos.x !== -1 || realPos.y !== -1) {
                     Manager.updatePosition(stickerId, realPos.x, realPos.y)
                     KWin.KWinBridge.updatePositionRule(stickerId, mainWindow.title, realPos.x, realPos.y)
                 }
