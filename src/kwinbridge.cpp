@@ -3,6 +3,7 @@
 #include <QDBusConnection>
 #include <QDir>
 #include <QEventLoop>
+#include <QFile>
 #include <QProcess>
 #include <QScopeGuard>
 #include <QStringList>
@@ -10,7 +11,10 @@
 #include <QTextStream>
 #include <QTimer>
 
-KWinBridge::KWinBridge(QObject *parent) : QObject(parent) {}
+KWinBridge::KWinBridge(QObject *parent) : QObject(parent)
+{
+    startPositionWatch();
+}
 
 QString KWinBridge::ruleGroupName(const QString &stickerId)
 {
@@ -86,6 +90,11 @@ void KWinBridge::receiveGeometry(const QString &windowTitle, const QString &geom
         return;
     }
     emit geometryReported(windowTitle, x, y);
+}
+
+void KWinBridge::receiveMoveFinished(const QString &windowTitle)
+{
+    emit moveFinished(windowTitle);
 }
 
 // Escapes a string for safe embedding inside a double-quoted JS string
@@ -328,4 +337,128 @@ void KWinBridge::setPinned(const QString &stickerId, const QString &windowTitle,
          QStringLiteral("--key"), QStringLiteral("desktopsrule"), QStringLiteral("2")});
 
     reconfigureKWin();
+}
+
+// Writes to the *same* rule group id (kdestickers-sticker-<id>) that
+// setPinned() may also write to -- a sticker that is both pinned and has a
+// known position ends up with one rule group carrying both
+// desktops/desktopsrule and position/positionrule keys, which is valid KWin
+// rule syntax (a single rule group can force multiple properties at once).
+// kwriteconfig6 only touches the specific key given each call, so writing
+// position keys here doesn't clobber setPinned()'s desktop keys already in
+// the same group, or vice versa.
+void KWinBridge::updatePositionRule(const QString &stickerId, const QString &windowTitle, int x, int y) const
+{
+    const QString ruleId = ruleGroupName(stickerId);
+
+    addRuleIdToList(ruleId);
+    QProcess::execute(QStringLiteral("kwriteconfig6"),
+        {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
+         QStringLiteral("--group"), ruleId,
+         QStringLiteral("--key"), QStringLiteral("wmclass"), QStringLiteral("org.kde.stickers")});
+    QProcess::execute(QStringLiteral("kwriteconfig6"),
+        {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
+         QStringLiteral("--group"), ruleId,
+         QStringLiteral("--key"), QStringLiteral("wmclassmatch"), QStringLiteral("2")});
+    QProcess::execute(QStringLiteral("kwriteconfig6"),
+        {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
+         QStringLiteral("--group"), ruleId,
+         QStringLiteral("--key"), QStringLiteral("wmclasscomplete"), QStringLiteral("false")});
+    QProcess::execute(QStringLiteral("kwriteconfig6"),
+        {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
+         QStringLiteral("--group"), ruleId,
+         QStringLiteral("--key"), QStringLiteral("title"), windowTitle});
+    QProcess::execute(QStringLiteral("kwriteconfig6"),
+        {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
+         QStringLiteral("--group"), ruleId,
+         QStringLiteral("--key"), QStringLiteral("titlematch"), QStringLiteral("1")});
+    QProcess::execute(QStringLiteral("kwriteconfig6"),
+        {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
+         QStringLiteral("--group"), ruleId,
+         QStringLiteral("--key"), QStringLiteral("types"), QStringLiteral("1")});
+    QProcess::execute(QStringLiteral("kwriteconfig6"),
+        {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
+         QStringLiteral("--group"), ruleId,
+         QStringLiteral("--key"), QStringLiteral("position"),
+         QStringLiteral("%1,%2").arg(x).arg(y)});
+    QProcess::execute(QStringLiteral("kwriteconfig6"),
+        {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
+         QStringLiteral("--group"), ruleId,
+         QStringLiteral("--key"), QStringLiteral("positionrule"), QStringLiteral("3")});
+
+    reconfigureKWin();
+}
+
+void KWinBridge::startPositionWatch() const
+{
+    // Not a QTemporaryFile: this script must go on being readable/valid for
+    // KWin's whole session (see the .h comment -- it is loaded once and
+    // deliberately never unloaded), so an auto-deleted-on-scope-exit temp
+    // file would be the wrong tool here, unlike queryRealGeometry's and
+    // unpinLiveWindow's short-lived scripts. A fixed path is overwritten
+    // fresh on every app startup, which is fine: KWin only reads the file
+    // at loadScript() time, not afterward.
+    const QString scriptPath = QDir::tempPath() + QStringLiteral("/kde-stickers-position-watch.js");
+    QFile scriptFile(scriptPath);
+    if (!scriptFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        return;
+    }
+    QTextStream stream(&scriptFile);
+    // attach() connects interactiveMoveResizeFinished (fired by KWin itself
+    // when an interactive move/resize grab ends -- see receiveMoveFinished's
+    // .h comment for why this, and not any Qt/QML-side signal, is the only
+    // reliable "the drag just ended" trigger on this stack) on every sticker
+    // window, matched by caption prefix rather than exact title since this
+    // one script has to cover every sticker, present and future, not one
+    // specific window the way queryRealGeometry's per-call script does.
+    // windowAdded covers stickers created later via the "+" button;
+    // existing ones are attached up front from the initial windowList().
+    stream << QStringLiteral(
+        "function kdeStickersAttach(win) {\n"
+        "    if (win.caption.indexOf(\"Sticker \") !== 0) return;\n"
+        "    win.interactiveMoveResizeFinished.connect(function() {\n"
+        "        callDBus(\"org.kde.stickers\", \"/KWinBridge\","
+        " \"org.kde.stickers.KWinBridge\", \"receiveMoveFinished\", win.caption);\n"
+        "    });\n"
+        "}\n"
+        "var kdeStickersWins = workspace.windowList();\n"
+        "for (var i = 0; i < kdeStickersWins.length; i++) {\n"
+        "    kdeStickersAttach(kdeStickersWins[i]);\n"
+        "}\n"
+        "workspace.windowAdded.connect(kdeStickersAttach);\n"
+    );
+    stream.flush();
+    scriptFile.close();
+
+    const QString pluginName = QStringLiteral("kde-stickers-position-watch");
+
+    // Unload-before-load, same reasoning as queryRealGeometry/
+    // unpinLiveWindow: KWin refuses loadScript() under an already-registered
+    // plugin name, and a previous unclean exit of this app would otherwise
+    // leave this name registered (pointing at a now-dead D-Bus service)
+    // forever, permanently blocking every future position watch.
+    QProcess::execute(QStringLiteral("qdbus6"),
+        {QStringLiteral("org.kde.KWin"), QStringLiteral("/Scripting"),
+         QStringLiteral("org.kde.kwin.Scripting.unloadScript"), pluginName});
+
+    QProcess loadProcess;
+    loadProcess.start(QStringLiteral("qdbus6"),
+        {QStringLiteral("org.kde.KWin"), QStringLiteral("/Scripting"),
+         QStringLiteral("org.kde.kwin.Scripting.loadScript"),
+         scriptPath, pluginName});
+    loadProcess.waitForFinished();
+    const QString scriptId = QString::fromUtf8(loadProcess.readAllStandardOutput()).trimmed();
+
+    bool idOk = false;
+    const int id = scriptId.toInt(&idOk);
+    if (idOk && id >= 0) {
+        // Deliberately no matching unloadScript call anywhere -- this script
+        // is meant to keep running (and its signal connections keep living)
+        // for the rest of the KWin session, unlike every other script in
+        // this class.
+        QProcess::execute(QStringLiteral("qdbus6"),
+            {QStringLiteral("org.kde.KWin"),
+             QStringLiteral("/Scripting/Script%1").arg(id),
+             QStringLiteral("org.kde.kwin.Script.run")});
+    }
 }

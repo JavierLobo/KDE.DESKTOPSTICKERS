@@ -35,6 +35,18 @@ public:
     // see unpinLiveWindow() below for why.
     Q_INVOKABLE void setPinned(const QString &stickerId, const QString &windowTitle, bool pinned) const;
 
+    // Writes (or overwrites) the per-sticker position rule: a
+    // title+wmclass-matched Apply (positionrule=3) rule that places the
+    // window at (x, y) the next time it is created. Deliberately Apply, not
+    // Force (2): the Task 5 spike found Force also sets movable=false live,
+    // which would make the window undraggable and break this app's core
+    // drag feature. Apply only takes effect at window-creation time, so the
+    // live drag that produced (x, y) keeps working via startSystemMove(),
+    // and this rule only determines where the window opens next launch.
+    // Shares the same rule group id as setPinned() -- see updatePositionRule's
+    // .cpp comments for why that's safe.
+    Q_INVOKABLE void updatePositionRule(const QString &stickerId, const QString &windowTitle, int x, int y) const;
+
     // Returns the window's real on-screen top-left position as KWin itself
     // reports it (frameGeometry), or QPointF(-1, -1) on failure/timeout.
     //
@@ -71,8 +83,46 @@ public:
     // so the numeric form would fail almost always. "s" is unambiguous.
     Q_SCRIPTABLE void receiveGeometry(const QString &windowTitle, const QString &geometry);
 
+    // Exposed for the KWin script started by startPositionWatch() (via
+    // callDBus) to call back into whenever ANY sticker window's interactive
+    // move gesture ends. Not meant to be called directly from QML.
+    //
+    // Real-drag testing during this task found that mainWindow.x/y in QML
+    // (and therefore onXChanged/onYChanged) never change at all after a
+    // window is mapped, even across a genuine startSystemMove()-driven drag
+    // that KWin's own frameGeometry confirms really moved the window --
+    // Wayland gives clients no absolute-position feedback, and (unlike a
+    // one-time startup artifact the original MVP's code once guarded
+    // against, where x/y briefly read back the requested position before
+    // the Wayland QPA plugin reset its cached value) nothing ever resets/
+    // updates x/y again afterward on this Qt6/KWin/Wayland stack. The
+    // MouseArea's onReleased never fires either, for the same underlying
+    // reason the header comment above it already documents (startSystemMove()
+    // hands the whole gesture to the compositor). So there is no
+    // client-side Qt/QML signal at all to hook a "the drag just ended"
+    // persist trigger to.
+    //
+    // KWin's own Window scripting object does not have this limitation: it
+    // exposes interactiveMoveResizeFinished, fired by KWin itself (not
+    // routed through Wayland's client-facing protocol) exactly when an
+    // interactive move/resize grab ends. Confirmed by direct signal-probing
+    // during this task (connecting to a live sticker window and performing
+    // a real synthetic drag): interactiveMoveResizeStarted and -Stepped both
+    // fire throughout the drag, and interactiveMoveResizeFinished fires
+    // exactly once at the end, with frameGeometry already updated to the
+    // final position. This callback only carries windowTitle (not x/y) --
+    // the receiving QML side re-reads the position via queryRealGeometry(),
+    // so there's no need to marshal numbers here and no risk of the int32-
+    // vs-double D-Bus signature ambiguity documented on receiveGeometry().
+    Q_SCRIPTABLE void receiveMoveFinished(const QString &windowTitle);
+
 signals:
     void geometryReported(const QString &windowTitle, double x, double y);
+
+    // Emitted when receiveMoveFinished() is called back. windowTitle
+    // identifies which sticker's drag just ended; QML listens for this and
+    // compares against mainWindow.title.
+    void moveFinished(const QString &windowTitle);
 
 protected:
     // Exposed protected (not private) so later tasks in this same class
@@ -90,6 +140,20 @@ protected:
     // rule is gone (Task 5 spike finding). Must be called only after the
     // rule has been removed and KWin has reconfigured -- see setPinned().
     void unpinLiveWindow(const QString &windowTitle) const;
+
+    // Loads a single, long-lived KWin script (kept loaded, never unloaded
+    // by this class -- unlike every other script here, its whole purpose is
+    // to keep listening) that connects interactiveMoveResizeFinished on
+    // every current AND future sticker window (matched by caption prefix
+    // "Sticker ", the format StickerWindow.qml's title property always
+    // uses) to a callDBus call into receiveMoveFinished(). See
+    // receiveMoveFinished()'s own comment for why this exists at all.
+    // Called once, from the constructor -- idempotent by construction since
+    // it only ever runs once per process, but still unloads any
+    // same-named script left registered by a previous, uncleanly-exited
+    // run first, matching the unload-before-load pattern used elsewhere in
+    // this class.
+    void startPositionWatch() const;
 
 private:
     // Guards against the re-entrancy described on queryRealGeometry().

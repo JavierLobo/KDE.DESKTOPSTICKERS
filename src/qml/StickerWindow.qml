@@ -40,53 +40,45 @@ Window {
     // a per-sticker opt-in (pin) instead of an app-wide static rule.
     title: "Sticker " + stickerId
 
-    // Persist position on change, debounced. startSystemMove() (see the
-    // header MouseArea below) hands the interactive move grab off to the
-    // compositor for the whole gesture -- there is no onReleased to hook
-    // a persist call to -- so we watch x/y instead and persist a short
-    // idle period after they stop changing.
+    // Persist real position when a drag ends, then write a KWin position
+    // rule so the window opens there again on the next launch.
     //
-    // IMPORTANT (best-effort only, not fully functional here): per the
-    // accepted Wayland limitation documented in the spec's "Modelo de datos
-    // y persistencia" section, mainWindow.x/y never reflects this window's
-    // real on-screen position on this Qt6/KWin/Wayland stack -- Wayland's
-    // xdg-toplevel protocol gives clients no absolute-position feedback at
-    // all, and KWin does not honor the persisted x/y as a restore position
-    // on the next launch either (it applies its own placement policy
-    // instead). This whole mechanism is harmless to keep -- it would work
-    // correctly on X11 or a compositor that does report real position, and
-    // costs nothing to leave running -- but on this stack it mostly persists
-    // a value that does not correspond to where the sticker actually ended
-    // up on screen. Kept as documented, intentional best-effort, not a bug.
+    // startSystemMove() (see the header MouseArea below) hands the whole
+    // interactive-move gesture off to the compositor -- there is no
+    // onReleased on that MouseArea to hook a persist call to. The original
+    // plan here (see git history / task brief) was to watch this Window's
+    // x/y as a "something moved, check again shortly" trigger instead, the
+    // same way the original MVP's best-effort mechanism did. Real-drag
+    // testing during this task (a genuine synthetic hardware-level drag,
+    // cross-checked against KWin's own frameGeometry as ground truth)
+    // falsified that plan: mainWindow.x/y never changes at all after the
+    // window is first mapped, not even across a drag that KWin confirms
+    // really moved the window on screen. Wayland gives clients no absolute-
+    // position feedback, and -- unlike the one-time startup artifact the
+    // original code guarded against -- nothing ever updates x/y again
+    // afterward on this Qt6/KWin/Wayland stack. So there is no Qt/QML-side
+    // signal at all to hook a "the drag just ended" trigger to; onXChanged/
+    // onYChanged simply never fire post-startup, and neither does
+    // onReleased.
     //
-    // settled guards against a real startup artifact (Task 3 empirical
-    // finding, reproduced with a minimal standalone QtQuick.Window too, so
-    // it is a Qt6-Wayland-QPA platform behavior, not specific to this app's
-    // dynamic window creation): x/y read back the correct posX/posY for one
-    // tick, then the Wayland QPA plugin resets them to (0, 0) shortly after
-    // the surface is actually mapped, since xdg-toplevel's configure event
-    // carries no position -- Wayland gives clients no absolute-position
-    // feedback at all. Without this guard, that reset would fire
-    // onXChanged/onYChanged and silently overwrite the loaded position with
-    // (0, 0) in storage before the user ever touches the window.
+    // KWin.KWinBridge.moveFinished fixes this from the KWin side instead of
+    // the Qt side: KWinBridge (see kwinbridge.h/.cpp's startPositionWatch()
+    // and receiveMoveFinished()) runs a small persistent KWin script that
+    // connects to interactiveMoveResizeFinished on every sticker window --
+    // a signal KWin itself fires when an interactive move/resize grab ends,
+    // independent of Wayland's client-facing protocol, confirmed by direct
+    // signal-probing plus a real drag during this task's verification. That
+    // script calls back over D-Bus, which KWinBridge re-emits as
+    // moveFinished(windowTitle) for QML to listen to here.
     property bool positionDirty: false
-    property bool settled: false
 
-    Timer {
-        interval: 1000
-        running: true
-        onTriggered: settled = true
-    }
-
-    onXChanged: {
-        if (!settled) return
-        positionDirty = true
-        persistTimer.restart()
-    }
-    onYChanged: {
-        if (!settled) return
-        positionDirty = true
-        persistTimer.restart()
+    Connections {
+        target: KWin.KWinBridge
+        function onMoveFinished(windowTitle) {
+            if (windowTitle !== mainWindow.title) return
+            positionDirty = true
+            persistTimer.restart()
+        }
     }
 
     Timer {
@@ -94,7 +86,11 @@ Window {
         interval: 300
         onTriggered: {
             if (positionDirty) {
-                Manager.updatePosition(stickerId, mainWindow.x, mainWindow.y)
+                var realPos = KWin.KWinBridge.queryRealGeometry(mainWindow.title)
+                if (realPos.x >= 0 && realPos.y >= 0) {
+                    Manager.updatePosition(stickerId, realPos.x, realPos.y)
+                    KWin.KWinBridge.updatePositionRule(stickerId, mainWindow.title, realPos.x, realPos.y)
+                }
                 positionDirty = false
             }
         }
@@ -226,11 +222,12 @@ Window {
                         onClicked: {
                             Manager.removeSticker(stickerId)
                             // close() alone only hides the window -- the QML
-                            // object, its Timers (settled/persistTimer above)
-                            // and property change handlers stay alive for
-                            // the rest of the process lifetime otherwise, a
-                            // small per-deletion leak in this long-running
-                            // autostart daemon. destroy() actually frees it.
+                            // object, its persistTimer above, and the
+                            // Connections to KWinBridge.moveFinished stay
+                            // alive for the rest of the process lifetime
+                            // otherwise, a small per-deletion leak in this
+                            // long-running autostart daemon. destroy()
+                            // actually frees it.
                             mainWindow.close()
                             mainWindow.destroy()
                         }
