@@ -17,9 +17,22 @@ Verificación manual repetible del MVP. No hay tests automatizados (decisión de
 ## Movimiento
 
 - [ ] Arrastrar un sticker por su header lo mueve visualmente (vía `Window.startSystemMove()`)
-- [ ] `~/.stickers/stickers.json` sigue siendo válido tras arrastrar (no se corrompe a `x:0, y:0`)
+- [ ] Al soltar, la posición real (no la de Qt, la reportada por KWin) se persiste en `~/.stickers/stickers.json`
+- [ ] Al reiniciar la app, el sticker abre en su última posición real (vía regla de KWin por ventana, `kdestickers-sticker-<id>`)
 
-**Limitación conocida y aceptada (ver spec, sección "Modelo de datos y persistencia"):** por una limitación del protocolo Wayland, la app no puede leer la posición real de una ventana tras moverla, así que la posición arrastrada **no** se persiste con precisión, y al reiniciar la app cada sticker abre en la posición que decida la política de colocación de KWin — **no** en su última posición arrastrada. Esto es intencional para este MVP, no un bug a reportar.
+## Pin (todos los escritorios por sticker)
+
+- [ ] Botón 📍/📌 alterna el estado de pin visualmente
+- [ ] Con pin activo (📌), el sticker es visible en todos los escritorios virtuales
+- [ ] Sin pin (📍), el sticker solo existe en el escritorio donde se creó o se movió
+- [ ] El estado del pin persiste en `~/.stickers/stickers.json` y sobrevive a un reinicio de la app
+- [ ] Nuevo sticker creado: empieza sin pin (📍) por defecto
+
+## Resize
+
+- [ ] Arrastrar desde la esquina inferior derecha redimensiona el sticker visualmente
+- [ ] No se puede encoger por debajo de ~150×120px
+- [ ] El tamaño persiste en `~/.stickers/stickers.json` y se restaura al reiniciar la app
 
 ## Multi-desktop
 

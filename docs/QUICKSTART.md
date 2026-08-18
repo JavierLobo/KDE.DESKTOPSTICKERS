@@ -23,7 +23,8 @@ probarla ahora mismo sin reiniciar sesión:
 
 Deberías ver un icono en la bandeja del sistema ("KDE Stickers") y,
 si ya tienes stickers guardados en `~/.stickers/stickers.json`,
-sus ventanas aparecerán (en la posición que decida KWin — la posición exacta no se restaura entre sesiones, ver limitación conocida en la sección "Movimiento" de `docs/QA_CHECKLIST.md`).
+sus ventanas aparecerán en su última posición real (persistida vía
+una regla de KWin por sticker — ver `docs/QA_CHECKLIST.md`).
 
 ## Crear tu primer sticker
 
@@ -34,6 +35,13 @@ sus ventanas aparecerán (en la posición que decida KWin — la posición exact
 
 Click dentro del sticker para editar en Markdown. Click fuera para
 volver a la vista previa renderizada.
+
+## Pin (todos los escritorios) y resize
+
+- Botón 📍/📌 en el header: alterna si el sticker es visible en todos
+  los escritorios virtuales (📌) o solo en el suyo (📍). Por defecto,
+  todo sticker nuevo empieza sin pin.
+- Arrastra desde la esquina inferior derecha para redimensionar.
 
 ## Datos de prueba
 

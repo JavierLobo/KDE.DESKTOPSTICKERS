@@ -1,7 +1,7 @@
 # Diseño: Posición Persistente, Pin por Sticker y Resize
 
 **Fecha:** 2026-08-18
-**Estado:** Aprobado, pendiente de plan de implementación
+**Estado:** Implementado.
 **Depende de:** `docs/superpowers/specs/2026-08-17-multidesktop-markdown-stickers-design.md` (spec original, ya implementado y fusionado a `master`)
 
 ## Contexto
