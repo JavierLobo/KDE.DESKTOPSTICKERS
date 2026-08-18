@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
 import "StickerManager.js" as Manager
+import Stickers.KWin as KWin
 
 Window {
     id: mainWindow
@@ -14,6 +15,7 @@ Window {
     property int posY: 100
     property int posWidth: 300
     property int posHeight: 250
+    property bool stickerPinned: false
     // Window (unlike Item) has no QML-visible "parent" property, so
     // mainWindow.parent.createNewSticker(...) -- the brief's literal "+"
     // button handler -- evaluates mainWindow.parent as undefined and
@@ -189,6 +191,18 @@ Window {
                         font.bold: true
                         Layout.fillWidth: true
                         font.pixelSize: 12
+                    }
+
+                    Button {
+                        text: stickerPinned ? "📌" : "📍"
+                        Layout.preferredWidth: 28
+                        Layout.preferredHeight: 28
+                        onClicked: {
+                            var newPinned = !stickerPinned
+                            stickerPinned = newPinned
+                            Manager.updatePinned(stickerId, newPinned)
+                            KWin.KWinBridge.setPinned(stickerId, mainWindow.title, newPinned)
+                        }
                     }
 
                     Button {

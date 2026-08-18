@@ -26,6 +26,7 @@ Item {
             posY: sticker.y,
             posWidth: sticker.width,
             posHeight: sticker.height,
+            stickerPinned: sticker.pinned,
             appRoot: root
         })
         // StickerWindow declares "visible: true", but a Window instantiated

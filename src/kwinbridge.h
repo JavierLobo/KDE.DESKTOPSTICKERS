@@ -26,6 +26,15 @@ public:
     // that id -- a no-op in that case. Called when a sticker is deleted.
     Q_INVOKABLE void removeRules(const QString &stickerId) const;
 
+    // Applies or removes the per-sticker "all desktops" (pin) rule. Pinning
+    // writes a title+wmclass-matched Force rule (see setPinned()'s .cpp
+    // comments for the exact keys); the rule alone is sufficient because
+    // KWin applies desktopsrule=Force live to any already-open matching
+    // window, not just on next creation (Task 5 spike finding). Unpinning
+    // requires an extra live-window step beyond just removing the rule --
+    // see unpinLiveWindow() below for why.
+    Q_INVOKABLE void setPinned(const QString &stickerId, const QString &windowTitle, bool pinned) const;
+
     // Returns the window's real on-screen top-left position as KWin itself
     // reports it (frameGeometry), or QPointF(-1, -1) on failure/timeout.
     //
@@ -73,6 +82,14 @@ protected:
     void removeRuleIdFromList(const QString &ruleId) const;
     void addRuleIdToList(const QString &ruleId) const;
     bool reconfigureKWin() const;
+
+    // Live-unsets onAllDesktops on the currently-open window matching
+    // windowTitle via a fire-and-forget KWin script. Needed because
+    // removing the KWin rule alone does not un-pin a window that is
+    // already pinned: desktopsrule=Force sets state that persists once the
+    // rule is gone (Task 5 spike finding). Must be called only after the
+    // rule has been removed and KWin has reconfigured -- see setPinned().
+    void unpinLiveWindow(const QString &windowTitle) const;
 
 private:
     // Guards against the re-entrancy described on queryRealGeometry().

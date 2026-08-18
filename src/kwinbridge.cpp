@@ -209,3 +209,123 @@ QPointF KWinBridge::queryRealGeometry(const QString &windowTitle)
 
     return received ? result : QPointF(-1, -1);
 }
+
+void KWinBridge::unpinLiveWindow(const QString &windowTitle) const
+{
+    // Fire-and-forget: unlike queryRealGeometry, this script doesn't call
+    // back into the app (no callDBus, no return value needed), so there's
+    // no risk of the callback deadlocking against a blocked event loop --
+    // a plain blocking QProcess::execute for both run() and the unload
+    // afterward is safe here.
+    QTemporaryFile scriptFile(QDir::tempPath() + QStringLiteral("/kde-stickers-unpin-XXXXXX.js"));
+    if (!scriptFile.open()) {
+        return;
+    }
+    QTextStream stream(&scriptFile);
+    stream << QStringLiteral(
+        "var wins = workspace.windowList();\n"
+        "for (var i = 0; i < wins.length; i++) {\n"
+        "    if (wins[i].caption === \"%1\") {\n"
+        "        wins[i].onAllDesktops = false;\n"
+        "        break;\n"
+        "    }\n"
+        "}\n"
+    ).arg(jsQuote(windowTitle));
+    stream.flush();
+    scriptFile.close();
+
+    const QString pluginName = QStringLiteral("kde-stickers-unpin");
+
+    // Same unload-before-load pattern as queryRealGeometry, same reason:
+    // KWin refuses loadScript() under an already-registered plugin name.
+    QProcess::execute(QStringLiteral("qdbus6"),
+        {QStringLiteral("org.kde.KWin"), QStringLiteral("/Scripting"),
+         QStringLiteral("org.kde.kwin.Scripting.unloadScript"), pluginName});
+
+    QProcess loadProcess;
+    loadProcess.start(QStringLiteral("qdbus6"),
+        {QStringLiteral("org.kde.KWin"), QStringLiteral("/Scripting"),
+         QStringLiteral("org.kde.kwin.Scripting.loadScript"),
+         scriptFile.fileName(), pluginName});
+    loadProcess.waitForFinished();
+    const QString scriptId = QString::fromUtf8(loadProcess.readAllStandardOutput()).trimmed();
+
+    bool idOk = false;
+    const int id = scriptId.toInt(&idOk);
+    if (idOk && id >= 0) {
+        QProcess::execute(QStringLiteral("qdbus6"),
+            {QStringLiteral("org.kde.KWin"),
+             QStringLiteral("/Scripting/Script%1").arg(id),
+             QStringLiteral("org.kde.kwin.Script.run")});
+        QProcess::execute(QStringLiteral("qdbus6"),
+            {QStringLiteral("org.kde.KWin"), QStringLiteral("/Scripting"),
+             QStringLiteral("org.kde.kwin.Scripting.unloadScript"), pluginName});
+    }
+}
+
+void KWinBridge::setPinned(const QString &stickerId, const QString &windowTitle, bool pinned) const
+{
+    const QString ruleId = ruleGroupName(stickerId);
+
+    if (!pinned) {
+        // Order matters: remove the rule and let reconfigure fully land
+        // BEFORE touching the live window, or the still-active Force rule
+        // silently re-pins it out from under the script (Task 5 finding).
+        //
+        // "Fully land" needs an explicit wait, not just a blocking D-Bus
+        // round-trip: reconfigureKWin()'s QProcess::execute only waits for
+        // org.kde.KWin.reconfigure's D-Bus *reply*, which KWin sends before
+        // it has actually finished rebuilding its internal rule cache from
+        // the new (rule-less) kwinrulesrc. Measured directly while
+        // implementing this task: calling unpinLiveWindow() immediately
+        // after reconfigureKWin() returns reproduced the still-pinned bug
+        // on every single trial (window stayed onAllDesktops=true), while
+        // adding a settle wait first fixed it reliably. This is exactly the
+        // "looks like a flaky KWin bug" trap Task 5's spike warned about --
+        // it is a race, not a KWin defect. The 300ms below is a generous
+        // margin over the ~50-100ms observed to be sufficient.
+        removeRuleIdFromList(ruleId);
+        reconfigureKWin();
+        QEventLoop settleLoop;
+        QTimer::singleShot(300, &settleLoop, &QEventLoop::quit);
+        settleLoop.exec();
+        unpinLiveWindow(windowTitle);
+        return;
+    }
+
+    addRuleIdToList(ruleId);
+    QProcess::execute(QStringLiteral("kwriteconfig6"),
+        {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
+         QStringLiteral("--group"), ruleId,
+         QStringLiteral("--key"), QStringLiteral("wmclass"), QStringLiteral("org.kde.stickers")});
+    QProcess::execute(QStringLiteral("kwriteconfig6"),
+        {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
+         QStringLiteral("--group"), ruleId,
+         QStringLiteral("--key"), QStringLiteral("wmclassmatch"), QStringLiteral("2")});
+    QProcess::execute(QStringLiteral("kwriteconfig6"),
+        {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
+         QStringLiteral("--group"), ruleId,
+         QStringLiteral("--key"), QStringLiteral("wmclasscomplete"), QStringLiteral("false")});
+    QProcess::execute(QStringLiteral("kwriteconfig6"),
+        {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
+         QStringLiteral("--group"), ruleId,
+         QStringLiteral("--key"), QStringLiteral("title"), windowTitle});
+    QProcess::execute(QStringLiteral("kwriteconfig6"),
+        {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
+         QStringLiteral("--group"), ruleId,
+         QStringLiteral("--key"), QStringLiteral("titlematch"), QStringLiteral("1")});
+    QProcess::execute(QStringLiteral("kwriteconfig6"),
+        {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
+         QStringLiteral("--group"), ruleId,
+         QStringLiteral("--key"), QStringLiteral("types"), QStringLiteral("1")});
+    QProcess::execute(QStringLiteral("kwriteconfig6"),
+        {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
+         QStringLiteral("--group"), ruleId,
+         QStringLiteral("--key"), QStringLiteral("desktops"), QStringLiteral("")});
+    QProcess::execute(QStringLiteral("kwriteconfig6"),
+        {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
+         QStringLiteral("--group"), ruleId,
+         QStringLiteral("--key"), QStringLiteral("desktopsrule"), QStringLiteral("2")});
+
+    reconfigureKWin();
+}
