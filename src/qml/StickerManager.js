@@ -1,5 +1,6 @@
 .pragma library
 .import "../code/storage.js" as Storage
+.import Stickers.KWin 1.0 as KWin
 
 var stickers = []
 
@@ -65,4 +66,5 @@ function createSticker(originX, originY) {
 function removeSticker(id) {
     stickers = stickers.filter(function(s) { return s.id !== id })
     Storage.deleteSticker(id)
+    KWin.KWinBridge.removeRules(id)
 }

@@ -24,6 +24,8 @@ qt_add_qml_module(kde-stickers
     SOURCES
         src/filestorage.h
         src/filestorage.cpp
+        src/kwinbridge.h
+        src/kwinbridge.cpp
 )
 
 # StickerManager.js and storage.js use the classic Qt Quick script directives

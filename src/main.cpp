@@ -3,6 +3,7 @@
 #include <QQmlEngine>
 
 #include "filestorage.h"
+#include "kwinbridge.h"
 
 int main(int argc, char *argv[])
 {
@@ -30,6 +31,10 @@ int main(int argc, char *argv[])
     qmlRegisterSingletonType<FileStorage>(
         "Stickers.Storage", 1, 0, "FileStorage",
         [](QQmlEngine *, QJSEngine *) -> QObject * { return new FileStorage(); });
+
+    qmlRegisterSingletonType<KWinBridge>(
+        "Stickers.KWin", 1, 0, "KWinBridge",
+        [](QQmlEngine *, QJSEngine *) -> QObject * { return new KWinBridge(); });
 
     QQmlApplicationEngine engine;
     QObject::connect(
