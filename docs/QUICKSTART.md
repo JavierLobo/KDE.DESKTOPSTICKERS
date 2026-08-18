@@ -1,131 +1,71 @@
-# KDE Stickers V1 - Quick Start
+# KDE Stickers - Quick Start
 
-## Paso 1: Estructura
-
-```bash
-# Crear directorios
-mkdir -p ~/.local/share/plasma/plasmoids/org.kde.stickers/contents/{ui,code}
-mkdir -p ~/.stickers
-```
-
-## Paso 2: Copiar archivos
-
-De los generados, copiar a:
-
-```
-~/.local/share/plasma/plasmoids/org.kde.stickers/
-├── metadata.json
-└── contents/
-    ├── ui/
-    │   └── main.qml           ← Usa main.qml.v2 (la corregida)
-    └── code/
-        └── storage.js
-```
-
-**OJO: Renombra `main.qml.v2` a `main.qml`**
-
-## Paso 3: Verificar instalación
+## Instalación
 
 ```bash
-ls -la ~/.local/share/plasma/plasmoids/org.kde.stickers/
-# Debe mostrar metadata.json y carpeta contents/
+cd ~/Repositorios/KDE.STICKERS
+chmod +x scripts/install.sh
+./scripts/install.sh
 ```
 
-## Paso 4: Recargar Plasma
+Esto compila el binario Qt6 (`build/kde-stickers`), lo instala en
+`~/.local/bin/kde-stickers`, y registra el autostart en
+`~/.config/autostart/org.kde.stickers.desktop`.
 
-**Opción A (recomendada):**
-```bash
-kquitapp6 plasmashell
-sleep 1
-kstart6 plasmashell &
-```
+## Primer arranque
 
-**Opción B (debug):**
-```bash
-# En terminal nueva
-cd ~/.local/share/plasma/plasmoids/org.kde.stickers/
-QT_QPA_PLATFORM=xcb QML_IMPORT_TRACE=1 plasmashell
-```
-
-## Paso 5: Probar
-
-1. Abre Settings → Startup and Shutdown → Background Services
-2. Busca "KDE Stickers" → activar
-3. O crea stickers de prueba:
-```bash
-chmod +x test-sticker.sh
-./test-sticker.sh
-```
-
-Verifica que aparece `~/.stickers/stickers.json` con los datos.
-
-## Estado Actual (V1)
-
-✅ **Funciona:**
-- Interfaz QML básica
-- Arrastrar sticker (en desarrollo)
-- Cambiar color
-- Eliminar sticker
-- Auto-guardado JSON
-
-❌ **Pendiente:**
-- Conectar el arrastre real con persistencia
-- Cargar stickers guardados al iniciar
-- Multi-desktop
-- Markdown
-
-## Próximos pasos
-
-1. **Conectar almacenamiento:** Integrar `storage.js` con las acciones QML
-2. **Cargar stickers iniciales:** Leer `~/.stickers/stickers.json` al lanzar
-3. **Persistencia real:** Guardar posiciones y texto
-4. **Crear botón [+]:** Para agregar stickers nuevos desde UI
-
-## Logs
+La app se lanzará automáticamente en tu próxima sesión de Plasma. Para
+probarla ahora mismo sin reiniciar sesión:
 
 ```bash
-# Ver errores del plugin
-journalctl -u plasmashell -f
-
-# Ver output de console.log() del QML
-QML_IMPORT_TRACE=1 plasmashell 2>&1 | grep -i sticker
+~/.local/bin/kde-stickers &
 ```
 
-## Estructura de datos esperada
+Deberías ver un icono en la bandeja del sistema ("KDE Stickers") y,
+si ya tienes stickers guardados en `~/.stickers/stickers.json`,
+sus ventanas aparecerán en las posiciones guardadas.
 
-`~/.stickers/stickers.json`:
-```json
-{
-  "stickers": [
-    {
-      "id": "001",
-      "text": "Mi nota",
-      "color": "#FFD700",
-      "x": 100,
-      "y": 100,
-      "created": "2026-08-17T10:00:00Z",
-      "modified": "2026-08-17T10:00:00Z"
-    }
-  ]
-}
+## Crear tu primer sticker
+
+- Click en el icono de la bandeja → "Nuevo sticker", o
+- Click en el botón "+" de cualquier sticker existente
+
+## Editar
+
+Click dentro del sticker para editar en Markdown. Click fuera para
+volver a la vista previa renderizada.
+
+## Datos de prueba
+
+```bash
+chmod +x scripts/test-sticker.sh
+./scripts/test-sticker.sh
 ```
+
+Crea 3 stickers de ejemplo en `~/.stickers/stickers.json`.
+
+## Verificación completa
+
+Ver `docs/QA_CHECKLIST.md` para el checklist manual de todas las
+funcionalidades.
 
 ## Troubleshooting
 
-**Error: "Plugin not found"**
-- Verifica que `metadata.json` existe en la raíz del directorio del plugin
-- Recarga Plasma
+**El binario no compila:**
+- Verifica que tienes Qt6 (`Core`, `Gui`, `Qml`, `Quick`) instalado
+- Revisa el output de `cmake -B build -S .` para el paquete faltante
 
-**No aparecen cambios**
-- Asegúrate de haber renombrado `main.qml.v2` a `main.qml`
-- Recarga Plasma completo
+**Los stickers no aparecen en todos los escritorios:**
+- El mecanismo es una regla de KWin, no código de la app — verifica que existe:
+  `kreadconfig6 --file kwinrulesrc --group General --key rules` debe incluir `kdestickers-alldesktops`
+- Si falta, vuelve a correr `./scripts/install.sh` (la escribe de forma idempotente)
+- Si existe pero no aplica, fuerza la recarga: `qdbus6 org.kde.KWin /KWin org.kde.KWin.reconfigure`
+- Detalle completo del mecanismo en
+  `docs/superpowers/specs/2026-08-17-multidesktop-markdown-stickers-design.md`, sección "Multi-desktop: mecánica exacta"
 
-**Logs vacíos**
-- Ejecuta plasmashell en foreground: `kquitapp6 plasmashell && plasmashell`
-
----
-
-¿Preguntas? Revisa los archivos en el orden:
-1. metadata.json
-2. main.qml (después de renombrarlo)
-3. storage.js
+**Logs:**
+```bash
+journalctl -u plasmashell -f
+```
+(o ejecuta `~/.local/bin/kde-stickers` directamente desde una
+terminal para ver su salida de consola en vivo)
