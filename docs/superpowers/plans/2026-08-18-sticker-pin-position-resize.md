@@ -1081,22 +1081,86 @@ Record in the commit message body (or your task report) exactly what was verifie
 - Consumes: `KWinBridge` rule-list helpers (Task 4/5) — this task adds `setPinned` using them.
 - Produces: `Q_INVOKABLE void KWinBridge::setPinned(const QString &stickerId, const QString &windowTitle, bool pinned) const`.
 
-- [ ] **Step 1: Add `setPinned` to `KWinBridge`**
+- [ ] **Step 1: Add `setPinned` (and its `unpinLiveWindow` helper) to `KWinBridge`**
+
+> **Revision note (post-Task-5-spike):** the spike confirmed `title`+`wmclass` matching with `desktopsrule=Force` genuinely scopes to one window and applies live exactly as needed for pin — that part of this task's original draft was right. But it also found two things the original draft got wrong, both reflected below: (1) `titlematch` must be `1` (ExactMatch), not `2` (SubstringMatch — `"Sticker 002"` would incorrectly match a hypothetical `"Sticker 0021"`); (2) removing the rule does **not** un-pin a window that's currently pinned — `Force` sets state that persists once the rule is gone, so un-pinning needs an explicit second step that live-edits the window itself, and that step must run **after** the rule removal has fully taken effect (a still-active rule silently re-forces the window back to pinned on the next desktop-state write otherwise — this would look exactly like a flaky KWin bug, not an ordering bug, if hit). Full detail in the spike's report if you want the underlying evidence.
 
 Add to `src/kwinbridge.h`, in the `public:` section:
 ```cpp
     Q_INVOKABLE void setPinned(const QString &stickerId, const QString &windowTitle, bool pinned) const;
 ```
 
+Add to `src/kwinbridge.h`, in the `protected:` section, alongside the other helpers:
+```cpp
+    void unpinLiveWindow(const QString &windowTitle) const;
+```
+
 Add to `src/kwinbridge.cpp`:
 ```cpp
+void KWinBridge::unpinLiveWindow(const QString &windowTitle) const
+{
+    // Fire-and-forget: unlike queryRealGeometry, this script doesn't call
+    // back into the app (no callDBus, no return value needed), so there's
+    // no risk of the callback deadlocking against a blocked event loop --
+    // a plain blocking QProcess::execute for both run() and the unload
+    // afterward is safe here.
+    QTemporaryFile scriptFile(QDir::tempPath() + QStringLiteral("/kde-stickers-unpin-XXXXXX.js"));
+    if (!scriptFile.open()) {
+        return;
+    }
+    QTextStream stream(&scriptFile);
+    stream << QStringLiteral(
+        "var wins = workspace.windowList();\n"
+        "for (var i = 0; i < wins.length; i++) {\n"
+        "    if (wins[i].caption === \"%1\") {\n"
+        "        wins[i].onAllDesktops = false;\n"
+        "        break;\n"
+        "    }\n"
+        "}\n"
+    ).arg(jsQuote(windowTitle));
+    stream.flush();
+    scriptFile.close();
+
+    const QString pluginName = QStringLiteral("kde-stickers-unpin");
+
+    // Same unload-before-load pattern as queryRealGeometry, same reason:
+    // KWin refuses loadScript() under an already-registered plugin name.
+    QProcess::execute(QStringLiteral("qdbus6"),
+        {QStringLiteral("org.kde.KWin"), QStringLiteral("/Scripting"),
+         QStringLiteral("org.kde.kwin.Scripting.unloadScript"), pluginName});
+
+    QProcess loadProcess;
+    loadProcess.start(QStringLiteral("qdbus6"),
+        {QStringLiteral("org.kde.KWin"), QStringLiteral("/Scripting"),
+         QStringLiteral("org.kde.kwin.Scripting.loadScript"),
+         scriptFile.fileName(), pluginName});
+    loadProcess.waitForFinished();
+    const QString scriptId = QString::fromUtf8(loadProcess.readAllStandardOutput()).trimmed();
+
+    bool idOk = false;
+    const int id = scriptId.toInt(&idOk);
+    if (idOk && id >= 0) {
+        QProcess::execute(QStringLiteral("qdbus6"),
+            {QStringLiteral("org.kde.KWin"),
+             QStringLiteral("/Scripting/Script%1").arg(id),
+             QStringLiteral("org.kde.kwin.Script.run")});
+        QProcess::execute(QStringLiteral("qdbus6"),
+            {QStringLiteral("org.kde.KWin"), QStringLiteral("/Scripting"),
+             QStringLiteral("org.kde.kwin.Scripting.unloadScript"), pluginName});
+    }
+}
+
 void KWinBridge::setPinned(const QString &stickerId, const QString &windowTitle, bool pinned) const
 {
     const QString ruleId = ruleGroupName(stickerId);
 
     if (!pinned) {
+        // Order matters: remove the rule and let reconfigure fully land
+        // BEFORE touching the live window, or the still-active Force rule
+        // silently re-pins it out from under the script (Task 5 finding).
         removeRuleIdFromList(ruleId);
         reconfigureKWin();
+        unpinLiveWindow(windowTitle);
         return;
     }
 
@@ -1120,7 +1184,7 @@ void KWinBridge::setPinned(const QString &stickerId, const QString &windowTitle,
     QProcess::execute(QStringLiteral("kwriteconfig6"),
         {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
          QStringLiteral("--group"), ruleId,
-         QStringLiteral("--key"), QStringLiteral("titlematch"), QStringLiteral("2")});
+         QStringLiteral("--key"), QStringLiteral("titlematch"), QStringLiteral("1")});
     QProcess::execute(QStringLiteral("kwriteconfig6"),
         {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
          QStringLiteral("--group"), ruleId,
@@ -1138,7 +1202,9 @@ void KWinBridge::setPinned(const QString &stickerId, const QString &windowTitle,
 }
 ```
 
-Use the exact key set Task 5's Part A confirmed actually scopes to one window — if Task 5 found a different key name/value than `title`/`titlematch`/`2` works, use what was actually verified instead of this draft.
+`jsQuote` is the static escaping helper Task 5 already added at the top of `src/kwinbridge.cpp` (above `queryRealGeometry`) — reuse it as-is, don't redefine it.
+
+This new mechanism (fire-and-forget KWin script execution with no D-Bus callback) hasn't been used anywhere in this project before `unpinLiveWindow` — the reasoning above is sound, but verify it empirically in Step 4 rather than trusting it blindly, consistent with how every other task in this plan has treated its own claims.
 
 - [ ] **Step 2: Add the pin property and button to `src/qml/StickerWindow.qml`**
 
@@ -1220,7 +1286,7 @@ cmake --build build
 ```
 Click 📍 on sticker `#001` to pin it (real click). Confirm via `journalctl`/screenshot the icon changes to 📌. Switch virtual desktops (Pager or `Meta+Ctrl+Right`, or the KWin D-Bus method used throughout this project). **Expected:** `#001` remains visible on every desktop; `#002` and `#003` (unpinned) do NOT — they stay on the desktop where they were created. Check `~/.stickers/stickers.json`: `#001`'s `pinned` is `true`, the others `false`.
 
-Unpin `#001` (click 📌 again). Confirm it becomes 📍 and — switch desktops again — it now only shows on its own desktop like the others. Confirm `~/.stickers/stickers.json` reflects `pinned: false`.
+Unpin `#001` (click 📌 again). Confirm it becomes 📍. **This is the step to check most carefully** — per Task 5's finding, removing the rule alone does not actually un-pin a live window, so it's not enough to see the icon change. Switch desktops again (real switch, ground-truth KWin query) and confirm `#001` genuinely stops following — it should now only be visible on the single desktop it's on, exactly like `#002`/`#003`. If it's still visible on every desktop after unpinning, the `unpinLiveWindow` ordering or mechanism has a real problem — don't accept "the icon changed" as sufficient evidence. Confirm `~/.stickers/stickers.json` reflects `pinned: false`.
 
 Kill the process, relaunch. Confirm `#001` (if you left it pinned) — or whichever stickers had `pinned: true` at last save — are still visible on all desktops immediately, without needing to re-click the pin (the rule persisted in `kwinrulesrc` and gets reapplied automatically since the window is created with the same matching title).
 
@@ -1249,7 +1315,9 @@ Add to `src/kwinbridge.h`:
     Q_INVOKABLE void updatePositionRule(const QString &stickerId, const QString &windowTitle, int x, int y) const;
 ```
 
-Add to `src/kwinbridge.cpp` — adapt based on what Task 5's Part B actually found about `positionrule=Force`'s live-vs-creation-time behavior:
+> **Revision note (post-Task-5-spike):** the spike confirmed `positionrule=Force` (`2`) DOES apply live — but it also makes the window **undraggable** (`movable=false`), which would break this app's core drag feature for any sticker with a known position. The correct mode is `positionrule=Apply` (`3`): it only takes effect at window-*creation* time, not live — which is exactly what "restore position on the next launch" needs, and the window stays draggable. `titlematch` is also corrected to `1` (ExactMatch) here for the same reason as Task 6. The code below already reflects both fixes — this is not the brief's original literal draft.
+
+Add to `src/kwinbridge.cpp`:
 ```cpp
 void KWinBridge::updatePositionRule(const QString &stickerId, const QString &windowTitle, int x, int y) const
 {
@@ -1275,7 +1343,7 @@ void KWinBridge::updatePositionRule(const QString &stickerId, const QString &win
     QProcess::execute(QStringLiteral("kwriteconfig6"),
         {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
          QStringLiteral("--group"), ruleId,
-         QStringLiteral("--key"), QStringLiteral("titlematch"), QStringLiteral("2")});
+         QStringLiteral("--key"), QStringLiteral("titlematch"), QStringLiteral("1")});
     QProcess::execute(QStringLiteral("kwriteconfig6"),
         {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
          QStringLiteral("--group"), ruleId,
@@ -1288,13 +1356,15 @@ void KWinBridge::updatePositionRule(const QString &stickerId, const QString &win
     QProcess::execute(QStringLiteral("kwriteconfig6"),
         {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
          QStringLiteral("--group"), ruleId,
-         QStringLiteral("--key"), QStringLiteral("positionrule"), QStringLiteral("2")});
+         QStringLiteral("--key"), QStringLiteral("positionrule"), QStringLiteral("3")});
 
     reconfigureKWin();
 }
 ```
 
 Note this writes to the *same* rule group id (`kdestickers-sticker-<id>`) that `setPinned` (Task 6) may also write to — a sticker that is both pinned and has a known position ends up with one rule group carrying both `desktops`/`desktopsrule` and `position`/`positionrule` keys, which is valid KWin rule syntax (a single rule group can force multiple properties at once). `kwriteconfig6` only touches the specific key given each call, so writing position keys here doesn't clobber `setPinned`'s desktop keys already in the same group, or vice versa.
+
+**Important consequence of using `Apply` instead of `Force`:** since `Apply` only takes effect at window-creation time, dragging a sticker will **not** move it to the new position immediately in the same session in any KWin-rule sense — the drag itself already works (via the existing `startSystemMove()` mechanism), and this rule only determines where the window opens on the *next* launch. Step 3's verification below reflects this — don't expect the live drag to visibly "snap" anywhere via the rule; the rule's effect is only observable after a kill+relaunch.
 
 - [ ] **Step 2: Rewire the existing drag-persistence logic in `src/qml/StickerWindow.qml` to use real geometry**
 
@@ -1434,7 +1504,9 @@ Expected: `x`/`y` reflect the real dragged-to position (matching what `workspace
 kreadconfig6 --file kwinrulesrc --group kdestickers-sticker-001 --key position
 kreadconfig6 --file kwinrulesrc --group kdestickers-sticker-001 --key positionrule
 ```
-Expected: `position` matches the dragged-to coordinates, `positionrule` is `2`.
+Expected: `position` matches the dragged-to coordinates, `positionrule` is `3` (Apply — not `2`/Force, which the Task 5 spike found makes the window undraggable).
+
+Also confirm the sticker is still draggable after this rule is written — drag it again and verify it visibly moves (a regression check that `Apply` really doesn't lock the window the way `Force` would have).
 
 Kill the process, relaunch:
 ```bash
@@ -1578,7 +1650,7 @@ to:
 - [ ] El tamaño persiste en `~/.stickers/stickers.json` y se restaura al reiniciar la app
 ```
 
-**Note:** if Task 5's spike found `positionrule=Force` only applies at window-creation time (not live), adjust the "Al soltar, la posición real... se persiste" wording above to clarify the position rule takes effect on *next launch*, not instantly — match whatever Task 5 actually found, don't leave this checklist asserting behavior that isn't real.
+**Resolved by the Task 5 spike:** the checklist text above already matches what was actually found — `positionrule=Apply` (not `Force`, which the spike found makes windows undraggable) applies at window-*creation* time, so "al soltar, la posición se persiste en el JSON" (immediate, via `queryRealGeometry` on drag-release) and "al reiniciar, el sticker abre en su última posición real" (via the rule, effective on next launch) are both accurate as written — no wording change needed here.
 
 - [ ] **Step 5: Mark the spec as implemented**
 
