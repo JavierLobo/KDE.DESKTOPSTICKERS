@@ -1,6 +1,7 @@
 #include "kwinbridge.h"
 
 #include <QDBusConnection>
+#include <QDBusServiceWatcher>
 #include <QDir>
 #include <QEventLoop>
 #include <QFile>
@@ -14,6 +15,31 @@
 KWinBridge::KWinBridge(QObject *parent) : QObject(parent)
 {
     startPositionWatch();
+
+    // Recovery path for a robustness gap flagged in Task 7's review:
+    // startPositionWatch() above only ever runs once, from this
+    // constructor. Its script lives inside KWin's own process, so if KWin
+    // ever restarts mid-session (a real possibility on a Wayland session --
+    // a crash, or an explicit `kwin_wayland --replace`) the watcher script
+    // dies with the old KWin process and nothing would otherwise reload it:
+    // position persistence would go silently inert for the rest of this
+    // app's life, with no other symptom at all (queryRealGeometry() and
+    // setPinned() both load their own short-lived scripts on demand and are
+    // unaffected by this). It would also cover the unlikely startup-race
+    // case of this autostart daemon starting before KWin owns
+    // "org.kde.KWin" on the session bus yet.
+    //
+    // Parented to `this` (not stored as a member) so it lives exactly as
+    // long as this KWinBridge does -- Qt's parent-child ownership frees it
+    // automatically; no manual lifetime management needed. Every
+    // (re-)registration re-runs startPositionWatch(), which itself
+    // unloads-before-loads (see its own comment), so a restart-triggered
+    // reload can't collide with a script left behind by the previous KWin
+    // process.
+    auto *kwinWatcher = new QDBusServiceWatcher(QStringLiteral("org.kde.KWin"),
+        QDBusConnection::sessionBus(), QDBusServiceWatcher::WatchForRegistration, this);
+    QObject::connect(kwinWatcher, &QDBusServiceWatcher::serviceRegistered,
+        this, [this](const QString &) { startPositionWatch(); });
 }
 
 QString KWinBridge::ruleGroupName(const QString &stickerId)
@@ -72,8 +98,32 @@ bool KWinBridge::reconfigureKWin() const
 
 void KWinBridge::removeRules(const QString &stickerId) const
 {
-    removeRuleIdFromList(ruleGroupName(stickerId));
+    const QString ruleId = ruleGroupName(stickerId);
+
+    removeRuleIdFromList(ruleId);
     reconfigureKWin();
+
+    // Same defensive write as setPinned(false), same ordering reason -- see
+    // its .cpp comment for the measured story on why this has to come
+    // *after* the delisting reconfigureKWin() above, not before (KWin
+    // deletes an unlisted rule group from kwinrulesrc entirely as part of
+    // reconfigure, so writing this key first would just get thrown away by
+    // the very call that follows it).
+    //
+    // Flagged during Task 7's review as a second path to the same bug:
+    // sticker ids are reused (newStickerId() is max+1), so deleting a
+    // pinned sticker and later creating a new one that happens to land on
+    // the same freed id could otherwise leave the OLD sticker's
+    // desktopsrule=2 (Force) sitting in this group, ready to silently
+    // re-pin the brand new sticker the first time it gets dragged (which
+    // re-lists the group via updatePositionRule()'s addRuleIdToList()).
+    // Neutralising desktopsrule here means a resurrected group is inert on
+    // the pin axis regardless of what a previous occupant of this id left
+    // behind.
+    QProcess::execute(QStringLiteral("kwriteconfig6"),
+        {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
+         QStringLiteral("--group"), ruleId,
+         QStringLiteral("--key"), QStringLiteral("desktopsrule"), QStringLiteral("1")});
 }
 
 void KWinBridge::receiveGeometry(const QString &windowTitle, const QString &geometry)
@@ -295,6 +345,43 @@ void KWinBridge::setPinned(const QString &stickerId, const QString &windowTitle,
         // margin over the ~50-100ms observed to be sufficient.
         removeRuleIdFromList(ruleId);
         reconfigureKWin();
+
+        // Also neutralise desktopsrule *inside* the group, not just delist
+        // it from [General] rules= -- found during Task 7's review: the
+        // pinned-branch below never clears desktops=/desktopsrule=2 from
+        // this same group, it only ever ADDS keys to it. Task 7's
+        // updatePositionRule() writes position/positionrule into this exact
+        // group id and re-adds it to rules= via addRuleIdToList() any time
+        // a sticker is dragged -- so a sticker that was pinned, then
+        // unpinned, then dragged could silently re-list a group that still
+        // carries the old desktopsrule=2 (Force), and per Task 5's own
+        // finding a Force rule applies live to any already-open matching
+        // window the moment it becomes active again.
+        //
+        // Placement matters, and is *not* the same as writing this before
+        // the reconfigureKWin() call above: real testing during this fix
+        // round found that KWin's own reconfigure handler deletes a rule
+        // group from kwinrulesrc *entirely* once it is no longer listed in
+        // rules= (confirmed directly: wrote a throwaway group, listed it,
+        // reconfigured -- group intact; delisted it, reconfigured again --
+        // the whole group vanished from the file, not just its listing).
+        // Writing desktopsrule=1 BEFORE this reconfigureKWin() call would
+        // therefore be deleted by that very same call and never have any
+        // effect. Writing it AFTER means it recreates a fresh (now-empty,
+        // since the old one was just pruned) group containing only
+        // desktopsrule=1, sitting inertly outside rules= until something
+        // re-lists this exact id later -- at which point (see
+        // updatePositionRule()'s addRuleIdToList()+kwriteconfig6 calls,
+        // which only ever ADD specific keys, never clear the group first)
+        // that later write lands on top of this desktopsrule=1, not on an
+        // empty group, so the eventual re-listed rule stays DontAffect on
+        // the desktop axis instead of reverting to whatever a stale
+        // leftover key might otherwise have said.
+        QProcess::execute(QStringLiteral("kwriteconfig6"),
+            {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
+             QStringLiteral("--group"), ruleId,
+             QStringLiteral("--key"), QStringLiteral("desktopsrule"), QStringLiteral("1")});
+
         QEventLoop settleLoop;
         QTimer::singleShot(300, &settleLoop, &QEventLoop::quit);
         settleLoop.exec();

@@ -148,11 +148,14 @@ protected:
     // "Sticker ", the format StickerWindow.qml's title property always
     // uses) to a callDBus call into receiveMoveFinished(). See
     // receiveMoveFinished()'s own comment for why this exists at all.
-    // Called once, from the constructor -- idempotent by construction since
-    // it only ever runs once per process, but still unloads any
-    // same-named script left registered by a previous, uncleanly-exited
-    // run first, matching the unload-before-load pattern used elsewhere in
-    // this class.
+    // Called once from the constructor, and re-called every time afterward
+    // that a QDBusServiceWatcher (set up in the constructor) observes
+    // "org.kde.KWin" (re-)registering on the session bus -- covering a KWin
+    // restart mid-session, which would otherwise silently strand this
+    // watcher inside the now-dead old KWin process forever. Idempotent:
+    // unloads any same-named script already registered (a previous KWin
+    // process's, or this method's own earlier call) before loading, same
+    // unload-before-load pattern used elsewhere in this class.
     void startPositionWatch() const;
 
 private:
