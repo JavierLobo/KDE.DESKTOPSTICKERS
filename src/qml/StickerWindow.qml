@@ -41,6 +41,19 @@ Window {
     // a persist call to -- so we watch x/y instead and persist a short
     // idle period after they stop changing.
     //
+    // IMPORTANT (best-effort only, not fully functional here): per the
+    // accepted Wayland limitation documented in the spec's "Modelo de datos
+    // y persistencia" section, mainWindow.x/y never reflects this window's
+    // real on-screen position on this Qt6/KWin/Wayland stack -- Wayland's
+    // xdg-toplevel protocol gives clients no absolute-position feedback at
+    // all, and KWin does not honor the persisted x/y as a restore position
+    // on the next launch either (it applies its own placement policy
+    // instead). This whole mechanism is harmless to keep -- it would work
+    // correctly on X11 or a compositor that does report real position, and
+    // costs nothing to leave running -- but on this stack it mostly persists
+    // a value that does not correspond to where the sticker actually ended
+    // up on screen. Kept as documented, intentional best-effort, not a bug.
+    //
     // settled guards against a real startup artifact (Task 3 empirical
     // finding, reproduced with a minimal standalone QtQuick.Window too, so
     // it is a Qt6-Wayland-QPA platform behavior, not specific to this app's
@@ -156,7 +169,14 @@ Window {
                         Layout.preferredHeight: 28
                         onClicked: {
                             Manager.removeSticker(stickerId)
+                            // close() alone only hides the window -- the QML
+                            // object, its Timers (settled/persistTimer above)
+                            // and property change handlers stay alive for
+                            // the rest of the process lifetime otherwise, a
+                            // small per-deletion leak in this long-running
+                            // autostart daemon. destroy() actually frees it.
                             mainWindow.close()
+                            mainWindow.destroy()
                         }
                     }
                 }

@@ -35,7 +35,9 @@ kwriteconfig6 --file kwinrulesrc --group "$KWIN_RULE_ID" --key wmclasscomplete f
 kwriteconfig6 --file kwinrulesrc --group "$KWIN_RULE_ID" --key types 1
 kwriteconfig6 --file kwinrulesrc --group "$KWIN_RULE_ID" --key desktops ""
 kwriteconfig6 --file kwinrulesrc --group "$KWIN_RULE_ID" --key desktopsrule 2
-qdbus6 org.kde.KWin /KWin org.kde.KWin.reconfigure 2>/dev/null || true
+if ! qdbus6 org.kde.KWin /KWin org.kde.KWin.reconfigure 2>/dev/null; then
+    echo "⚠ No se pudo recargar KWin en caliente; la regla se aplicará en tu próxima sesión de Plasma"
+fi
 
 mkdir -p "$HOME/.stickers"
 
