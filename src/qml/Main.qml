@@ -89,23 +89,12 @@ Item {
 
     function refreshNoteList() {
         noteList = Manager.stickers.map(function(s) {
-            return { id: s.id, label: noteLabel(s.text) }
+            return { id: s.id, name: s.name, label: Manager.displayName(s), color: s.color }
         })
         var maxPage = Math.max(0, Math.ceil(noteList.length / notePageSize) - 1)
         if (notePage > maxPage) {
             notePage = maxPage
         }
-    }
-
-    function noteLabel(text) {
-        var lines = text.split("\n")
-        for (var i = 0; i < lines.length; i++) {
-            var line = lines[i].replace(/^#+\s*/, "").trim()
-            if (line.length > 0) {
-                return line.length > 30 ? line.substring(0, 30) + "…" : line
-            }
-        }
-        return "Sticker"
     }
 
     function visibleNotes() {
@@ -167,24 +156,6 @@ Item {
         onNoClicked: pendingId = ""
     }
 
-    // Flat, per-note "open" + "delete" entries for the tray menu, built as a
-    // single list so a single Instantiator can insert them all in one
-    // guaranteed-in-order pass. (An earlier version used two separate
-    // Instantiators -- one for "Abrir" entries, one for "Eliminar" entries --
-    // but real-click verification showed the second-declared Instantiator's
-    // onObjectAdded firing (and inserting) before the first-declared one's,
-    // which left "Salir" sandwiched between the two groups instead of last.
-    // A single Instantiator has no such cross-instantiator ordering to race.)
-    function noteMenuModel() {
-        var notes = root.visibleNotes()
-        var out = []
-        for (var i = 0; i < notes.length; i++) {
-            out.push({ kind: "open", id: notes[i].id, label: notes[i].label })
-            out.push({ kind: "delete", id: notes[i].id, label: notes[i].label })
-        }
-        return out
-    }
-
     Platform.SystemTrayIcon {
         id: trayIcon
         visible: true
@@ -204,16 +175,10 @@ Item {
                 onTriggered: root.goPrevPage()
             }
             Instantiator {
-                model: root.noteMenuModel()
+                model: root.visibleNotes()
                 delegate: Platform.MenuItem {
-                    text: modelData.kind === "open" ? ("Abrir: " + modelData.label) : ("🗑 Eliminar: " + modelData.label)
-                    onTriggered: {
-                        if (modelData.kind === "open") {
-                            root.openOrFocusSticker(modelData.id)
-                        } else {
-                            root.confirmDeleteSticker(modelData.id, modelData.label)
-                        }
-                    }
+                    text: modelData.label
+                    onTriggered: root.openOrFocusSticker(modelData.id)
                 }
                 onObjectAdded: (index, object) => trayMenu.insertItem(index + 3, object)
                 onObjectRemoved: (index, object) => trayMenu.removeItem(object)
