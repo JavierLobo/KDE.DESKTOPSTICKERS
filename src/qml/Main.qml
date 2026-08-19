@@ -26,6 +26,7 @@ Item {
     function createStickerWindow(sticker) {
         var w = stickerWindowComponent.createObject(root, {
             stickerId: sticker.id,
+            stickerName: sticker.name,
             stickerText: sticker.text,
             stickerColor: sticker.color,
             posX: sticker.x,

@@ -9,6 +9,7 @@ Window {
     id: mainWindow
 
     property string stickerId: "001"
+    property string stickerName: ""
     property string stickerText: "Nuevo sticker..."
     property string stickerColor: "#FFD700"
     property int posX: 100
@@ -223,8 +224,28 @@ Window {
                         text: "#" + stickerId
                         color: "#333"
                         font.bold: true
-                        Layout.fillWidth: true
                         font.pixelSize: 12
+                    }
+
+                    Text {
+                        text: "|"
+                        color: "#333"
+                        font.pixelSize: 12
+                    }
+
+                    Text {
+                        text: Manager.displayName({ name: stickerName, text: stickerText })
+                        color: "#333"
+                        font.pixelSize: 12
+                        elide: Text.ElideRight
+                        Layout.fillWidth: true
+                    }
+
+                    Button {
+                        text: "+"
+                        Layout.preferredWidth: 28
+                        Layout.preferredHeight: 28
+                        onClicked: mainWindow.appRoot.createNewSticker(mainWindow.x, mainWindow.y)
                     }
 
                     Button {
@@ -237,13 +258,6 @@ Window {
                             Manager.updatePinned(stickerId, newPinned)
                             KWin.KWinBridge.setPinned(stickerId, mainWindow.title, newPinned)
                         }
-                    }
-
-                    Button {
-                        text: "+"
-                        Layout.preferredWidth: 28
-                        Layout.preferredHeight: 28
-                        onClicked: mainWindow.appRoot.createNewSticker(mainWindow.x, mainWindow.y)
                     }
 
                     Button {
