@@ -16,11 +16,54 @@ Esta spec cubre lo que queda, que sí es un cambio arquitectónico: **rediseño 
 
 ## Requisito original y limitación técnica descubierta
 
-El usuario pidió un menú de bandeja con: "Nuevo sticker", separador, hasta 10 notas listadas, separador, "Salir"; click en una nota la reabre; cada nota tiene una forma de eliminarla con confirmación; si hay más de 10, un submenú "Todas las notas >" con las demás, scrollable si hay 20+.
+El usuario pidió un menú de bandeja con: "Nuevo sticker", separador, hasta 10 notas listadas, separador, "Salir"; click en una nota la reabre; cada nota tiene una forma de eliminarla con confirmación; si hay más de 10, un submenú "Notas ->" con las demás, scrollable si hay 10+.
 
-**Investigación (spike de diseño, no de implementación) encontró una limitación real de la plataforma**: `Qt.labs.platform.Menu` anidado dentro de otro `Menu` (patrón necesario tanto para "submenú por nota con Abrir/Eliminar" como para "Todas las notas >") **provoca un error fatal** ("No native Menu implementation available") en una prueba aislada sobre este stack (Qt 6.11, KDE 6, Wayland) — el motor nativo de menús no está disponible para submenús anidados y cae a un `QMenu` de QtWidgets que, además, falla al establecer el grab de popup en Wayland por falta de `transientParent`. La verificación en vivo dentro de la app real fue inconclusa (el propio subsistema de menú de bandeja quedó en un estado no-responsivo tras las pruebas repetidas, recuperable con un reinicio de sesión), pero el hallazgo del crash en aislado ya es suficiente para no apostar la arquitectura a submenús anidados.
+```Menu
+Nuevo Sticker
+-------------
+Nota1       X
+Nota2       X
+...
+Nota10      X
+-------------
+Notas -> (Abre submenu)
+-------------
+Salir
+```
 
-**Decisión (usuario, 2026-08-19):** ningún menú anidado. Cada nota se representa como dos entradas **planas**, seguidas, en el mismo nivel del menú: "Abrir: `<título>`" y "🗑 Eliminar: `<título>`" (con confirmación). Sin límite de 10 ni submenú "Todas las notas >" — la lista completa se muestra plana, delegando cualquier desbordamiento/scroll al propio panel de Plasma (que ya renderiza el menú vía protocolo DBusMenu — comportamiento estándar y ampliamente usado por otras apps con menús largos, no algo que esta app necesite implementar).
+```Submenu
+<Boton Fecha arriba>
+-------------
+Nota1       X
+Nota2       X
+...
+NotaN       X
+-------------
+<Boton Fecha abajo>
+```
+
+
+**Investigación (spike de diseño, no de implementación) encontró una limitación real de la plataforma**: `Qt.labs.platform.Menu` anidado dentro de otro `Menu` (patrón necesario tanto para "submenú por nota con Abrir/Eliminar" como para "Notas ->") **provoca un error fatal** ("No native Menu implementation available") en una prueba aislada sobre este stack (Qt 6.11, KDE 6, Wayland) — el motor nativo de menús no está disponible para submenús anidados y cae a un `QMenu` de QtWidgets que, además, falla al establecer el grab de popup en Wayland por falta de `transientParent`. La verificación en vivo dentro de la app real fue inconclusa (el propio subsistema de menú de bandeja quedó en un estado no-responsivo tras las pruebas repetidas, recuperable con un reinicio de sesión), pero el hallazgo del crash en aislado ya es suficiente para no apostar la arquitectura a submenús anidados.
+
+**Decisión (usuario, 2026-08-19):** ningún menú anidado, pero se conserva la navegación por páginas que pedía el diagrama de arriba — mismo menú, sin reconstruir uno anidado. Cada nota se representa como dos entradas **planas**, seguidas: "Abrir: `<título>`" y "🗑 Eliminar: `<título>`" (con confirmación). Cuando hay más notas de las que caben en una página, "▲ Anteriores" / "▼ Siguientes" son entradas **planas normales** (no un submenú) que cambian qué porción de la lista se muestra, dentro del mismo menú:
+
+```Menu (con más de 10 notas)
+Nuevo sticker
+-------------
+▲ Anteriores          (solo visible si no es la primera página)
+-------------
+Nota1          Abrir
+Nota1          Eliminar
+...
+Nota10         Abrir
+Nota10         Eliminar
+-------------
+▼ Siguientes           (solo visible si hay más notas)
+-------------
+Salir
+```
+
+Tamaño de página: 10 notas (mismo número que pedía el diseño original).
 
 ## Cambio de semántica: el botón "X"
 
@@ -63,15 +106,19 @@ function openOrFocusSticker(id) {
 
 `StickerWindow.qml`'s botón "X" se reescribe para llamar `mainWindow.appRoot.unregisterWindow(stickerId)` antes de `close()`/`destroy()`, y **ya no llama a `Manager.removeSticker`**.
 
-### Lista de notas y reconstrucción del menú
+### Lista de notas, paginación y reconstrucción del menú
 
-`Main.qml` mantiene `property var noteList: []`, una copia plana de `Manager.stickers` (solo lo necesario para el menú: `id` y una etiqueta derivada del texto), reasignada (no mutada in-place, para que el binding se entere del cambio) cada vez que la lista de stickers cambia:
+`Main.qml` mantiene `property var noteList: []` (copia plana y completa de `Manager.stickers` — solo `id` y una etiqueta derivada del texto) y `property int notePage: 0`, reasignados (no mutados in-place, para que los bindings se enteren del cambio) cada vez que la lista de stickers cambia:
 
 ```qml
+readonly property int notePageSize: 10
+
 function refreshNoteList() {
     noteList = Manager.stickers.map(function(s) {
         return { id: s.id, label: noteLabel(s.text) }
     })
+    var maxPage = Math.max(0, Math.ceil(noteList.length / notePageSize) - 1)
+    if (notePage > maxPage) notePage = maxPage
 }
 
 function noteLabel(text) {
@@ -84,11 +131,21 @@ function noteLabel(text) {
     }
     return "Sticker"
 }
+
+function visibleNotes() {
+    var start = notePage * notePageSize
+    return noteList.slice(start, start + notePageSize)
+}
+
+function hasPrevPage() { return notePage > 0 }
+function hasNextPage() { return (notePage + 1) * notePageSize < noteList.length }
+function goPrevPage() { if (hasPrevPage()) notePage -= 1 }
+function goNextPage() { if (hasNextPage()) notePage += 1 }
 ```
 
-Se llama `refreshNoteList()`: en `Component.onCompleted` (tras `Manager.loadStickers()`), tras `createNewSticker()`, y tras una eliminación confirmada.
+Se llama `refreshNoteList()`: en `Component.onCompleted` (tras `Manager.loadStickers()`), tras `createNewSticker()`, y tras una eliminación confirmada. Cambiar de página (`goPrevPage`/`goNextPage`) solo cambia `notePage` — la reconstrucción del menú (sección siguiente) reacciona a eso mismo, vía `visibleNotes()`.
 
-### Menú de bandeja (plano, sin anidar)
+### Menú de bandeja (plano, sin anidar, paginado)
 
 ```qml
 Platform.SystemTrayIcon {
@@ -99,23 +156,33 @@ Platform.SystemTrayIcon {
             onTriggered: root.createNewSticker(100, 100)
         }
         Platform.MenuSeparator {}
+        Platform.MenuItem {
+            text: "▲ Anteriores"
+            visible: root.hasPrevPage()
+            onTriggered: root.goPrevPage()
+        }
         Instantiator {
-            model: root.noteList
+            model: root.visibleNotes()
             delegate: Platform.MenuItem {
                 text: "Abrir: " + modelData.label
                 onTriggered: root.openOrFocusSticker(modelData.id)
             }
-            onObjectAdded: (index, object) => trayMenu.insertItem(index + 2, object)
+            onObjectAdded: (index, object) => trayMenu.insertItem(index + 3, object)
             onObjectRemoved: (index, object) => trayMenu.removeItem(object)
         }
         Instantiator {
-            model: root.noteList
+            model: root.visibleNotes()
             delegate: Platform.MenuItem {
                 text: "🗑 Eliminar: " + modelData.label
                 onTriggered: root.confirmDeleteSticker(modelData.id, modelData.label)
             }
-            onObjectAdded: (index, object) => trayMenu.insertItem(/* después de todos los "Abrir" */, object)
+            onObjectAdded: (index, object) => trayMenu.insertItem(/* después del último "Abrir" visible */, object)
             onObjectRemoved: (index, object) => trayMenu.removeItem(object)
+        }
+        Platform.MenuItem {
+            text: "▼ Siguientes"
+            visible: root.hasNextPage()
+            onTriggered: root.goNextPage()
         }
         Platform.MenuSeparator {}
         Platform.MenuItem {
@@ -126,7 +193,9 @@ Platform.SystemTrayIcon {
 }
 ```
 
-(Dos `Instantiator`s separados, uno para todos los "Abrir" y otro para todos los "Eliminar", es más simple de indexar correctamente que intercalar una función de índice; la tarea de implementación decide la posición exacta de inserción del segundo grupo — debe quedar tras el último "Abrir" y antes del separador final.)
+`visibleNotes()` se re-evalúa cada vez que `notePage` o `noteList` cambian (son propiedades QML observables), lo que dispara la reconstrucción de ambos `Instantiator`s con la página correspondiente — no hace falta lógica adicional para "refrescar" el menú al paginar. `▲ Anteriores`/`▼ Siguientes` usan `visible` (no se quitan/ponen dinámicamente vía `Instantiator`, son ítems fijos cuya visibilidad depende de la página actual).
+
+(Dos `Instantiator`s separados, uno para todos los "Abrir" y otro para todos los "Eliminar", es más simple de indexar correctamente que intercalar una función de índice; la tarea de implementación decide la posición exacta de inserción del segundo grupo — debe quedar tras el último "Abrir" y antes de "▼ Siguientes".)
 
 ### Confirmación de borrado
 
@@ -166,13 +235,15 @@ function confirmDeleteSticker(id, label) {
 
 No se pudo confirmar en vivo, dentro de la app real, que:
 
-1. Un menú de bandeja plano con `Instantiator` y muchas entradas (2 por nota) se muestra y funciona correctamente al hacer click real en el icono.
-2. `Qt.labs.platform.MessageDialog` se muestra y responde a clicks reales sin el mismo problema de popup-grab encontrado en `Menu` anidado.
+1. Un menú de bandeja plano con `Instantiator` y varias entradas (hasta 20: 2 por nota, página de 10 notas) se muestra y funciona correctamente al hacer click real en el icono.
+2. Cambiar de página (`▲ Anteriores`/`▼ Siguientes`) reconstruye el menú correctamente sin cerrarlo/romperlo — verificar si triggerar un `Platform.MenuItem` cuyo efecto es reconstruir el propio menú que lo contiene (vía el cambio de `notePage` → `visibleNotes()` → `Instantiator`) se comporta bien o si el menú se cierra al hacer click, obligando a reabrirlo (aceptable si es así, pero hay que confirmarlo, no asumirlo).
+3. `Qt.labs.platform.MessageDialog` se muestra y responde a clicks reales sin el mismo problema de popup-grab encontrado en `Menu` anidado.
 
-El plan de implementación debe incluir un spike temprano (antes de comprometer el resto de tareas a esta arquitectura) que verifique ambos puntos con evidencia real (build real, clicks sintéticos reales sobre el icono de bandeja ya identificado vía `qdbus6 org.kde.StatusNotifierWatcher`, capturas de pantalla) — siguiendo el mismo patrón de spike-antes-de-comprometerse usado en las dos rondas anteriores de este proyecto. Si el spike encuentra que el menú plano tampoco se muestra de forma fiable, ese es el punto de STOP-y-reportar del plan, igual que en las rondas anteriores.
+El plan de implementación debe incluir un spike temprano (antes de comprometer el resto de tareas a esta arquitectura) que verifique los tres puntos con evidencia real (build real, clicks sintéticos reales sobre el icono de bandeja ya identificado vía `qdbus6 org.kde.StatusNotifierWatcher`, capturas de pantalla) — siguiendo el mismo patrón de spike-antes-de-comprometerse usado en las dos rondas anteriores de este proyecto. Si el spike encuentra que el menú plano tampoco se muestra de forma fiable, ese es el punto de STOP-y-reportar del plan, igual que en las rondas anteriores.
 
 ## Fuera de alcance
 
 - Reordenar o filtrar la lista de notas en el menú (se listan en el orden que ya tiene `Manager.stickers`, típicamente orden de creación).
 - Editar el texto de una nota desde el menú (solo abrir/eliminar).
-- Cualquier límite artificial de cantidad de notas mostradas — se listan todas.
+- Tamaño de página configurable — fijo en 10, como el diseño original.
+- Indicador de página actual (ej. "página 2 de 3") — no pedido, se puede añadir después si hace falta.
