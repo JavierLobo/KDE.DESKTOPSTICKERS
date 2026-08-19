@@ -123,6 +123,28 @@ Item {
         }
     }
 
+    function confirmDeleteSticker(id, label) {
+        deleteConfirmDialog.pendingId = id
+        deleteConfirmDialog.text = "¿Eliminar \"" + label + "\"? Esta acción no se puede deshacer."
+        deleteConfirmDialog.open()
+    }
+
+    Platform.MessageDialog {
+        id: deleteConfirmDialog
+        property string pendingId: ""
+        buttons: Platform.MessageDialog.Yes | Platform.MessageDialog.No
+        onYesClicked: {
+            var win = root.openWindows[pendingId]
+            if (win) {
+                root.unregisterWindow(pendingId)
+                win.close()
+                win.destroy()
+            }
+            Manager.removeSticker(pendingId)
+            root.refreshNoteList()
+        }
+    }
+
     // Flat, per-note "open" + "delete" entries for the tray menu, built as a
     // single list so a single Instantiator can insert them all in one
     // guaranteed-in-order pass. (An earlier version used two separate
@@ -167,7 +189,7 @@ Item {
                         if (modelData.kind === "open") {
                             root.openOrFocusSticker(modelData.id)
                         } else {
-                            console.warn("DELETE_PLACEHOLDER " + modelData.id)
+                            root.confirmDeleteSticker(modelData.id, modelData.label)
                         }
                     }
                 }
