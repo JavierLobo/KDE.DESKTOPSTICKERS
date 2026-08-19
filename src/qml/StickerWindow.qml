@@ -16,6 +16,13 @@ Window {
     property int posWidth: 300
     property int posHeight: 250
     property bool stickerPinned: false
+    // Drives which of the two ScrollViews below (preview vs edit) is shown.
+    // Replaces the old "editArea.visible" flag now that editArea lives
+    // inside a ScrollView -- toggling a ScrollView's own child's visible
+    // property does not affect the ScrollView's rendering, so the flag has
+    // to live one level up and drive both ScrollViews' visible bindings.
+    property bool editing: false
+    onEditingChanged: if (editing) editArea.forceActiveFocus()
     // Window (unlike Item) has no QML-visible "parent" property, so
     // mainWindow.parent.createNewSticker(...) -- the brief's literal "+"
     // button handler -- evaluates mainWindow.parent as undefined and
@@ -258,35 +265,49 @@ Window {
             Item {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+                clip: true
 
-                MarkdownView {
-                    id: preview
+                // Long pasted text (or a note with a big table/code block)
+                // used to overflow the sticker's fixed-size bounds with no
+                // scrollbar and no clipping, visually spilling out past the
+                // sticker's rounded rectangle onto the desktop behind it.
+                // ScrollView (wrapping both the preview and the edit area)
+                // gives real scrolling plus a scrollbar, and TextArea
+                // (unlike a raw TextEdit) auto-scrolls its ScrollView to
+                // keep the cursor visible while typing/navigating.
+                ScrollView {
+                    id: previewScroll
                     anchors.fill: parent
-                    text: stickerText
-                    visible: !editArea.visible
+                    visible: !mainWindow.editing
+                    clip: true
 
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: {
-                            editArea.visible = true
-                            editArea.forceActiveFocus()
-                        }
+                    MarkdownView {
+                        id: preview
+                        width: previewScroll.availableWidth
+                        text: stickerText
+                        onEditRequested: mainWindow.editing = true
                     }
                 }
 
-                TextEdit {
-                    id: editArea
+                ScrollView {
+                    id: editScroll
                     anchors.fill: parent
-                    text: stickerText
-                    wrapMode: TextEdit.Wrap
-                    padding: 10
-                    visible: false
+                    visible: mainWindow.editing
+                    clip: true
 
-                    onActiveFocusChanged: {
-                        if (!activeFocus) {
-                            stickerText = text
-                            Manager.updateText(stickerId, text)
-                            visible = false
+                    TextArea {
+                        id: editArea
+                        width: editScroll.availableWidth
+                        text: stickerText
+                        wrapMode: TextArea.Wrap
+                        padding: 10
+
+                        onActiveFocusChanged: {
+                            if (!activeFocus && mainWindow.editing) {
+                                stickerText = text
+                                Manager.updateText(stickerId, text)
+                                mainWindow.editing = false
+                            }
                         }
                     }
                 }

@@ -35,16 +35,24 @@ int main(int argc, char *argv[])
         "Stickers.Storage", 1, 0, "FileStorage",
         [](QQmlEngine *, QJSEngine *) -> QObject * { return new FileStorage(); });
 
+    // The app is addressed on the session bus at a fixed, well-known name
+    // (org.kde.stickers), both for the KWin geometry-query callback below
+    // and as a single-instance guard: only one process can ever own this
+    // name, so a losing registerService() call means another instance is
+    // already running. Checked before constructing KWinBridge so the
+    // losing instance never loads its position-watch KWin script.
+    if (!QDBusConnection::sessionBus().registerService(QStringLiteral("org.kde.stickers"))) {
+        qWarning() << "kde-stickers: another instance is already running"
+                   << "(org.kde.stickers is already registered on the session bus); exiting."
+                   << QDBusConnection::sessionBus().lastError().message();
+        return 0;
+    }
+
     // The KWin script that reads a window's real on-screen geometry
     // (KWinBridge::queryRealGeometry) reports its answer by calling back into
     // this process over D-Bus, so the app has to be addressable on the
     // session bus before any such query can be answered.
     auto *kwinBridge = new KWinBridge();
-    if (!QDBusConnection::sessionBus().registerService(QStringLiteral("org.kde.stickers"))) {
-        qWarning() << "kde-stickers: could not register D-Bus service org.kde.stickers;"
-                   << "real window positions will not be readable"
-                   << QDBusConnection::sessionBus().lastError().message();
-    }
     if (!QDBusConnection::sessionBus().registerObject(
             QStringLiteral("/KWinBridge"), QStringLiteral("org.kde.stickers.KWinBridge"),
             // ExportScriptableInvokables, not ExportScriptableSlots: moc
