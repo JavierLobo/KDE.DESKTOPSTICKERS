@@ -156,6 +156,18 @@ Item {
         onNoClicked: pendingId = ""
     }
 
+    function openStickerPanel() {
+        stickerPanel.show()
+        stickerPanel.raise()
+        stickerPanel.requestActivate()
+    }
+
+    StickerPanel {
+        id: stickerPanel
+        visible: false
+        appRoot: root
+    }
+
     Platform.SystemTrayIcon {
         id: trayIcon
         visible: true
@@ -189,6 +201,11 @@ Item {
                 onTriggered: root.goNextPage()
             }
             Platform.MenuSeparator { visible: root.noteList.length > 0 }
+            Platform.MenuItem {
+                text: "Panel de Stickers"
+                onTriggered: root.openStickerPanel()
+            }
+            Platform.MenuSeparator {}
             Platform.MenuItem {
                 text: "Salir"
                 onTriggered: Qt.quit()

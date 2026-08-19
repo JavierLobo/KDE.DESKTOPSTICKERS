@@ -21,6 +21,7 @@ qt_add_qml_module(kde-stickers
         src/qml/StickerWindow.qml
         src/qml/MarkdownView.qml
         src/qml/ColorPalette.qml
+        src/qml/StickerPanel.qml
     SOURCES
         src/filestorage.h
         src/filestorage.cpp

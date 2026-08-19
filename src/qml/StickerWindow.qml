@@ -276,8 +276,8 @@ Window {
                             // itself is NOT deleted (stickers.json keeps the
                             // record, so it can be reopened from the tray
                             // menu's note list). Deleting is a separate,
-                            // confirmed action reachable only from that
-                            // menu (see Main.qml's confirmDeleteSticker).
+                            // confirmed action reachable only from the
+                            // Stickers Panel (see Main.qml's confirmDeleteSticker).
                             mainWindow.appRoot.unregisterWindow(stickerId)
                             // close() alone only hides the window -- the QML
                             // object, its persistTimer above, and the
