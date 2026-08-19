@@ -123,6 +123,24 @@ Item {
         }
     }
 
+    // Flat, per-note "open" + "delete" entries for the tray menu, built as a
+    // single list so a single Instantiator can insert them all in one
+    // guaranteed-in-order pass. (An earlier version used two separate
+    // Instantiators -- one for "Abrir" entries, one for "Eliminar" entries --
+    // but real-click verification showed the second-declared Instantiator's
+    // onObjectAdded firing (and inserting) before the first-declared one's,
+    // which left "Salir" sandwiched between the two groups instead of last.
+    // A single Instantiator has no such cross-instantiator ordering to race.)
+    function noteMenuModel() {
+        var notes = root.visibleNotes()
+        var out = []
+        for (var i = 0; i < notes.length; i++) {
+            out.push({ kind: "open", id: notes[i].id, label: notes[i].label })
+            out.push({ kind: "delete", id: notes[i].id, label: notes[i].label })
+        }
+        return out
+    }
+
     Platform.SystemTrayIcon {
         id: trayIcon
         visible: true
@@ -130,10 +148,38 @@ Item {
         tooltip: "KDE Stickers"
 
         menu: Platform.Menu {
+            id: trayMenu
             Platform.MenuItem {
                 text: "Nuevo sticker"
                 onTriggered: root.createNewSticker(100, 100)
             }
+            Platform.MenuSeparator {}
+            Platform.MenuItem {
+                text: "▲ Anteriores"
+                visible: root.hasPrevPage()
+                onTriggered: root.goPrevPage()
+            }
+            Instantiator {
+                model: root.noteMenuModel()
+                delegate: Platform.MenuItem {
+                    text: modelData.kind === "open" ? ("Abrir: " + modelData.label) : ("🗑 Eliminar: " + modelData.label)
+                    onTriggered: {
+                        if (modelData.kind === "open") {
+                            root.openOrFocusSticker(modelData.id)
+                        } else {
+                            console.warn("DELETE_PLACEHOLDER " + modelData.id)
+                        }
+                    }
+                }
+                onObjectAdded: (index, object) => trayMenu.insertItem(index + 3, object)
+                onObjectRemoved: (index, object) => trayMenu.removeItem(object)
+            }
+            Platform.MenuItem {
+                text: "▼ Siguientes"
+                visible: root.hasNextPage()
+                onTriggered: root.goNextPage()
+            }
+            Platform.MenuSeparator {}
             Platform.MenuItem {
                 text: "Salir"
                 onTriggered: Qt.quit()
