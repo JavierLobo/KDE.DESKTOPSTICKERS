@@ -5,6 +5,11 @@ import "StickerManager.js" as Manager
 Item {
     id: root
 
+    property var openWindows: ({})
+    property var noteList: []
+    property int notePage: 0
+    readonly property int notePageSize: 10
+
     Component {
         id: stickerWindowComponent
         StickerWindow {}
@@ -15,6 +20,7 @@ Item {
         for (var i = 0; i < loaded.length; i++) {
             createStickerWindow(loaded[i])
         }
+        refreshNoteList()
     }
 
     function createStickerWindow(sticker) {
@@ -39,6 +45,7 @@ Item {
         // show() is required for dynamically created sticker windows.
         if (w) {
             w.show()
+            registerWindow(sticker.id, w)
         }
         return w
     }
@@ -46,6 +53,74 @@ Item {
     function createNewSticker(originX, originY) {
         var sticker = Manager.createSticker(originX, originY)
         createStickerWindow(sticker)
+        refreshNoteList()
+    }
+
+    function registerWindow(id, win) {
+        openWindows[id] = win
+    }
+
+    function unregisterWindow(id) {
+        delete openWindows[id]
+    }
+
+    function openOrFocusSticker(id) {
+        var win = openWindows[id]
+        if (win) {
+            win.raise()
+            win.requestActivate()
+            return
+        }
+        var sticker = Manager.stickers.find(function(s) { return s.id === id })
+        if (sticker) {
+            createStickerWindow(sticker)
+        }
+    }
+
+    function refreshNoteList() {
+        noteList = Manager.stickers.map(function(s) {
+            return { id: s.id, label: noteLabel(s.text) }
+        })
+        var maxPage = Math.max(0, Math.ceil(noteList.length / notePageSize) - 1)
+        if (notePage > maxPage) {
+            notePage = maxPage
+        }
+    }
+
+    function noteLabel(text) {
+        var lines = text.split("\n")
+        for (var i = 0; i < lines.length; i++) {
+            var line = lines[i].replace(/^#+\s*/, "").trim()
+            if (line.length > 0) {
+                return line.length > 30 ? line.substring(0, 30) + "…" : line
+            }
+        }
+        return "Sticker"
+    }
+
+    function visibleNotes() {
+        var start = notePage * notePageSize
+        return noteList.slice(start, start + notePageSize)
+    }
+
+    function hasPrevPage() {
+        return notePage > 0
+    }
+
+    function hasNextPage() {
+        return (notePage + 1) * notePageSize < noteList.length
+    }
+
+    function goPrevPage() {
+        if (hasPrevPage()) {
+            notePage -= 1
+        }
+    }
+
+    function goNextPage() {
+        if (hasNextPage()) {
+            notePage += 1
+        }
     }
 
     Platform.SystemTrayIcon {

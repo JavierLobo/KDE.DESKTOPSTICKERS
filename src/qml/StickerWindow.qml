@@ -247,7 +247,13 @@ Window {
                         Layout.preferredWidth: 28
                         Layout.preferredHeight: 28
                         onClicked: {
-                            Manager.removeSticker(stickerId)
+                            // "✕" only closes the window now -- the note
+                            // itself is NOT deleted (stickers.json keeps the
+                            // record, so it can be reopened from the tray
+                            // menu's note list). Deleting is a separate,
+                            // confirmed action reachable only from that
+                            // menu (see Main.qml's confirmDeleteSticker).
+                            mainWindow.appRoot.unregisterWindow(stickerId)
                             // close() alone only hides the window -- the QML
                             // object, its persistTimer above, and the
                             // Connections to KWinBridge.moveFinished stay
