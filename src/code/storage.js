@@ -39,6 +39,7 @@ function loadAllStickers() {
         let stickers = json.stickers || []
         return stickers.map(s => ({
             id: s.id,
+            name: s.name !== undefined ? s.name : "",
             text: s.text,
             color: s.color,
             x: s.x,
@@ -63,6 +64,7 @@ function saveSticker(sticker) {
 
     let record = {
         id: sticker.id,
+        name: sticker.name,
         text: sticker.text,
         color: sticker.color,
         x: sticker.x,
