@@ -23,6 +23,17 @@ Window {
     // to live one level up and drive both ScrollViews' visible bindings.
     property bool editing: false
     onEditingChanged: if (editing) editArea.forceActiveFocus()
+    // Sticker windows are ordinary managed KWin toplevels, closable via
+    // Alt+F4, KWin's window-operations menu, or a task switcher -- not just
+    // this app's own "✕" button. Any of those must also unregister the
+    // window from Main.qml's openWindows registry, or a stale (but truthy)
+    // entry is left behind and the next "Abrir" from the tray finds a
+    // window that's no longer visible, silently failing to reopen it. This
+    // fires in addition to the "✕" button's own explicit unregisterWindow
+    // call and the delete dialog's explicit call; calling unregisterWindow
+    // twice for the same id is harmless (it's just `delete openWindows[id]`,
+    // idempotent).
+    onClosing: if (appRoot) appRoot.unregisterWindow(stickerId)
     // Window (unlike Item) has no QML-visible "parent" property, so
     // mainWindow.parent.createNewSticker(...) -- the brief's literal "+"
     // button handler -- evaluates mainWindow.parent as undefined and
@@ -312,6 +323,9 @@ Window {
                             if (!activeFocus && mainWindow.editing) {
                                 stickerText = text
                                 Manager.updateText(stickerId, text)
+                                if (mainWindow.appRoot) {
+                                    mainWindow.appRoot.refreshNoteList()
+                                }
                                 mainWindow.editing = false
                             }
                         }

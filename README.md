@@ -44,7 +44,12 @@ checklist manual de verificación.
   click para editar, perder el foco para volver a la vista previa
   renderizada
 - Color de fondo: paleta fija de 6 tonos pastel o selector de color libre
-- Eliminar stickers (sin diálogo de confirmación)
+- El icono de la bandeja del sistema lista todas las notas creadas (paginado
+  de 10 en 10), con una entrada para abrir/reenfocar cada una y otra para
+  eliminarla (con confirmación)
+- El botón "✕" del sticker solo cierra su ventana — la nota sigue existiendo
+  y se puede reabrir desde el menú de la bandeja. Eliminar una nota es una
+  acción aparte, solo alcanzable desde ese menú, y siempre pide confirmación
 - Persistencia en `~/.stickers/stickers.json`
 - Autostart vía `.desktop` freedesktop estándar (no "Background Services"
   de Plasma)

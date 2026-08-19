@@ -67,6 +67,15 @@ Item {
     function openOrFocusSticker(id) {
         var win = openWindows[id]
         if (win) {
+            // Defense in depth: onClosing (StickerWindow.qml) keeps this
+            // registry self-maintaining for every close path, but if some
+            // path ever slips through without firing it, a stale entry
+            // would point at a window that's no longer visible -- show()
+            // it back before raising/activating rather than silently
+            // no-oping.
+            if (!win.visible) {
+                win.show()
+            }
             win.raise()
             win.requestActivate()
             return
@@ -124,6 +133,16 @@ Item {
     }
 
     function confirmDeleteSticker(id, label) {
+        // The tray menu is drawn by plasmashell over DBusMenu, not by this
+        // app's own process -- an app-side modal MessageDialog cannot block
+        // input to that other process's menu. A user really can reopen the
+        // tray menu and trigger a second delete while this dialog is still
+        // open; ignore it rather than silently overwriting pendingId (which
+        // would either drop the first request or make "Sí" delete the
+        // wrong note while still showing the first note's label).
+        if (deleteConfirmDialog.pendingId !== "") {
+            return
+        }
         deleteConfirmDialog.pendingId = id
         deleteConfirmDialog.text = "¿Eliminar \"" + label + "\"? Esta acción no se puede deshacer."
         deleteConfirmDialog.open()
@@ -142,7 +161,9 @@ Item {
             }
             Manager.removeSticker(pendingId)
             root.refreshNoteList()
+            pendingId = ""
         }
+        onNoClicked: pendingId = ""
     }
 
     // Flat, per-note "open" + "delete" entries for the tray menu, built as a
@@ -175,7 +196,7 @@ Item {
                 text: "Nuevo sticker"
                 onTriggered: root.createNewSticker(100, 100)
             }
-            Platform.MenuSeparator {}
+            Platform.MenuSeparator { visible: root.noteList.length > 0 }
             Platform.MenuItem {
                 text: "▲ Anteriores"
                 visible: root.hasPrevPage()
@@ -197,11 +218,11 @@ Item {
                 onObjectRemoved: (index, object) => trayMenu.removeItem(object)
             }
             Platform.MenuItem {
-                text: "▼ Siguientes"
+                text: "▼ Siguientes (reabrir menú)"
                 visible: root.hasNextPage()
                 onTriggered: root.goNextPage()
             }
-            Platform.MenuSeparator {}
+            Platform.MenuSeparator { visible: root.noteList.length > 0 }
             Platform.MenuItem {
                 text: "Salir"
                 onTriggered: Qt.quit()

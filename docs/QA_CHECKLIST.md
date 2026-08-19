@@ -54,11 +54,19 @@ Verificación manual repetible del MVP. No hay tests automatizados (decisión de
 - [ ] Seleccionar un swatch cambia el color del sticker inmediatamente y lo persiste
 - [ ] El botón "+" de la paleta abre un selector de color libre y aplica/persiste el color elegido
 
-## Eliminación
+## Cerrar (✕)
 
 - [ ] Botón "✕" cierra la ventana del sticker
-- [ ] El sticker eliminado desaparece de `~/.stickers/stickers.json`
-- [ ] Al reiniciar la app, el sticker eliminado no reaparece
+- [ ] La nota sigue presente en `~/.stickers/stickers.json` tras cerrar (no se borra)
+- [ ] La nota cerrada reaparece en el menú de la bandeja, lista para reabrirse
+
+## Eliminación (desde el menú de la bandeja)
+
+- [ ] El menú de la bandeja lista cada nota como un par "Abrir: `<título>`" / "🗑 Eliminar: `<título>`"
+- [ ] "Eliminar" pide confirmación antes de borrar
+- [ ] "No" en el diálogo de confirmación no borra nada
+- [ ] "Sí" borra la nota de `~/.stickers/stickers.json`, cierra su ventana si estaba abierta, y la quita del menú de la bandeja
+- [ ] Con más de 10 notas, "▲ Anteriores"/"▼ Siguientes" navegan la lista paginada (sin submenú)
 
 ## Persistencia entre sesiones
 
