@@ -172,7 +172,7 @@ Window {
                 if (!pressed) return
                 var newWidth = mainWindow.width + (mouse.x - resizeArea.width)
                 var newHeight = mainWindow.height + (mouse.y - resizeArea.height)
-                mainWindow.width = Math.max(150, newWidth)
+                mainWindow.width = Math.max(210, newWidth)
                 mainWindow.height = Math.max(120, newHeight)
             }
             onReleased: {

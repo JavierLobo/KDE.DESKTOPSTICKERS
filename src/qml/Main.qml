@@ -122,6 +122,15 @@ Item {
         }
     }
 
+    function renameSticker(id, name) {
+        Manager.updateName(id, name)
+        var win = openWindows[id]
+        if (win) {
+            win.stickerName = name
+        }
+        refreshNoteList()
+    }
+
     function confirmDeleteSticker(id, label) {
         // The tray menu is drawn by plasmashell over DBusMenu, not by this
         // app's own process -- an app-side modal MessageDialog cannot block

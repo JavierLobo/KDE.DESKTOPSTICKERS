@@ -20,7 +20,10 @@ function randomColor() {
 // back into sticker.name.
 function displayName(sticker) {
     if (sticker.name && sticker.name.length > 0) {
-        return sticker.name
+        return sticker.name.length > 30 ? sticker.name.substring(0, 30) + "…" : sticker.name
+    }
+    if (!sticker.text) {
+        return "Sticker"
     }
     var lines = sticker.text.split("\n")
     for (var i = 0; i < lines.length; i++) {
@@ -77,7 +80,7 @@ function updateColor(id, color) {
 function updateName(id, name) {
     var sticker = stickers.find(function(s) { return s.id === id })
     if (!sticker) return
-    sticker.name = name
+    sticker.name = name.trim()
     Storage.saveSticker(sticker)
 }
 

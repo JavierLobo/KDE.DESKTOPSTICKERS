@@ -13,6 +13,8 @@ Verificación manual repetible del MVP. No hay tests automatizados (decisión de
 - [ ] Tray icon → "Nuevo sticker" crea un sticker amarillo con texto placeholder
 - [ ] Botón "+" de un sticker existente crea uno nuevo con id incremental (la posición inicial la decide KWin — la posición real solo se persiste tras el primer arrastre, ver "Movimiento")
 - [ ] Cada sticker creado obtiene un id incremental único
+- [ ] Cada sticker nuevo recibe un color aleatorio de la paleta fija de 6 tonos (no siempre el mismo)
+- [ ] La cabecera del sticker muestra "#<id> | <nombre o respaldo>" a la izquierda, y los botones "+", pin, color, "✕" en ese orden a la derecha
 
 ## Movimiento
 
@@ -31,7 +33,7 @@ Verificación manual repetible del MVP. No hay tests automatizados (decisión de
 ## Resize
 
 - [ ] Arrastrar desde la esquina inferior derecha redimensiona el sticker visualmente
-- [ ] No se puede encoger por debajo de ~150×120px
+- [ ] No se puede encoger por debajo de ~210×120px
 - [ ] El tamaño persiste en `~/.stickers/stickers.json` y se restaura al reiniciar la app
 
 ## Combinado: pin + movimiento + resize
@@ -60,13 +62,18 @@ Verificación manual repetible del MVP. No hay tests automatizados (decisión de
 - [ ] La nota sigue presente en `~/.stickers/stickers.json` tras cerrar (no se borra)
 - [ ] La nota cerrada reaparece en el menú de la bandeja, lista para reabrirse
 
-## Eliminación (desde el menú de la bandeja)
+## Eliminación (desde el Panel de Stickers)
 
-- [ ] El menú de la bandeja lista cada nota como un par "Abrir: `<título>`" / "🗑 Eliminar: `<título>`"
-- [ ] "Eliminar" pide confirmación antes de borrar
+- [ ] El menú de la bandeja lista cada nota por su nombre (o su respaldo derivado del texto), una fila por nota, sin prefijos "Abrir:"/"Eliminar:"
+- [ ] Click en una fila del menú de bandeja abre o reenfoca esa nota
+- [ ] "Panel de Stickers" (entre las notas y "Salir" en el menú de bandeja) abre una ventana con el listado completo
+- [ ] Cada fila del Panel muestra una miniatura de color, el número (inmutable) y el nombre/respaldo
+- [ ] "Abrir" en una fila del Panel abre o reenfoca esa nota
+- [ ] "✎" en una fila del Panel la vuelve editable; guardar (Enter o perder el foco) cambia el nombre, persistido en `~/.stickers/stickers.json`, y se refleja en la cabecera de esa nota si su ventana está abierta
+- [ ] "🗑" en una fila del Panel pide confirmación antes de borrar
 - [ ] "No" en el diálogo de confirmación no borra nada
-- [ ] "Sí" borra la nota de `~/.stickers/stickers.json`, cierra su ventana si estaba abierta, y la quita del menú de la bandeja
-- [ ] Con más de 10 notas, "▲ Anteriores"/"▼ Siguientes" navegan la lista paginada (sin submenú)
+- [ ] "Sí" borra la nota de `~/.stickers/stickers.json`, cierra su ventana si estaba abierta, y la quita tanto del menú de bandeja como del Panel
+- [ ] Con más de 10 notas, "▲ Anteriores"/"▼ Siguientes" navegan la lista paginada del menú de bandeja (sin submenú)
 
 ## Persistencia entre sesiones
 

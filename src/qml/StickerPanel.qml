@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import "StickerManager.js" as Manager
+import QtQuick.Window
 
 Window {
     id: panelWindow
@@ -30,6 +30,13 @@ Window {
             ColumnLayout {
                 width: panelWindow.width - 20
                 spacing: 4
+
+                Text {
+                    visible: appRoot && appRoot.noteList.length === 0
+                    text: "No hay stickers todavía."
+                    color: "#666"
+                    font.italic: true
+                }
 
                 Repeater {
                     model: appRoot ? appRoot.noteList : []
@@ -73,9 +80,8 @@ Window {
 
                             onActiveFocusChanged: {
                                 if (!activeFocus && row.renaming) {
-                                    Manager.updateName(modelData.id, text)
+                                    appRoot.renameSticker(modelData.id, text)
                                     row.renaming = false
-                                    appRoot.refreshNoteList()
                                 }
                             }
                         }
