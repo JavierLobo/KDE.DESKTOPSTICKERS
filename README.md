@@ -91,21 +91,25 @@ Los stickers se guardan en `~/.stickers/stickers.json`:
 ## Problemas conocidos
 
 - **El menú de la bandeja a veces se abre solo, sin que el usuario haga
-  click.** Causa: cualquier llamada a `refreshNoteList()` (crear, editar,
-  renombrar o eliminar una nota) reconstruye por completo la lista de
-  entradas del menú (`Instantiator` sin identidad estable por elemento),
-  y esa reconstrucción parece hacer que el widget de bandeja de Plasma
-  muestre el menú espontáneamente. Confirmado con reproducciones reales
-  y controles negativos — no es un clic accidental. No es nuevo de esta
-  rama, y esta rama en concreto reduce el número de entradas reconstruidas
-  por evento (de 2 por nota a 1). Arreglo recomendado, no implementado
-  todavía: (1) primero, un chequeo de "¿cambió de verdad la lista?" en
-  `refreshNoteList()` que evite reasignar `noteList` cuando el contenido
-  no ha cambiado — elimina el disparador más frecuente (guardar una
-  edición de texto) con muy poco riesgo; (2) si no basta, sustituir el
-  modelo de array plano del `Instantiator` del menú por un `ListModel`
-  real con `append()`/`remove()` incrementales, re-verificando que la
-  paginación siga funcionando.
+  click — solo al crear o eliminar un sticker.** Causa: el `Instantiator`
+  del menú de bandeja ahora usa un `ListModel` real (`trayNoteModel` en
+  `Main.qml`) con `set()`/`append()`/`remove()` incrementales en vez de
+  reconstruir toda la lista en cada refresco — esto elimina el problema
+  por completo para editar/renombrar (verificado con clics reales: cero
+  aperturas espontáneas en varias pruebas). Pero crear o eliminar un
+  sticker cambia el número de filas, así que dispara exactamente una
+  llamada a `trayMenu.insertItem()`/`removeItem()` — y una sola llamada
+  de ese tipo, aunque afecte a una sola fila, basta para que el widget de
+  bandeja de Plasma muestre el menú espontáneamente (confirmado con clics
+  reales: el mismo síntoma persiste tras crear un sticker incluso con el
+  `ListModel` incremental, así que no es cuestión de volumen de cambios,
+  sino de que exista o no una llamada estructural de ese tipo). No es
+  nuevo de esta rama. Sin arreglo identificado todavía para el caso
+  crear/eliminar; una vía a explorar: mantener siempre un número fijo de
+  `Platform.MenuItem` ya creados (según `notePageSize`) y alternar solo su
+  `visible`/`text` en vez de añadir o quitar filas — evitaría toda llamada
+  a `insertItem()`/`removeItem()` también para crear/eliminar, pero
+  necesita su propio diseño y verificación antes de intentarlo.
 
 ## Licencia
 

@@ -95,6 +95,35 @@ Item {
         if (notePage > maxPage) {
             notePage = maxPage
         }
+        syncTrayNoteModel(visibleNotes())
+    }
+
+    // trayNoteModel is a real ListModel with per-row identity, unlike the
+    // plain JS array the tray Instantiator used to bind to directly. set()
+    // mutates an existing row's Platform.MenuItem in place (a lightweight
+    // property change, no add/remove signal); only append()/remove() -- a
+    // genuine row-count change -- fires the Instantiator's
+    // onObjectAdded/onObjectRemoved, which is what previously ran on EVERY
+    // refresh (via a fresh array reference) and is the confirmed trigger for
+    // Plasma spuriously popping the tray menu open (see README's "Problemas
+    // conocidos"). Diffing in place keeps that churn limited to rows that
+    // actually changed.
+    function syncTrayNoteModel(targetList) {
+        var i
+        for (i = 0; i < targetList.length && i < trayNoteModel.count; i++) {
+            var cur = trayNoteModel.get(i)
+            var next = targetList[i]
+            if (cur.id !== next.id || cur.name !== next.name ||
+                cur.label !== next.label || cur.color !== next.color) {
+                trayNoteModel.set(i, next)
+            }
+        }
+        while (trayNoteModel.count > targetList.length) {
+            trayNoteModel.remove(trayNoteModel.count - 1)
+        }
+        for (; i < targetList.length; i++) {
+            trayNoteModel.append(targetList[i])
+        }
     }
 
     function visibleNotes() {
@@ -113,12 +142,14 @@ Item {
     function goPrevPage() {
         if (hasPrevPage()) {
             notePage -= 1
+            syncTrayNoteModel(visibleNotes())
         }
     }
 
     function goNextPage() {
         if (hasNextPage()) {
             notePage += 1
+            syncTrayNoteModel(visibleNotes())
         }
     }
 
@@ -177,6 +208,12 @@ Item {
         appRoot: root
     }
 
+    // Backs the tray menu's Instantiator (see syncTrayNoteModel above).
+    // Rows: {id, name, label, color}, same shape refreshNoteList() builds.
+    ListModel {
+        id: trayNoteModel
+    }
+
     Platform.SystemTrayIcon {
         id: trayIcon
         visible: true
@@ -196,10 +233,10 @@ Item {
                 onTriggered: root.goPrevPage()
             }
             Instantiator {
-                model: root.visibleNotes()
+                model: trayNoteModel
                 delegate: Platform.MenuItem {
-                    text: modelData.label
-                    onTriggered: root.openOrFocusSticker(modelData.id)
+                    text: model.label
+                    onTriggered: root.openOrFocusSticker(model.id)
                 }
                 onObjectAdded: (index, object) => trayMenu.insertItem(index + 3, object)
                 onObjectRemoved: (index, object) => trayMenu.removeItem(object)
