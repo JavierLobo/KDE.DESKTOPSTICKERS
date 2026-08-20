@@ -7,8 +7,7 @@ Item {
 
     property var openWindows: ({})
     property var noteList: []
-    property int notePage: 0
-    readonly property int notePageSize: 10
+    readonly property int maxTrayNotes: 10
 
     Component {
         id: stickerWindowComponent
@@ -89,13 +88,23 @@ Item {
 
     function refreshNoteList() {
         noteList = Manager.stickers.map(function(s) {
-            return { id: s.id, name: s.name, label: Manager.displayName(s), color: s.color }
+            return { id: s.id, name: s.name, label: Manager.displayName(s), color: s.color, modified: s.modified }
         })
-        var maxPage = Math.max(0, Math.ceil(noteList.length / notePageSize) - 1)
-        if (notePage > maxPage) {
-            notePage = maxPage
-        }
-        syncTrayNoteModel(visibleNotes())
+        syncTrayNoteModel(recentTrayNotes())
+    }
+
+    // Tray menu has no pagination -- just the maxTrayNotes most recently
+    // modified stickers, newest first. modified is an ISO 8601 string, so
+    // plain string comparison sorts chronologically; '' is the fallback for
+    // any pre-existing record missing the field, sorting it last.
+    function recentTrayNotes() {
+        var sorted = noteList.slice().sort(function(a, b) {
+            var am = a.modified || ""
+            var bm = b.modified || ""
+            if (am === bm) return 0
+            return am < bm ? 1 : -1
+        })
+        return sorted.slice(0, maxTrayNotes)
     }
 
     // trayNoteModel is a real ListModel with per-row identity, unlike the
@@ -123,33 +132,6 @@ Item {
         }
         for (; i < targetList.length; i++) {
             trayNoteModel.append(targetList[i])
-        }
-    }
-
-    function visibleNotes() {
-        var start = notePage * notePageSize
-        return noteList.slice(start, start + notePageSize)
-    }
-
-    function hasPrevPage() {
-        return notePage > 0
-    }
-
-    function hasNextPage() {
-        return (notePage + 1) * notePageSize < noteList.length
-    }
-
-    function goPrevPage() {
-        if (hasPrevPage()) {
-            notePage -= 1
-            syncTrayNoteModel(visibleNotes())
-        }
-    }
-
-    function goNextPage() {
-        if (hasNextPage()) {
-            notePage += 1
-            syncTrayNoteModel(visibleNotes())
         }
     }
 
@@ -227,24 +209,14 @@ Item {
                 onTriggered: root.createNewSticker(100, 100)
             }
             Platform.MenuSeparator { visible: root.noteList.length > 0 }
-            Platform.MenuItem {
-                text: "▲ Anteriores"
-                visible: root.hasPrevPage()
-                onTriggered: root.goPrevPage()
-            }
             Instantiator {
                 model: trayNoteModel
                 delegate: Platform.MenuItem {
                     text: model.label
                     onTriggered: root.openOrFocusSticker(model.id)
                 }
-                onObjectAdded: (index, object) => trayMenu.insertItem(index + 3, object)
+                onObjectAdded: (index, object) => trayMenu.insertItem(index + 2, object)
                 onObjectRemoved: (index, object) => trayMenu.removeItem(object)
-            }
-            Platform.MenuItem {
-                text: "▼ Siguientes (reabrir menú)"
-                visible: root.hasNextPage()
-                onTriggered: root.goNextPage()
             }
             Platform.MenuSeparator { visible: root.noteList.length > 0 }
             Platform.MenuItem {

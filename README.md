@@ -48,10 +48,11 @@ checklist manual de verificación.
 - Nombre por sticker, editable desde el Panel de Stickers: si no se
   establece, se deriva automáticamente de la primera línea con contenido del
   texto. La cabecera del sticker muestra `#<id> | <nombre o respaldo>`
-- El icono de la bandeja del sistema lista todas las notas creadas (paginado
-  de 10 en 10) — cada fila abre o reenfoca esa nota. Un nuevo "Panel de
-  Stickers" en el mismo menú abre una ventana con el listado completo: abrir,
-  renombrar y eliminar (con confirmación) cada nota
+- El icono de la bandeja del sistema lista las 10 notas modificadas más
+  recientemente (sin paginación) — cada fila abre o reenfoca esa nota. El
+  "Panel de Stickers" en el mismo menú abre una ventana con el listado
+  completo, sin límite: abrir, renombrar y eliminar (con confirmación) cada
+  nota
 - El botón "✕" del sticker solo cierra su ventana — la nota sigue existiendo
   y se puede reabrir desde el menú de la bandeja. Eliminar una nota es una
   acción aparte, solo alcanzable desde el Panel de Stickers, y siempre pide
@@ -106,7 +107,7 @@ Los stickers se guardan en `~/.stickers/stickers.json`:
   sino de que exista o no una llamada estructural de ese tipo). No es
   nuevo de esta rama. Sin arreglo identificado todavía para el caso
   crear/eliminar; una vía a explorar: mantener siempre un número fijo de
-  `Platform.MenuItem` ya creados (según `notePageSize`) y alternar solo su
+  `Platform.MenuItem` ya creados (según `maxTrayNotes`) y alternar solo su
   `visible`/`text` en vez de añadir o quitar filas — evitaría toda llamada
   a `insertItem()`/`removeItem()` también para crear/eliminar, pero
   necesita su propio diseño y verificación antes de intentarlo.

@@ -83,6 +83,14 @@ function saveSticker(sticker) {
         stickers.push(record)
     }
 
+    // Mirror the persisted timestamps back onto the caller's live object --
+    // otherwise Manager.stickers' in-memory modified/created stay frozen at
+    // whatever was loaded at startup, since callers pass the same object
+    // reference in on every edit and only `record` (thrown away here) got
+    // the fresh value.
+    sticker.created = record.created
+    sticker.modified = record.modified
+
     let indexPath = getStickersDir() + "/stickers.json"
     let json = JSON.stringify({stickers: stickers}, null, 2)
 

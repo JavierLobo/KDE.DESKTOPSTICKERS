@@ -73,7 +73,9 @@ Verificación manual repetible del MVP. No hay tests automatizados (decisión de
 - [ ] "🗑" en una fila del Panel pide confirmación antes de borrar
 - [ ] "No" en el diálogo de confirmación no borra nada
 - [ ] "Sí" borra la nota de `~/.stickers/stickers.json`, cierra su ventana si estaba abierta, y la quita tanto del menú de bandeja como del Panel
-- [ ] Con más de 10 notas, "▲ Anteriores"/"▼ Siguientes" navegan la lista paginada del menú de bandeja (sin submenú)
+- [ ] Con más de 10 notas, el menú de bandeja muestra solo las 10 modificadas más recientemente (creación, edición, renombrado, pin, color, movimiento o resize cuentan como modificación), sin controles de paginación
+- [ ] Editar/renombrar una nota que no estaba entre las 10 más recientes la hace aparecer en el menú de bandeja (y desplaza a la más antigua de las 10 fuera de la lista)
+- [ ] El Panel de Stickers sigue mostrando todas las notas, sin límite de 10
 
 ## Persistencia entre sesiones
 
