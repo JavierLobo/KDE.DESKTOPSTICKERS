@@ -26,6 +26,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Bump pkgver/sha256sums to the release tag
+        # POSIX sh, not bash: this step's if: condition already guarantees
+        # GITHUB_REF is a tag ref here, so no [[ ]] prefix check is needed
+        # (that bash-only syntax is what broke the Debian workflow's run).
         if: github.event_name == 'release'
         run: |
           VERSION="${GITHUB_REF_NAME#v}"

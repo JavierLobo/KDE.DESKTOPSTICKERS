@@ -26,12 +26,17 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Configure
+        # POSIX sh, not bash: the container's `run:` steps use /bin/sh, which
+        # doesn't understand bash arrays or [[ ]] (that's what broke run #2).
         run: |
-          ARGS=(-B build -S . -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr)
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
-            ARGS+=(-DAPP_VERSION="${GITHUB_REF_NAME#v}")
-          fi
-          cmake "${ARGS[@]}"
+          case "$GITHUB_REF" in
+            refs/tags/v*)
+              cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DAPP_VERSION="${GITHUB_REF_NAME#v}"
+              ;;
+            *)
+              cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
+              ;;
+          esac
 
       - name: Build
         run: cmake --build build
