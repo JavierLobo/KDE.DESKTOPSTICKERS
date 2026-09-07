@@ -19,7 +19,7 @@ jobs:
         run: |
           apt-get update
           apt-get install -y --no-install-recommends \
-            build-essential cmake dpkg-dev \
+            build-essential cmake dpkg-dev file \
             qt6-base-dev qt6-declarative-dev
 
       - name: Checkout
