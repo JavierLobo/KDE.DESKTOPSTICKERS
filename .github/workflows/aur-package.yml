@@ -1,0 +1,39 @@
+name: Build Arch package
+
+# El PKGBUILD compila el tarball del tag v$pkgver publicado en GitHub, no el
+# checkout de este workflow — por eso no dispara en cada push del código de
+# la app, sino solo cuando cambia el propio empaquetado (o a mano).
+on:
+  push:
+    paths:
+      - 'packaging/arch/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:base-devel
+    steps:
+      - name: Update system and install build dependencies
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm --needed git cmake qt6-base qt6-declarative kconfig qt6-tools
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create unprivileged build user
+        run: |
+          useradd -m builder
+          chown -R builder:builder "$GITHUB_WORKSPACE"
+
+      - name: Build package with makepkg
+        run: |
+          su builder -c "cd '$GITHUB_WORKSPACE/packaging/arch' && makepkg -s --noconfirm"
+
+      - name: Upload package as build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-stickers-arch-package
+          path: packaging/arch/*.pkg.tar.zst
