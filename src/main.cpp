@@ -4,6 +4,7 @@
 #include <QDebug>
 #include <QQmlApplicationEngine>
 #include <QQmlEngine>
+#include <QUrl>
 
 #include "filestorage.h"
 #include "kwinbridge.h"
@@ -81,7 +82,11 @@ int main(int argc, char *argv[])
         &engine, &QQmlApplicationEngine::objectCreationFailed,
         &app, []() { QCoreApplication::exit(-1); },
         Qt::QueuedConnection);
-    engine.loadFromModule("StickersApp", "Main");
+    // Not engine.loadFromModule("StickersApp", "Main"): that convenience
+    // wrapper needs Qt 6.5+, and Ubuntu 24.04's own repos only have 6.4.2.
+    // This is the equivalent explicit load against the same compiled QML
+    // module resource path, and works from Qt 6.2 on.
+    engine.load(QUrl(QStringLiteral("qrc:/qt/qml/StickersApp/Main.qml")));
 
     return app.exec();
 }
