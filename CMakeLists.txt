@@ -1,5 +1,13 @@
 cmake_minimum_required(VERSION 3.16)
-project(desktop-stickers VERSION 1.0.0 LANGUAGES CXX)
+
+# Overridable so CI can pass -DAPP_VERSION=<release tag> and have the
+# generated .deb/.pkg.tar.zst carry the real released version instead of a
+# hand-bumped default. Plain local builds (install.sh included) don't pass
+# this, so they just get the fallback below.
+if(NOT DEFINED APP_VERSION)
+    set(APP_VERSION "1.0.0")
+endif()
+project(desktop-stickers VERSION ${APP_VERSION} LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
