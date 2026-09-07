@@ -1,12 +1,14 @@
 name: Build Arch package
 
-# El PKGBUILD compila el tarball del tag v$pkgver publicado en GitHub, no el
-# checkout de este workflow — por eso no dispara en cada push del código de
-# la app, sino solo cuando cambia el propio empaquetado (o a mano).
+# Ojo: el PKGBUILD compila el tarball del tag v$pkgver publicado en GitHub,
+# no el checkout de este workflow. Mientras no se bumpee pkgver en el
+# PKGBUILD, cada corrida en main va a reconstruir la misma versión aunque el
+# código de la app haya cambiado — sirve como chequeo de que el empaquetado
+# sigue sano, no como test de cada commit.
 on:
   push:
-    paths:
-      - 'packaging/arch/**'
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
