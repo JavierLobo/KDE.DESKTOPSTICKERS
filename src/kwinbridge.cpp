@@ -44,7 +44,7 @@ KWinBridge::KWinBridge(QObject *parent) : QObject(parent)
 
 QString KWinBridge::ruleGroupName(const QString &stickerId)
 {
-    return QStringLiteral("kdestickers-sticker-%1").arg(stickerId);
+    return QStringLiteral("desktopstickers-sticker-%1").arg(stickerId);
 }
 
 void KWinBridge::removeRuleIdFromList(const QString &ruleId) const
@@ -213,7 +213,7 @@ QPointF KWinBridge::queryRealGeometry(const QString &windowTitle)
     // materialised on disk for the duration of the call. Default autoRemove
     // deletes it when this object goes out of scope, which is after KWin has
     // both read and unloaded the script, and covers every early return too.
-    QTemporaryFile scriptFile(QDir::tempPath() + QStringLiteral("/kde-stickers-geom-XXXXXX.js"));
+    QTemporaryFile scriptFile(QDir::tempPath() + QStringLiteral("/desktop-stickers-geom-XXXXXX.js"));
     if (scriptFile.open()) {
         const QString scriptPath = scriptFile.fileName();
         const QString quotedTitle = jsQuote(windowTitle);
@@ -227,8 +227,8 @@ QPointF KWinBridge::queryRealGeometry(const QString &windowTitle)
             "for (var i = 0; i < wins.length; i++) {\n"
             "    if (wins[i].caption === \"%1\") {\n"
             "        var g = wins[i].frameGeometry;\n"
-            "        callDBus(\"org.kde.stickers\", \"/KWinBridge\","
-            " \"org.kde.stickers.KWinBridge\", \"receiveGeometry\","
+            "        callDBus(\"io.github.javierlobo.desktopstickers\", \"/KWinBridge\","
+            " \"io.github.javierlobo.desktopstickers.KWinBridge\", \"receiveGeometry\","
             " \"%1\", \"\" + g.x + \",\" + g.y);\n"
             "        break;\n"
             "    }\n"
@@ -242,7 +242,7 @@ QPointF KWinBridge::queryRealGeometry(const QString &windowTitle)
         // /Scripting/Script<id>. Verified against
         // `qdbus6 org.kde.KWin /Scripting`, which declares
         // "method int org.kde.kwin.Scripting.loadScript(QString, QString)".
-        const QString pluginName = QStringLiteral("kde-stickers-geom-query");
+        const QString pluginName = QStringLiteral("desktop-stickers-geom-query");
 
         // Unload first, before loading. KWin refuses a loadScript() whose
         // plugin name is already registered -- it returns -1 rather than
@@ -300,7 +300,7 @@ void KWinBridge::unpinLiveWindow(const QString &windowTitle) const
     // no risk of the callback deadlocking against a blocked event loop --
     // a plain blocking QProcess::execute for both run() and the unload
     // afterward is safe here.
-    QTemporaryFile scriptFile(QDir::tempPath() + QStringLiteral("/kde-stickers-unpin-XXXXXX.js"));
+    QTemporaryFile scriptFile(QDir::tempPath() + QStringLiteral("/desktop-stickers-unpin-XXXXXX.js"));
     if (!scriptFile.open()) {
         return;
     }
@@ -317,7 +317,7 @@ void KWinBridge::unpinLiveWindow(const QString &windowTitle) const
     stream.flush();
     scriptFile.close();
 
-    const QString pluginName = QStringLiteral("kde-stickers-unpin");
+    const QString pluginName = QStringLiteral("desktop-stickers-unpin");
 
     // Same unload-before-load pattern as queryRealGeometry, same reason:
     // KWin refuses loadScript() under an already-registered plugin name.
@@ -352,7 +352,7 @@ void KWinBridge::setPinned(const QString &stickerId, const QString &windowTitle,
 
     if (!pinned) {
         // Pin and position deliberately share ONE KWin rule group per
-        // sticker (kdestickers-sticker-<id>) -- a sticker that is both
+        // sticker (desktopstickers-sticker-<id>) -- a sticker that is both
         // pinned and has a known dragged-to position needs desktops/
         // desktopsrule and position/positionrule to coexist in the same
         // group (see updatePositionRule()'s .cpp comment). That sharing is
@@ -425,7 +425,7 @@ void KWinBridge::setPinned(const QString &stickerId, const QString &windowTitle,
     QProcess::execute(QStringLiteral("kwriteconfig6"),
         {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
          QStringLiteral("--group"), ruleId,
-         QStringLiteral("--key"), QStringLiteral("wmclass"), QStringLiteral("org.kde.stickers")});
+         QStringLiteral("--key"), QStringLiteral("wmclass"), QStringLiteral("io.github.javierlobo.desktopstickers")});
     QProcess::execute(QStringLiteral("kwriteconfig6"),
         {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
          QStringLiteral("--group"), ruleId,
@@ -458,7 +458,7 @@ void KWinBridge::setPinned(const QString &stickerId, const QString &windowTitle,
     reconfigureKWin();
 }
 
-// Writes to the *same* rule group id (kdestickers-sticker-<id>) that
+// Writes to the *same* rule group id (desktopstickers-sticker-<id>) that
 // setPinned() may also write to -- a sticker that is both pinned and has a
 // known position ends up with one rule group carrying both
 // desktops/desktopsrule and position/positionrule keys, which is valid KWin
@@ -474,7 +474,7 @@ void KWinBridge::updatePositionRule(const QString &stickerId, const QString &win
     QProcess::execute(QStringLiteral("kwriteconfig6"),
         {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
          QStringLiteral("--group"), ruleId,
-         QStringLiteral("--key"), QStringLiteral("wmclass"), QStringLiteral("org.kde.stickers")});
+         QStringLiteral("--key"), QStringLiteral("wmclass"), QStringLiteral("io.github.javierlobo.desktopstickers")});
     QProcess::execute(QStringLiteral("kwriteconfig6"),
         {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
          QStringLiteral("--group"), ruleId,
@@ -517,7 +517,7 @@ void KWinBridge::startPositionWatch() const
     // unpinLiveWindow's short-lived scripts. A fixed path is overwritten
     // fresh on every app startup, which is fine: KWin only reads the file
     // at loadScript() time, not afterward.
-    const QString scriptPath = QDir::tempPath() + QStringLiteral("/kde-stickers-position-watch.js");
+    const QString scriptPath = QDir::tempPath() + QStringLiteral("/desktop-stickers-position-watch.js");
     QFile scriptFile(scriptPath);
     if (!scriptFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
         return;
@@ -533,23 +533,23 @@ void KWinBridge::startPositionWatch() const
     // windowAdded covers stickers created later via the "+" button;
     // existing ones are attached up front from the initial windowList().
     stream << QStringLiteral(
-        "function kdeStickersAttach(win) {\n"
+        "function desktopStickersAttach(win) {\n"
         "    if (win.caption.indexOf(\"Sticker \") !== 0) return;\n"
         "    win.interactiveMoveResizeFinished.connect(function() {\n"
-        "        callDBus(\"org.kde.stickers\", \"/KWinBridge\","
-        " \"org.kde.stickers.KWinBridge\", \"receiveMoveFinished\", win.caption);\n"
+        "        callDBus(\"io.github.javierlobo.desktopstickers\", \"/KWinBridge\","
+        " \"io.github.javierlobo.desktopstickers.KWinBridge\", \"receiveMoveFinished\", win.caption);\n"
         "    });\n"
         "}\n"
-        "var kdeStickersWins = workspace.windowList();\n"
-        "for (var i = 0; i < kdeStickersWins.length; i++) {\n"
-        "    kdeStickersAttach(kdeStickersWins[i]);\n"
+        "var desktopStickersWins = workspace.windowList();\n"
+        "for (var i = 0; i < desktopStickersWins.length; i++) {\n"
+        "    desktopStickersAttach(desktopStickersWins[i]);\n"
         "}\n"
-        "workspace.windowAdded.connect(kdeStickersAttach);\n"
+        "workspace.windowAdded.connect(desktopStickersAttach);\n"
     );
     stream.flush();
     scriptFile.close();
 
-    const QString pluginName = QStringLiteral("kde-stickers-position-watch");
+    const QString pluginName = QStringLiteral("desktop-stickers-position-watch");
 
     // Unload-before-load, same reasoning as queryRealGeometry/
     // unpinLiveWindow: KWin refuses loadScript() under an already-registered

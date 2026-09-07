@@ -1,4 +1,4 @@
-# KDE Stickers - Quick Start
+# Desktop Stickers - Quick Start
 
 <p align="center">
   <a href="QUICKSTART-SP.md"><img alt="ES" src="https://img.shields.io/badge/lang-ES-red.svg"></a>
@@ -18,9 +18,9 @@ chmod +x scripts/install.sh
 ./scripts/install.sh
 ```
 
-This builds the Qt6 binary (`build/kde-stickers`), installs it to
-`~/.local/bin/kde-stickers`, and registers autostart in
-`~/.config/autostart/org.kde.stickers.desktop`.
+This builds the Qt6 binary (`build/desktop-stickers`), installs it to
+`~/.local/bin/desktop-stickers`, and registers autostart in
+`~/.config/autostart/io.github.javierlobo.desktopstickers.desktop`.
 
 ## First launch
 
@@ -28,10 +28,10 @@ The app will start automatically on your next Plasma session. To try it
 right now without logging out:
 
 ```bash
-~/.local/bin/kde-stickers &
+~/.local/bin/desktop-stickers &
 ```
 
-You should see an icon in the system tray ("KDE Stickers") and, if you
+You should see an icon in the system tray ("Desktop Stickers") and, if you
 already have stickers saved in `~/.stickers/stickers.json`, their windows
 will appear at their last real position (persisted via a per-sticker KWin
 rule — see `QA_CHECKLIST.md`).
@@ -83,12 +83,12 @@ functionality.
   question has pin active (📌).
 - If pin is active but the sticker still doesn't follow you across
   desktops, check that sticker's specific KWin rule:
-  `kreadconfig6 --file kwinrulesrc --group kdestickers-sticker-<id> --key desktopsrule`
+  `kreadconfig6 --file kwinrulesrc --group desktopstickers-sticker-<id> --key desktopsrule`
   should return `2` (Force). If it returns `1` or is empty, the pin
   never got written — retry clicking 📌.
 - Also check that the group is listed:
   `kreadconfig6 --file kwinrulesrc --group General --key rules` should
-  include `kdestickers-sticker-<id>`.
+  include `desktopstickers-sticker-<id>`.
 - If the values are correct but it's not applying live, force a reload:
   `qdbus6 org.kde.KWin /KWin org.kde.KWin.reconfigure`
 - Full detail on the mechanism (one KWin rule per sticker, shared
@@ -102,5 +102,5 @@ journalctl --user -f
 ```
 (the app is a standalone process, not part of plasmashell, so its
 messages go to the user session log; running
-`~/.local/bin/kde-stickers` directly from a terminal to see its live
+`~/.local/bin/desktop-stickers` directly from a terminal to see its live
 console output remains the most reliable option)

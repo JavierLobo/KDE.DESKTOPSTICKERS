@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="../img/logo-sticker.png" alt="KDE Stickers 徽标" width="120">
+  <img src="../img/logo-sticker.png" alt="Desktop Stickers 徽标" width="120">
 </p>
 
-<h1 align="center">KDE Stickers</h1>
+<h1 align="center">Desktop Stickers</h1>
 
 <p align="center">
   <a href="../LICENSE"><img alt="License: GPL-3.0" src="https://img.shields.io/badge/License-GPL--3.0-blue.svg"></a>
@@ -37,7 +37,7 @@ chmod +x scripts/install.sh
 ./scripts/install.sh
 ```
 
-编译二进制文件,将其安装到 `~/.local/bin/kde-stickers`,并注册开机自
+编译二进制文件,将其安装到 `~/.local/bin/desktop-stickers`,并注册开机自
 启。完整指南(首次启动、示例数据、故障排除)请参见
 [QUICKSTART-CN.md](QUICKSTART-CN.md),手动验证清单请参见
 `QA_CHECKLIST.md`。
@@ -48,7 +48,7 @@ chmod +x scripts/install.sh
   现,相对源便签有一定偏移),id 按顺序递增
 - 可在桌面上拖动(通过 `Window.startSystemMove()` 实现真实移动),每次
   拖动后,真实位置(由 KWin 而非 Qt 报告)会被持久保存,并在应用重启
-  时通过每个便签专属的 KWin 窗口规则(`kdestickers-sticker-<id>`)恢复
+  时通过每个便签专属的 KWin 窗口规则(`desktopstickers-sticker-<id>`)恢复
 - 可从右下角拖拽调整大小,尺寸的保存与恢复方式与位置相同
 - 按便签单独置顶(📍/📌 按钮):可单独开启,使该便签同时显示在所有虚拟
   桌面上,依赖该便签同一条 KWin 窗口规则;未置顶时,便签只存在于创建

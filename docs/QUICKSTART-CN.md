@@ -1,4 +1,4 @@
-# KDE Stickers - 快速开始
+# Desktop Stickers - 快速开始
 
 <p align="center">
   <a href="QUICKSTART-SP.md"><img alt="ES" src="https://img.shields.io/badge/lang-ES-red.svg"></a>
@@ -18,9 +18,9 @@ chmod +x scripts/install.sh
 ./scripts/install.sh
 ```
 
-这会编译 Qt6 二进制文件(`build/kde-stickers`),将其安装到
-`~/.local/bin/kde-stickers`,并在
-`~/.config/autostart/org.kde.stickers.desktop` 注册开机自启。
+这会编译 Qt6 二进制文件(`build/desktop-stickers`),将其安装到
+`~/.local/bin/desktop-stickers`,并在
+`~/.config/autostart/io.github.javierlobo.desktopstickers.desktop` 注册开机自启。
 
 ## 首次启动
 
@@ -28,10 +28,10 @@ chmod +x scripts/install.sh
 录:
 
 ```bash
-~/.local/bin/kde-stickers &
+~/.local/bin/desktop-stickers &
 ```
 
-你应该会在系统托盘看到一个图标("KDE Stickers"),如果
+你应该会在系统托盘看到一个图标("Desktop Stickers"),如果
 `~/.stickers/stickers.json` 中已经保存了便签,它们的窗口会出现在各自
 最后的真实位置(通过每个便签专属的 KWin 规则持久化——参见
 `QA_CHECKLIST.md`)。
@@ -79,12 +79,12 @@ chmod +x scripts/test-sticker.sh
   而非应用级的全局规则——先确认该便签的置顶是否已激活(📌)。
 - 如果置顶已激活,但便签仍然不会随你切换桌面,请检查该便签具体的
   KWin 规则:
-  `kreadconfig6 --file kwinrulesrc --group kdestickers-sticker-<id> --key desktopsrule`
+  `kreadconfig6 --file kwinrulesrc --group desktopstickers-sticker-<id> --key desktopsrule`
   应返回 `2`(Force)。如果返回 `1` 或为空,说明置顶没有成功写入——
   再次点击 📌 重试。
 - 同时确认该分组已被列出:
   `kreadconfig6 --file kwinrulesrc --group General --key rules` 应包含
-  `kdestickers-sticker-<id>`。
+  `desktopstickers-sticker-<id>`。
 - 如果这些值都正确但没有实时生效,强制重新加载:
   `qdbus6 org.kde.KWin /KWin org.kde.KWin.reconfigure`
 - 该机制(每个便签一条 KWin 规则,置顶与位置共用)的完整说明见
@@ -96,5 +96,5 @@ chmod +x scripts/test-sticker.sh
 journalctl --user -f
 ```
 (该应用是独立进程,不属于 plasmashell,所以其日志信息会输出到用户会
-话日志中;直接在终端里运行 `~/.local/bin/kde-stickers` 以查看实时控
+话日志中;直接在终端里运行 `~/.local/bin/desktop-stickers` 以查看实时控
 制台输出,仍然是最可靠的方式)

@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="../img/logo-sticker.png" alt="KDE Stickers logo" width="120">
+  <img src="../img/logo-sticker.png" alt="Desktop Stickers logo" width="120">
 </p>
 
-<h1 align="center">KDE Stickers</h1>
+<h1 align="center">Desktop Stickers</h1>
 
 <p align="center">
   <a href="../LICENSE"><img alt="License: GPL-3.0" src="https://img.shields.io/badge/License-GPL--3.0-blue.svg"></a>
@@ -40,7 +40,7 @@ chmod +x scripts/install.sh
 ```
 
 Kompiliert die Binärdatei, installiert sie nach
-`~/.local/bin/kde-stickers` und richtet den Autostart ein. Siehe
+`~/.local/bin/desktop-stickers` und richtet den Autostart ein. Siehe
 [QUICKSTART-DE.md](QUICKSTART-DE.md) für die vollständige Anleitung
 (erster Start, Testdaten, Fehlerbehebung) und `QA_CHECKLIST.md` für die
 manuelle Prüfliste.
@@ -54,7 +54,7 @@ manuelle Prüfliste.
   `Window.startSystemMove()`), wobei die tatsächliche Position (von
   KWin gemeldet, nicht von Qt) nach jedem Ziehen gespeichert und beim
   Neustart wiederhergestellt wird, über eine KWin-Fensterregel pro
-  Sticker (`kdestickers-sticker-<id>`)
+  Sticker (`desktopstickers-sticker-<id>`)
 - Größe von der unteren rechten Ecke aus ändern, wobei die Größe wie die
   Position gespeichert und wiederhergestellt wird
 - Pin pro Sticker (Schaltfläche 📍/📌): individuell aktivierbar, damit

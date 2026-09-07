@@ -1,4 +1,4 @@
-# KDE Stickers - Schnellstart
+# Desktop Stickers - Schnellstart
 
 <p align="center">
   <a href="QUICKSTART-SP.md"><img alt="ES" src="https://img.shields.io/badge/lang-ES-red.svg"></a>
@@ -18,9 +18,9 @@ chmod +x scripts/install.sh
 ./scripts/install.sh
 ```
 
-Kompiliert die Qt6-Binärdatei (`build/kde-stickers`), installiert sie
-nach `~/.local/bin/kde-stickers` und registriert den Autostart in
-`~/.config/autostart/org.kde.stickers.desktop`.
+Kompiliert die Qt6-Binärdatei (`build/desktop-stickers`), installiert sie
+nach `~/.local/bin/desktop-stickers` und registriert den Autostart in
+`~/.config/autostart/io.github.javierlobo.desktopstickers.desktop`.
 
 ## Erster Start
 
@@ -28,10 +28,10 @@ Die App startet automatisch bei deiner nächsten Plasma-Sitzung. Um sie
 sofort auszuprobieren, ohne dich abzumelden:
 
 ```bash
-~/.local/bin/kde-stickers &
+~/.local/bin/desktop-stickers &
 ```
 
-Du solltest ein Symbol im Systembereich ("KDE Stickers") sehen, und
+Du solltest ein Symbol im Systembereich ("Desktop Stickers") sehen, und
 falls bereits Sticker in `~/.stickers/stickers.json` gespeichert sind,
 erscheinen deren Fenster an ihrer letzten tatsächlichen Position
 (gespeichert über eine KWin-Regel pro Sticker — siehe
@@ -85,12 +85,12 @@ Siehe `QA_CHECKLIST.md` für die manuelle Prüfliste aller Funktionen.
 - Falls der Pin aktiv ist, der Sticker dir aber weiterhin nicht zwischen
   Arbeitsflächen folgt, prüfe die spezifische KWin-Regel dieses
   Stickers:
-  `kreadconfig6 --file kwinrulesrc --group kdestickers-sticker-<id> --key desktopsrule`
+  `kreadconfig6 --file kwinrulesrc --group desktopstickers-sticker-<id> --key desktopsrule`
   sollte `2` (Force) zurückgeben. Falls `1` oder leer zurückkommt, wurde
   der Pin nicht geschrieben — klicke erneut auf 📌.
 - Prüfe auch, ob die Gruppe gelistet ist:
   `kreadconfig6 --file kwinrulesrc --group General --key rules` sollte
-  `kdestickers-sticker-<id>` enthalten.
+  `desktopstickers-sticker-<id>` enthalten.
 - Falls die Werte korrekt sind, aber nicht live wirken, erzwinge ein
   Neuladen: `qdbus6 org.kde.KWin /KWin org.kde.KWin.reconfigure`
 - Vollständige Details zum Mechanismus (eine KWin-Regel pro Sticker,
@@ -104,5 +104,5 @@ journalctl --user -f
 ```
 (die App ist ein eigenständiger Prozess, nicht Teil von plasmashell,
 daher landen ihre Meldungen im Log der Benutzersitzung;
-`~/.local/bin/kde-stickers` direkt aus einem Terminal auszuführen, um
+`~/.local/bin/desktop-stickers` direkt aus einem Terminal auszuführen, um
 die Live-Konsolenausgabe zu sehen, bleibt die zuverlässigste Option)

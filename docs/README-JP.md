@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="../img/logo-sticker.png" alt="KDE Stickers ロゴ" width="120">
+  <img src="../img/logo-sticker.png" alt="Desktop Stickers ロゴ" width="120">
 </p>
 
-<h1 align="center">KDE Stickers</h1>
+<h1 align="center">Desktop Stickers</h1>
 
 <p align="center">
   <a href="../LICENSE"><img alt="License: GPL-3.0" src="https://img.shields.io/badge/License-GPL--3.0-blue.svg"></a>
@@ -39,7 +39,7 @@ chmod +x scripts/install.sh
 ./scripts/install.sh
 ```
 
-バイナリをビルドし、`~/.local/bin/kde-stickers` にインストールし、自動
+バイナリをビルドし、`~/.local/bin/desktop-stickers` にインストールし、自動
 起動を登録します。詳しいガイド(初回起動、サンプルデータ、トラブルシ
 ューティング)は [QUICKSTART-JP.md](QUICKSTART-JP.md) を、手動確認用
 チェックリストは `QA_CHECKLIST.md` を参照してください。
@@ -52,7 +52,7 @@ chmod +x scripts/install.sh
 - デスクトップ上でのドラッグ(`Window.startSystemMove()` による実際の
   移動)。実際の位置(Qt ではなく KWin から報告される値)はドラッグの
   たびに保存され、付箋ごとの KWin ウィンドウルール
-  (`kdestickers-sticker-<id>`)により再起動後も復元されます
+  (`desktopstickers-sticker-<id>`)により再起動後も復元されます
 - 右下端からのリサイズに対応し、サイズも位置と同様に保存・復元されます
 - 付箋ごとのピン留め(📍/📌 ボタン):個別にオプトインすることで、その
   付箋を同じ KWin ウィンドウルールを通じて全ての仮想デスクトップに同時

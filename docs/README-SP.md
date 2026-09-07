@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="../img/logo-sticker.png" alt="KDE Stickers logo" width="120">
+  <img src="../img/logo-sticker.png" alt="Desktop Stickers logo" width="120">
 </p>
 
-<h1 align="center">KDE Stickers</h1>
+<h1 align="center">Desktop Stickers</h1>
 
 <p align="center">
   <a href="../LICENSE"><img alt="License: GPL-3.0" src="https://img.shields.io/badge/License-GPL--3.0-blue.svg"></a>
@@ -38,7 +38,7 @@ chmod +x scripts/install.sh
 ./scripts/install.sh
 ```
 
-Compila el binario, lo instala en `~/.local/bin/kde-stickers` y registra el
+Compila el binario, lo instala en `~/.local/bin/desktop-stickers` y registra el
 autostart. Ver [QUICKSTART-SP.md](QUICKSTART-SP.md) para la guía completa
 (primer arranque, datos de prueba, troubleshooting) y `QA_CHECKLIST.md`
 para el checklist manual de verificación.
@@ -51,7 +51,7 @@ para el checklist manual de verificación.
 - Arrastrar por el escritorio (movimiento real vía `Window.startSystemMove()`),
   con la posición real (reportada por KWin, no por Qt) persistida tras cada
   arrastre y restaurada al reiniciar la app, vía una regla de ventana de
-  KWin por sticker (`kdestickers-sticker-<id>`)
+  KWin por sticker (`desktopstickers-sticker-<id>`)
 - Redimensionar desde la esquina inferior derecha, con el tamaño persistido
   y restaurado igual que la posición
 - Pin por sticker (botón 📍/📌): opt-in individual para que ese sticker sea

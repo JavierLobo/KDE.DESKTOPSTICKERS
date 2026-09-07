@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(kde-stickers VERSION 0.1 LANGUAGES CXX)
+project(desktop-stickers VERSION 0.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -9,11 +9,11 @@ find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick Widgets DBus)
 
 qt_standard_project_setup(REQUIRES 6.5)
 
-qt_add_executable(kde-stickers
+qt_add_executable(desktop-stickers
     src/main.cpp
 )
 
-qt_add_qml_module(kde-stickers
+qt_add_qml_module(desktop-stickers
     URI StickersApp
     VERSION 1.0
     QML_FILES
@@ -42,19 +42,19 @@ qt_add_qml_module(kde-stickers
 #     real ECMAScript module syntax or plain QML documents. NO_CACHEGEN tells
 #     Qt to still embed them as resources but skip AOT compilation, so they
 #     are parsed/interpreted at runtime the classic way instead.
-qt_target_qml_sources(kde-stickers
+qt_target_qml_sources(desktop-stickers
     QML_FILES
         src/qml/StickerManager.js
         src/code/storage.js
     NO_CACHEGEN
 )
 
-target_include_directories(kde-stickers
+target_include_directories(desktop-stickers
     PRIVATE
         src
 )
 
-target_link_libraries(kde-stickers
+target_link_libraries(desktop-stickers
     PRIVATE
         Qt6::Core
         Qt6::Gui
@@ -64,4 +64,4 @@ target_link_libraries(kde-stickers
         Qt6::DBus
 )
 
-install(TARGETS kde-stickers DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+install(TARGETS desktop-stickers DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)

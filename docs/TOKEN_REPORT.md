@@ -1,11 +1,11 @@
-# Stickers Token Ledger
+# Desktop Stickers Token Ledger
 
 Consumo real de tokens y costo hipotético a tarifa de API de Claude,
 calculado a partir de las transcripciones locales de Claude Code
 guardadas para este proyecto (`~/.claude/projects/…KDE-STICKERS/`) — no
 de una estimación.
 
-- **Proyecto:** KDE Stickers
+- **Proyecto:** Desktop Stickers
 - **Periodo real:** 17 ago – 7 sep 2026 (no hay ningún commit en julio)
 - **Sesiones analizadas:** 3
 - **Facturación real del usuario:** Claude Pro, $20/mes (tarifa plana)

@@ -184,7 +184,7 @@ Item {
         id: trayIcon
         visible: true
         icon.name: "document-properties"
-        tooltip: "KDE Stickers"
+        tooltip: "Desktop Stickers"
 
         menu: Platform.Menu {
             id: trayMenu

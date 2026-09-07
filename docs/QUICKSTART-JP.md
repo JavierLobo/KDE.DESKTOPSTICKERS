@@ -1,4 +1,4 @@
-# KDE Stickers - クイックスタート
+# Desktop Stickers - クイックスタート
 
 <p align="center">
   <a href="QUICKSTART-SP.md"><img alt="ES" src="https://img.shields.io/badge/lang-ES-red.svg"></a>
@@ -18,8 +18,8 @@ chmod +x scripts/install.sh
 ./scripts/install.sh
 ```
 
-Qt6 バイナリ(`build/kde-stickers`)をビルドし、`~/.local/bin/kde-stickers`
-にインストールして、`~/.config/autostart/org.kde.stickers.desktop` に
+Qt6 バイナリ(`build/desktop-stickers`)をビルドし、`~/.local/bin/desktop-stickers`
+にインストールして、`~/.config/autostart/io.github.javierlobo.desktopstickers.desktop` に
 自動起動を登録します。
 
 ## 初回起動
@@ -28,10 +28,10 @@ Qt6 バイナリ(`build/kde-stickers`)をビルドし、`~/.local/bin/kde-sticke
 に今すぐ試すには:
 
 ```bash
-~/.local/bin/kde-stickers &
+~/.local/bin/desktop-stickers &
 ```
 
-システムトレイにアイコン(「KDE Stickers」)が表示されるはずです。
+システムトレイにアイコン(「Desktop Stickers」)が表示されるはずです。
 `~/.stickers/stickers.json` に既に付箋が保存されている場合、そのウィ
 ンドウは最後の実際の位置(付箋ごとの KWin ルールにより永続化されたも
 の — `QA_CHECKLIST.md` を参照)に表示されます。
@@ -84,12 +84,12 @@ chmod +x scripts/test-sticker.sh
   ン留めが有効(📌)になっているか確認してください。
 - ピン留めが有効なのに付箋がデスクトップ間で追従しない場合、その付箋
   固有の KWin ルールを確認してください:
-  `kreadconfig6 --file kwinrulesrc --group kdestickers-sticker-<id> --key desktopsrule`
+  `kreadconfig6 --file kwinrulesrc --group desktopstickers-sticker-<id> --key desktopsrule`
   は `2`(Force)を返すはずです。`1` や空を返す場合、ピン留めが書き込
   まれていません — 📌 を再度クリックしてください。
 - グループが登録されているかも確認してください:
   `kreadconfig6 --file kwinrulesrc --group General --key rules` に
-  `kdestickers-sticker-<id>` が含まれているはずです。
+  `desktopstickers-sticker-<id>` が含まれているはずです。
 - 値は正しいのにリアルタイムに反映されない場合は、強制的に再読み込み
   します: `qdbus6 org.kde.KWin /KWin org.kde.KWin.reconfigure`
 - この仕組み(付箋ごとに 1 つ、ピン留めと位置で共有される KWin ルー
@@ -104,5 +104,5 @@ journalctl --user -f
 ```
 (このアプリは plasmashell の一部ではなく独立したプロセスなので、その
 メッセージはユーザーセッションのログに出力されます。リアルタイムのコ
-ンソール出力を見るには、ターミナルから直接 `~/.local/bin/kde-stickers`
+ンソール出力を見るには、ターミナルから直接 `~/.local/bin/desktop-stickers`
 を実行するのが最も確実な方法です)

@@ -1,4 +1,4 @@
-# KDE Stickers - Быстрый старт
+# Desktop Stickers - Быстрый старт
 
 <p align="center">
   <a href="QUICKSTART-SP.md"><img alt="ES" src="https://img.shields.io/badge/lang-ES-red.svg"></a>
@@ -18,9 +18,9 @@ chmod +x scripts/install.sh
 ./scripts/install.sh
 ```
 
-Собирает бинарный файл Qt6 (`build/kde-stickers`), устанавливает его в
-`~/.local/bin/kde-stickers` и регистрирует автозапуск в
-`~/.config/autostart/org.kde.stickers.desktop`.
+Собирает бинарный файл Qt6 (`build/desktop-stickers`), устанавливает его в
+`~/.local/bin/desktop-stickers` и регистрирует автозапуск в
+`~/.config/autostart/io.github.javierlobo.desktopstickers.desktop`.
 
 ## Первый запуск
 
@@ -28,10 +28,10 @@ chmod +x scripts/install.sh
 Чтобы попробовать его прямо сейчас без выхода из сеанса:
 
 ```bash
-~/.local/bin/kde-stickers &
+~/.local/bin/desktop-stickers &
 ```
 
-Вы должны увидеть значок в системном трее ("KDE Stickers"), и если у
+Вы должны увидеть значок в системном трее ("Desktop Stickers"), и если у
 вас уже есть сохранённые стикеры в `~/.stickers/stickers.json`, их окна
 появятся в их последнем реальном положении (сохранённом через правило
 KWin для каждого стикера — см. `QA_CHECKLIST.md`).
@@ -84,12 +84,12 @@ chmod +x scripts/test-sticker.sh
 - Если закрепление активно, но стикер всё равно не следует за вами
   между рабочими столами, проверьте конкретное правило KWin этого
   стикера:
-  `kreadconfig6 --file kwinrulesrc --group kdestickers-sticker-<id> --key desktopsrule`
+  `kreadconfig6 --file kwinrulesrc --group desktopstickers-sticker-<id> --key desktopsrule`
   должно вернуть `2` (Force). Если возвращает `1` или пусто, значит
   закрепление не записалось — повторите клик по 📌.
 - Также проверьте, что группа указана в списке:
   `kreadconfig6 --file kwinrulesrc --group General --key rules` должно
-  включать `kdestickers-sticker-<id>`.
+  включать `desktopstickers-sticker-<id>`.
 - Если значения верны, но изменения не применяются на лету, принудите
   перезагрузку: `qdbus6 org.kde.KWin /KWin org.kde.KWin.reconfigure`
 - Полное описание механизма (одно правило KWin на стикер, общее для
@@ -103,5 +103,5 @@ journalctl --user -f
 ```
 (приложение — самостоятельный процесс, а не часть plasmashell, поэтому
 его сообщения попадают в лог пользовательского сеанса; запуск
-`~/.local/bin/kde-stickers` напрямую из терминала для просмотра вывода
+`~/.local/bin/desktop-stickers` напрямую из терминала для просмотра вывода
 консоли в реальном времени остаётся самым надёжным способом)

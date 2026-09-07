@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="img/logo-sticker.png" alt="KDE Stickers logo" width="120">
+  <img src="img/logo-sticker.png" alt="Desktop Stickers logo" width="120">
 </p>
 
-<h1 align="center">KDE Stickers</h1>
+<h1 align="center">Desktop Stickers</h1>
 
 <p align="center">
   <a href="LICENSE"><img alt="License: GPL-3.0" src="https://img.shields.io/badge/License-GPL--3.0-blue.svg"></a>
@@ -63,7 +63,7 @@ Guía completa (primer arranque, datos de prueba, troubleshooting):
 ## Reportar problemas / Contribuir
 
 ¿Encontraste un bug o tenés una sugerencia? Abrí un issue en
-[GitHub Issues](https://github.com/JavierLobo/KDE.STICKERS/issues).
+[GitHub Issues](https://github.com/JavierLobo/KDE.DESKTOPSTICKERS/issues).
 
 ## Desarrollo asistido por IA
 

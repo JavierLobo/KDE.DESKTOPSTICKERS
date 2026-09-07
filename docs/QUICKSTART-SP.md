@@ -1,4 +1,4 @@
-# KDE Stickers - Guía rápida
+# Desktop Stickers - Guía rápida
 
 <p align="center">
   <a href="QUICKSTART-SP.md"><img alt="ES" src="https://img.shields.io/badge/lang-ES-red.svg"></a>
@@ -18,9 +18,9 @@ chmod +x scripts/install.sh
 ./scripts/install.sh
 ```
 
-Esto compila el binario Qt6 (`build/kde-stickers`), lo instala en
-`~/.local/bin/kde-stickers`, y registra el autostart en
-`~/.config/autostart/org.kde.stickers.desktop`.
+Esto compila el binario Qt6 (`build/desktop-stickers`), lo instala en
+`~/.local/bin/desktop-stickers`, y registra el autostart en
+`~/.config/autostart/io.github.javierlobo.desktopstickers.desktop`.
 
 ## Primer arranque
 
@@ -28,10 +28,10 @@ La app se lanzará automáticamente en tu próxima sesión de Plasma. Para
 probarla ahora mismo sin reiniciar sesión:
 
 ```bash
-~/.local/bin/kde-stickers &
+~/.local/bin/desktop-stickers &
 ```
 
-Deberías ver un icono en la bandeja del sistema ("KDE Stickers") y,
+Deberías ver un icono en la bandeja del sistema ("Desktop Stickers") y,
 si ya tienes stickers guardados en `~/.stickers/stickers.json`,
 sus ventanas aparecerán en su última posición real (persistida vía
 una regla de KWin por sticker — ver `QA_CHECKLIST.md`).
@@ -83,12 +83,12 @@ funcionalidades.
   el sticker en cuestión tiene el pin activo (📌).
 - Si el pin está activo pero el sticker sigue sin seguirte entre
   escritorios, verifica la regla de KWin de ese sticker específico:
-  `kreadconfig6 --file kwinrulesrc --group kdestickers-sticker-<id> --key desktopsrule`
+  `kreadconfig6 --file kwinrulesrc --group desktopstickers-sticker-<id> --key desktopsrule`
   debe devolver `2` (Force). Si devuelve `1` o está vacío, el pin no llegó a
   escribirse — reintenta el click en 📌.
 - Verifica también que el grupo está listado:
   `kreadconfig6 --file kwinrulesrc --group General --key rules` debe incluir
-  `kdestickers-sticker-<id>`.
+  `desktopstickers-sticker-<id>`.
 - Si los valores son correctos pero no aplica en vivo, fuerza la recarga:
   `qdbus6 org.kde.KWin /KWin org.kde.KWin.reconfigure`
 - Detalle completo del mecanismo (una regla de KWin por sticker, compartida
@@ -102,5 +102,5 @@ journalctl --user -f
 ```
 (la app es un proceso standalone, no parte de plasmashell, así que sus
 mensajes salen en el log de sesión de usuario; ejecutar
-`~/.local/bin/kde-stickers` directamente desde una terminal para ver su
+`~/.local/bin/desktop-stickers` directamente desde una terminal para ver su
 salida de consola en vivo sigue siendo la opción más fiable)

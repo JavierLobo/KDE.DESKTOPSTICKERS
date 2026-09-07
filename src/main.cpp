@@ -18,12 +18,12 @@ int main(int argc, char *argv[])
     // available. Qt Labs Platform requires Qt Widgets on this setup.") under
     // plain QGuiApplication. Confirmed via journalctl during Task 5.
     QApplication app(argc, argv);
-    app.setApplicationName("kde-stickers");
-    app.setOrganizationName("org.kde.stickers");
+    app.setApplicationName("desktop-stickers");
+    app.setOrganizationName("io.github.javierlobo.desktopstickers");
     // The Wayland app-id / X11 WM_CLASS, used by the KWin window rule
     // (installed separately, see Step 6 and Task 8) to identify which
     // windows should be forced onto all virtual desktops.
-    app.setDesktopFileName("org.kde.stickers");
+    app.setDesktopFileName("io.github.javierlobo.desktopstickers");
     // Sticker windows come and go independently; the app must only quit
     // via the tray icon's "Salir", not when the last sticker closes.
     app.setQuitOnLastWindowClosed(false);
@@ -36,14 +36,14 @@ int main(int argc, char *argv[])
         [](QQmlEngine *, QJSEngine *) -> QObject * { return new FileStorage(); });
 
     // The app is addressed on the session bus at a fixed, well-known name
-    // (org.kde.stickers), both for the KWin geometry-query callback below
-    // and as a single-instance guard: only one process can ever own this
-    // name, so a losing registerService() call means another instance is
-    // already running. Checked before constructing KWinBridge so the
-    // losing instance never loads its position-watch KWin script.
-    if (!QDBusConnection::sessionBus().registerService(QStringLiteral("org.kde.stickers"))) {
-        qWarning() << "kde-stickers: another instance is already running"
-                   << "(org.kde.stickers is already registered on the session bus); exiting."
+    // (io.github.javierlobo.desktopstickers), both for the KWin geometry-query
+    // callback below and as a single-instance guard: only one process can
+    // ever own this name, so a losing registerService() call means another
+    // instance is already running. Checked before constructing KWinBridge so
+    // the losing instance never loads its position-watch KWin script.
+    if (!QDBusConnection::sessionBus().registerService(QStringLiteral("io.github.javierlobo.desktopstickers"))) {
+        qWarning() << "desktop-stickers: another instance is already running"
+                   << "(io.github.javierlobo.desktopstickers is already registered on the session bus); exiting."
                    << QDBusConnection::sessionBus().lastError().message();
         return 0;
     }
@@ -54,14 +54,14 @@ int main(int argc, char *argv[])
     // session bus before any such query can be answered.
     auto *kwinBridge = new KWinBridge();
     if (!QDBusConnection::sessionBus().registerObject(
-            QStringLiteral("/KWinBridge"), QStringLiteral("org.kde.stickers.KWinBridge"),
+            QStringLiteral("/KWinBridge"), QStringLiteral("io.github.javierlobo.desktopstickers.KWinBridge"),
             // ExportScriptableInvokables, not ExportScriptableSlots: moc
             // classifies a Q_SCRIPTABLE member of a plain public: section as
             // an invokable *method*, not a slot, so the "Slots" flag alone
             // exports nothing at all and every callback is silently dropped.
             // Verified by introspecting the running app with each flag.
             kwinBridge, QDBusConnection::ExportScriptableInvokables)) {
-        qWarning() << "kde-stickers: could not register D-Bus object /KWinBridge;"
+        qWarning() << "desktop-stickers: could not register D-Bus object /KWinBridge;"
                    << "real window positions will not be readable"
                    << QDBusConnection::sessionBus().lastError().message();
     }

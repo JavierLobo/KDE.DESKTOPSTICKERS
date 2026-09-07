@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="../img/logo-sticker.png" alt="Логотип KDE Stickers" width="120">
+  <img src="../img/logo-sticker.png" alt="Логотип Desktop Stickers" width="120">
 </p>
 
-<h1 align="center">KDE Stickers</h1>
+<h1 align="center">Desktop Stickers</h1>
 
 <p align="center">
   <a href="../LICENSE"><img alt="License: GPL-3.0" src="https://img.shields.io/badge/License-GPL--3.0-blue.svg"></a>
@@ -40,7 +40,7 @@ chmod +x scripts/install.sh
 ```
 
 Собирает исполняемый файл, устанавливает его в
-`~/.local/bin/kde-stickers` и регистрирует автозапуск. См.
+`~/.local/bin/desktop-stickers` и регистрирует автозапуск. См.
 [QUICKSTART-RU.md](QUICKSTART-RU.md) — полное руководство (первый
 запуск, тестовые данные, устранение неполадок) и `QA_CHECKLIST.md` —
 чек-лист ручной проверки.
@@ -54,7 +54,7 @@ chmod +x scripts/install.sh
   `Window.startSystemMove()`), при этом реальное положение (сообщаемое
   KWin, а не Qt) сохраняется после каждого перетаскивания и
   восстанавливается при перезапуске благодаря правилу окна KWin для
-  каждого стикера (`kdestickers-sticker-<id>`)
+  каждого стикера (`desktopstickers-sticker-<id>`)
 - Изменение размера за нижний правый угол — размер сохраняется и
   восстанавливается так же, как и положение
 - Закрепление для каждого стикера (кнопка 📍/📌): включается

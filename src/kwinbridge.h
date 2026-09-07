@@ -22,7 +22,7 @@ public:
     // Removes any KWin rule associated with a sticker id from the active
     // rules list (both the "all desktops" pin rule and the position rule,
     // added in later tasks, share one rule group id per sticker:
-    // "kdestickers-sticker-<id>"). Safe to call even if no rule exists for
+    // "desktopstickers-sticker-<id>"). Safe to call even if no rule exists for
     // that id -- a no-op in that case. Called when a sticker is deleted.
     Q_INVOKABLE void removeRules(const QString &stickerId) const;
 
