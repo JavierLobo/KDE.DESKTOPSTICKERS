@@ -66,6 +66,29 @@ Guía completa (primer arranque, datos de prueba, troubleshooting):
 [CN](docs/QUICKSTART-CN.md) ·
 [JP](docs/QUICKSTART-JP.md)
 
+## Paquetes
+
+Además del código fuente, cada [Release](https://github.com/JavierLobo/KDE.DESKTOPSTICKERS/releases)
+genera automáticamente:
+
+- **Arch Linux**: `PKGBUILD` en [`packaging/arch/`](packaging/arch/)
+- **Debian**: `.deb` para **Debian trixie**. Versiones anteriores
+  (bookworm) no traen `kreadconfig6`/`kwriteconfig6`/`qdbus6`, que la app
+  necesita en tiempo de ejecución
+- **Ubuntu 24.04 (noble)**: `.deb`, pero con un paso previo obligatorio —
+  Ubuntu no trae esos mismos binarios en sus repos por defecto. Hay que
+  agregar el repositorio de [KDE neon](https://neon.kde.org/) antes de
+  instalar:
+  ```bash
+  curl -fsSL https://archive.neon.kde.org/public.key | sudo gpg --dearmor -o /usr/share/keyrings/neon-archive-keyring.gpg
+  echo "deb [signed-by=/usr/share/keyrings/neon-archive-keyring.gpg] http://archive.neon.kde.org/user noble main" | sudo tee /etc/apt/sources.list.d/neon.list
+  sudo apt update
+  ```
+  Nota: agregar un repo de terceros puede hacer que `apt` prefiera sus
+  paquetes por sobre los de Ubuntu para otras apps que también usan Qt6
+  (ej. `libqt6core6t64`) — si te preocupa, fijá esos paquetes con
+  `apt-mark hold` o pinning después de instalar.
+
 ## Reportar problemas / Contribuir
 
 ¿Encontraste un bug o tenés una sugerencia? Abrí un issue en

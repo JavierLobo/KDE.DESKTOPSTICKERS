@@ -1,0 +1,58 @@
+name: Build Ubuntu package
+
+# Builds fine against Ubuntu noble's own Qt6 (in universe, no KDE neon repo
+# needed at build time). The runtime gap is kreadconfig6/kwriteconfig6/
+# qdbus6 (kwinbridge.cpp, via QProcess): not in Ubuntu's own repos, so the
+# generated .deb only installs cleanly if the user has added the KDE neon
+# "user" repo for noble first (see README/store listing) — verified that
+# repo actually carries libkf6config-bin + qdbus-qt6 for noble, unlike
+# kubuntu-ppa/backports which doesn't support LTS at all.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:noble
+    steps:
+      - name: Install build dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends software-properties-common
+          add-apt-repository -y universe
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            build-essential cmake dpkg-dev file \
+            qt6-base-dev qt6-declarative-dev
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure
+        run: |
+          case "$GITHUB_REF" in
+            refs/tags/v*)
+              cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DAPP_VERSION="${GITHUB_REF_NAME#v}"
+              ;;
+            *)
+              cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
+              ;;
+          esac
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Package with CPack (DEB)
+        run: |
+          cd build
+          cpack -G DEB
+          for f in *.deb; do mv "$f" "${f%.deb}-ubuntu-noble.deb"; done
+
+      - name: Upload package as build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-stickers-ubuntu-package
+          path: build/*.deb
