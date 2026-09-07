@@ -1,9 +1,11 @@
 name: Build Arch package
 
 # El PKGBUILD compila el tarball del tag v$pkgver publicado en GitHub, no el
-# checkout de este workflow — por eso dispara cuando se publica un Release
-# (momento en que ese tag ya existe y, si corresponde, pkgver ya fue
-# bumpeado a mano en el PKGBUILD para la nueva versión), no en cada push.
+# checkout de este workflow. En un evento de release, el paso de abajo
+# reescribe pkgver/sha256sums en la copia local del PKGBUILD para que
+# apunten al tag recién publicado, antes de correr makepkg — no hace falta
+# bumpearlo a mano en el repo. En workflow_dispatch (sin tag de por medio)
+# se usa el PKGBUILD tal cual está committeado.
 on:
   release:
     types: [published]
@@ -18,10 +20,20 @@ jobs:
       - name: Update system and install build dependencies
         run: |
           pacman -Syu --noconfirm
-          pacman -S --noconfirm --needed git cmake qt6-base qt6-declarative kconfig qt6-tools
+          pacman -S --noconfirm --needed git curl cmake qt6-base qt6-declarative kconfig qt6-tools
 
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Bump pkgver/sha256sums to the release tag
+        if: github.event_name == 'release'
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          URL="https://github.com/JavierLobo/KDE.DESKTOPSTICKERS/archive/refs/tags/v$VERSION.tar.gz"
+          curl -fsSL -o /tmp/src.tar.gz "$URL"
+          SUM=$(sha256sum /tmp/src.tar.gz | cut -d' ' -f1)
+          sed -i "s/^pkgver=.*/pkgver=$VERSION/" packaging/arch/PKGBUILD
+          sed -i "s/^sha256sums=.*/sha256sums=('$SUM')/" packaging/arch/PKGBUILD
 
       - name: Create unprivileged build user
         run: |
