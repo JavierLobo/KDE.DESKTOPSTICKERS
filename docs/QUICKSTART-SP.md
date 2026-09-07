@@ -1,4 +1,14 @@
-# KDE Stickers - Quick Start
+# KDE Stickers - Guía rápida
+
+<p align="center">
+  <a href="QUICKSTART-SP.md"><img alt="ES" src="https://img.shields.io/badge/lang-ES-red.svg"></a>
+  <a href="QUICKSTART-IT.md"><img alt="IT" src="https://img.shields.io/badge/lang-IT-green.svg"></a>
+  <a href="QUICKSTART-EN.md"><img alt="EN" src="https://img.shields.io/badge/lang-EN-blue.svg"></a>
+  <a href="QUICKSTART-DE.md"><img alt="DE" src="https://img.shields.io/badge/lang-DE-orange.svg"></a>
+  <a href="QUICKSTART-RU.md"><img alt="RU" src="https://img.shields.io/badge/lang-RU-blueviolet.svg"></a>
+  <a href="QUICKSTART-CN.md"><img alt="CN" src="https://img.shields.io/badge/lang-CN-yellow.svg"></a>
+  <a href="QUICKSTART-JP.md"><img alt="JP" src="https://img.shields.io/badge/lang-JP-lightgrey.svg"></a>
+</p>
 
 ## Instalación
 
@@ -24,7 +34,7 @@ probarla ahora mismo sin reiniciar sesión:
 Deberías ver un icono en la bandeja del sistema ("KDE Stickers") y,
 si ya tienes stickers guardados en `~/.stickers/stickers.json`,
 sus ventanas aparecerán en su última posición real (persistida vía
-una regla de KWin por sticker — ver `docs/QA_CHECKLIST.md`).
+una regla de KWin por sticker — ver `QA_CHECKLIST.md`).
 
 ## Crear tu primer sticker
 
@@ -58,7 +68,7 @@ Crea 3 stickers de ejemplo en `~/.stickers/stickers.json`.
 
 ## Verificación completa
 
-Ver `docs/QA_CHECKLIST.md` para el checklist manual de todas las
+Ver `QA_CHECKLIST.md` para el checklist manual de todas las
 funcionalidades.
 
 ## Troubleshooting
@@ -83,7 +93,7 @@ funcionalidades.
   `qdbus6 org.kde.KWin /KWin org.kde.KWin.reconfigure`
 - Detalle completo del mecanismo (una regla de KWin por sticker, compartida
   entre pin y posición) en
-  `docs/superpowers/specs/2026-08-18-sticker-pin-position-resize-design.md`,
+  `superpowers/specs/2026-08-18-sticker-pin-position-resize-design.md`,
   sección "Arquitectura: de regla global a reglas por-ventana"
 
 **Logs:**
