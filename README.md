@@ -27,7 +27,7 @@ decoración, con posición y tamaño persistentes.
 ## Requisitos
 
 - Plasma 6.x y KWin, sesión Wayland
-- Qt 6.5+ (`Core`, `Gui`, `Qml`, `Quick`, `Widgets`, `DBus`)
+- Qt 6.4+ (`Core`, `Gui`, `Qml`, `Quick`, `Widgets`, `DBus`)
 - CMake, Bash
 
 ## Features destacadas
