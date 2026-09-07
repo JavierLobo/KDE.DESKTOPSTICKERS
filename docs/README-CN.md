@@ -107,6 +107,12 @@ chmod +x scripts/install.sh
 }
 ```
 
+## 下载
+
+所有已发布的版本都在仓库的
+[Releases](https://github.com/JavierLobo/KDE.DESKTOPSTICKERS/releases)
+页面,每个版本都附有对应的源代码和更新说明。
+
 ## 许可证
 
 GPL-3.0

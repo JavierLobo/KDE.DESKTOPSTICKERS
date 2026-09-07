@@ -44,6 +44,12 @@ decoración, con posición y tamaño persistentes.
   <img src="img/Desktop-stickers-markdown.png" alt="Ejemplo de sticker con Markdown renderizado: títulos, tablas y bloques de código" width="720">
 </p>
 
+## Descargas
+
+Todas las versiones publicadas están en la página de
+[Releases](https://github.com/JavierLobo/KDE.DESKTOPSTICKERS/releases)
+del repositorio, cada una con su código fuente y notas de la versión.
+
 ## Instalación rápida
 
 ```bash

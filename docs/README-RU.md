@@ -128,6 +128,12 @@ chmod +x scripts/install.sh
 }
 ```
 
+## Загрузки
+
+Все опубликованные версии доступны на странице
+[Releases](https://github.com/JavierLobo/KDE.DESKTOPSTICKERS/releases)
+репозитория — у каждой есть свой исходный код и заметки о версии.
+
 ## Лицензия
 
 GPL-3.0

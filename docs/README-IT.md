@@ -126,6 +126,13 @@ Gli sticker vengono salvati in `~/.stickers/stickers.json`:
 }
 ```
 
+## Download
+
+Tutte le versioni pubblicate sono nella pagina delle
+[Release](https://github.com/JavierLobo/KDE.DESKTOPSTICKERS/releases)
+del repository, ciascuna con il proprio codice sorgente e le note di
+versione.
+
 ## Licenza
 
 GPL-3.0

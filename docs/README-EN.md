@@ -120,6 +120,12 @@ Stickers are stored in `~/.stickers/stickers.json`:
 }
 ```
 
+## Downloads
+
+Every published version is on the repository's
+[Releases](https://github.com/JavierLobo/KDE.DESKTOPSTICKERS/releases)
+page, each with its source code and release notes.
+
 ## License
 
 GPL-3.0
