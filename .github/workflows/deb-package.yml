@@ -1,0 +1,41 @@
+name: Build Debian package
+
+# kreadconfig6/kwriteconfig6/qdbus6 (called via QProcess in kwinbridge.cpp)
+# only exist in Debian trixie's default repos, not in bookworm or in Ubuntu
+# noble's — so this only targets trixie for now. See chat / ToDo.md for the
+# Ubuntu situation.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: debian:trixie
+    steps:
+      - name: Install build dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            build-essential cmake dpkg-dev \
+            qt6-base-dev qt6-declarative-dev
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Package with CPack (DEB)
+        run: cd build && cpack -G DEB
+
+      - name: Upload package as build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-stickers-debian-package
+          path: build/*.deb

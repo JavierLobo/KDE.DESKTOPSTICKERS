@@ -64,4 +64,40 @@ target_link_libraries(desktop-stickers
         Qt6::DBus
 )
 
-install(TARGETS desktop-stickers DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+include(GNUInstallDirs)
+
+install(TARGETS desktop-stickers DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(FILES LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/desktop-stickers)
+install(FILES data/io.github.javierlobo.desktopstickers.desktop
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
+
+# data/*.desktop keeps the __DESKTOP_STICKERS_BIN__ placeholder that
+# scripts/install.sh substitutes for its own (per-user, ~/.local/bin) install
+# flow. Packaging installs system-wide instead, so resolve it here to the
+# real install path rather than duplicating this fixup in every packaging
+# script (PKGBUILD, CPack, ...).
+install(CODE "
+    execute_process(COMMAND sed -i
+        \"s|Exec=__DESKTOP_STICKERS_BIN__|Exec=${CMAKE_INSTALL_FULL_BINDIR}/desktop-stickers|\"
+        \"\$ENV{DESTDIR}${CMAKE_INSTALL_FULL_DATADIR}/applications/io.github.javierlobo.desktopstickers.desktop\")
+")
+
+set(CPACK_PACKAGE_NAME "desktop-stickers")
+set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
+set(CPACK_PACKAGE_CONTACT "Javier Lobo <franciscojavier.lobo@gmail.com>")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Floating sticky notes for the KDE Plasma desktop")
+set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/JavierLobo/KDE.DESKTOPSTICKERS")
+set(CPACK_GENERATOR "DEB")
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Javier Lobo <franciscojavier.lobo@gmail.com>")
+set(CPACK_DEBIAN_PACKAGE_SECTION "utils")
+# Pinned instead of autodetected: autodetection needs dpkg in PATH, and
+# silently falls back to i386 if it's missing from the build environment.
+set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
+set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+# Runtime CLI tools called via QProcess (kwinbridge.cpp) that shlibdeps can't
+# see, since they're not linked, just exec'd: kreadconfig6/kwriteconfig6
+# (libkf6config-bin) and qdbus6 (qdbus-qt6). Verified against Debian
+# trixie's Contents index — see chat for why it has to be trixie, not
+# bookworm/Ubuntu noble.
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libkf6config-bin, qdbus-qt6")
+include(CPack)
