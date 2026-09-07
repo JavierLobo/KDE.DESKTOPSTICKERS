@@ -7,6 +7,7 @@ Item {
 
     property var openWindows: ({})
     property var noteList: []
+    property var trayNotes: []
     readonly property int maxTrayNotes: 10
 
     Component {
@@ -90,7 +91,7 @@ Item {
         noteList = Manager.stickers.map(function(s) {
             return { id: s.id, name: s.name, label: Manager.displayName(s), color: s.color, modified: s.modified }
         })
-        syncTrayNoteModel(recentTrayNotes())
+        trayNotes = recentTrayNotes()
     }
 
     // Tray menu has no pagination -- just the maxTrayNotes most recently
@@ -107,34 +108,6 @@ Item {
         return sorted.slice(0, maxTrayNotes)
     }
 
-    // trayNoteModel is a real ListModel with per-row identity, unlike the
-    // plain JS array the tray Instantiator used to bind to directly. set()
-    // mutates an existing row's Platform.MenuItem in place (a lightweight
-    // property change, no add/remove signal); only append()/remove() -- a
-    // genuine row-count change -- fires the Instantiator's
-    // onObjectAdded/onObjectRemoved, which is what previously ran on EVERY
-    // refresh (via a fresh array reference) and is the confirmed trigger for
-    // Plasma spuriously popping the tray menu open (see README's "Problemas
-    // conocidos"). Diffing in place keeps that churn limited to rows that
-    // actually changed.
-    function syncTrayNoteModel(targetList) {
-        var i
-        for (i = 0; i < targetList.length && i < trayNoteModel.count; i++) {
-            var cur = trayNoteModel.get(i)
-            var next = targetList[i]
-            if (cur.id !== next.id || cur.name !== next.name ||
-                cur.label !== next.label || cur.color !== next.color) {
-                trayNoteModel.set(i, next)
-            }
-        }
-        while (trayNoteModel.count > targetList.length) {
-            trayNoteModel.remove(trayNoteModel.count - 1)
-        }
-        for (; i < targetList.length; i++) {
-            trayNoteModel.append(targetList[i])
-        }
-    }
-
     function renameSticker(id, name) {
         Manager.updateName(id, name)
         var win = openWindows[id]
@@ -144,38 +117,55 @@ Item {
         refreshNoteList()
     }
 
+    property var activeDeleteDialog: null
+
     function confirmDeleteSticker(id, label) {
         // The tray menu is drawn by plasmashell over DBusMenu, not by this
         // app's own process -- an app-side modal MessageDialog cannot block
         // input to that other process's menu. A user really can reopen the
         // tray menu and trigger a second delete while this dialog is still
-        // open; ignore it rather than silently overwriting pendingId (which
+        // open; ignore it rather than silently spawning a second one (which
         // would either drop the first request or make "Sí" delete the
         // wrong note while still showing the first note's label).
-        if (deleteConfirmDialog.pendingId !== "") {
+        if (activeDeleteDialog !== null) {
             return
         }
-        deleteConfirmDialog.pendingId = id
-        deleteConfirmDialog.text = "¿Eliminar \"" + label + "\"? Esta acción no se puede deshacer."
-        deleteConfirmDialog.open()
+        // A fresh Platform.MessageDialog per request, destroyed right after
+        // it's answered -- reusing one persistent instance across separate
+        // delete confirmations left its native standard buttons (Sí/No)
+        // stacking up on each successive open() instead of resetting, so a
+        // 2nd delete in the same session showed 4 buttons, a 3rd showed 6,
+        // etc. (see bug report: repeated deletes -> growing rows of Sí/No).
+        activeDeleteDialog = deleteConfirmDialogComponent.createObject(root, {
+            pendingId: id,
+            text: "¿Eliminar \"" + label + "\"? Esta acción no se puede deshacer."
+        })
+        activeDeleteDialog.open()
     }
 
-    Platform.MessageDialog {
-        id: deleteConfirmDialog
-        property string pendingId: ""
-        buttons: Platform.MessageDialog.Yes | Platform.MessageDialog.No
-        onYesClicked: {
-            var win = root.openWindows[pendingId]
-            if (win) {
-                root.unregisterWindow(pendingId)
-                win.close()
-                win.destroy()
+    Component {
+        id: deleteConfirmDialogComponent
+        Platform.MessageDialog {
+            id: dlg
+            property string pendingId: ""
+            buttons: Platform.MessageDialog.Yes | Platform.MessageDialog.No
+            onYesClicked: {
+                var win = root.openWindows[pendingId]
+                if (win) {
+                    root.unregisterWindow(pendingId)
+                    win.close()
+                    win.destroy()
+                }
+                Manager.removeSticker(pendingId)
+                root.refreshNoteList()
+                root.activeDeleteDialog = null
+                dlg.destroy()
             }
-            Manager.removeSticker(pendingId)
-            root.refreshNoteList()
-            pendingId = ""
+            onNoClicked: {
+                root.activeDeleteDialog = null
+                dlg.destroy()
+            }
         }
-        onNoClicked: pendingId = ""
     }
 
     function openStickerPanel() {
@@ -188,12 +178,6 @@ Item {
         id: stickerPanel
         visible: false
         appRoot: root
-    }
-
-    // Backs the tray menu's Instantiator (see syncTrayNoteModel above).
-    // Rows: {id, name, label, color}, same shape refreshNoteList() builds.
-    ListModel {
-        id: trayNoteModel
     }
 
     Platform.SystemTrayIcon {
@@ -209,11 +193,22 @@ Item {
                 onTriggered: root.createNewSticker(100, 100)
             }
             Platform.MenuSeparator { visible: root.noteList.length > 0 }
+            // model is the constant maxTrayNotes, not trayNotes -- the
+            // Instantiator's row count never changes after the initial
+            // maxTrayNotes objects are created, so onObjectAdded/
+            // onObjectRemoved (and thus trayMenu.insertItem()/removeItem())
+            // never fire again on create/rename/delete. Only each
+            // delegate's visible/text properties change, which -- per the
+            // README's "Problemas conocidos" -- does not trigger Plasma's
+            // spurious tray-menu popup (only structural insert/remove does).
             Instantiator {
-                model: trayNoteModel
+                model: root.maxTrayNotes
                 delegate: Platform.MenuItem {
-                    text: model.label
-                    onTriggered: root.openOrFocusSticker(model.id)
+                    readonly property int slotIndex: index
+                    readonly property bool hasNote: slotIndex < root.trayNotes.length
+                    visible: hasNote
+                    text: hasNote ? root.trayNotes[slotIndex].label : ""
+                    onTriggered: if (hasNote) root.openOrFocusSticker(root.trayNotes[slotIndex].id)
                 }
                 onObjectAdded: (index, object) => trayMenu.insertItem(index + 2, object)
                 onObjectRemoved: (index, object) => trayMenu.removeItem(object)

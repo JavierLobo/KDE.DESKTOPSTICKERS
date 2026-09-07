@@ -65,6 +65,14 @@ Guía completa (primer arranque, datos de prueba, troubleshooting):
 ¿Encontraste un bug o tenés una sugerencia? Abrí un issue en
 [GitHub Issues](https://github.com/JavierLobo/KDE.STICKERS/issues).
 
+## Desarrollo asistido por IA
+
+Este proyecto se desarrolló con asistencia de [Claude Code](https://claude.com/claude-code)
+(Anthropic), usando los modelos **Claude Sonnet 5** y **Claude Haiku 4.5**.
+Reporte de consumo de tokens y costo hipotético a tarifa de API, por
+modelo y por sesión: [docs/TOKEN_REPORT.md](docs/TOKEN_REPORT.md)
+([versión HTML para compartir](docs/TOKEN_REPORT.html)).
+
 ## Documentación completa
 
 - [Español](docs/README-SP.md)

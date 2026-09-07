@@ -17,3 +17,11 @@ build/
 # Temporal
 *.tmp
 *.bak
+
+# IA
+CLAUDE.md
+PROJECT.md
+ToDo.md
+.claude/
+docs/superpowers/
+docs/QA_CHECKLIST.md
