@@ -1,0 +1,35 @@
+# Maintainer: Javier Lobo <franciscojavier.lobo@gmail.com>
+pkgname=desktop-stickers
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Floating sticky notes for the KDE Plasma desktop"
+arch=('x86_64')
+url="https://github.com/JavierLobo/KDE.DESKTOPSTICKERS"
+license=('GPL3')
+depends=('qt6-base' 'qt6-declarative' 'kconfig' 'qt6-tools')
+makedepends=('cmake')
+install=desktop-stickers.install
+_reponame=KDE.DESKTOPSTICKERS
+source=("$pkgname-$pkgver.tar.gz::https://github.com/JavierLobo/$_reponame/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('954f0f66f59f59436eefdffcb9c837e578928e3b54c5306ce6388b16660f36bc')
+
+build() {
+    cd "$_reponame-$pkgver"
+    cmake -B build -S . \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/usr
+    cmake --build build
+}
+
+package() {
+    cd "$_reponame-$pkgver"
+
+    DESTDIR="$pkgdir" cmake --install build
+
+    install -Dm644 data/io.github.javierlobo.desktopstickers.desktop \
+        "$pkgdir/usr/share/applications/io.github.javierlobo.desktopstickers.desktop"
+    sed -i 's|Exec=__DESKTOP_STICKERS_BIN__|Exec=/usr/bin/desktop-stickers|' \
+        "$pkgdir/usr/share/applications/io.github.javierlobo.desktopstickers.desktop"
+
+    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

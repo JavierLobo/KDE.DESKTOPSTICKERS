@@ -1,0 +1,9 @@
+post_install() {
+    echo "Desktop Stickers no se inicia automáticamente por defecto (a diferencia de scripts/install.sh)."
+    echo "Para activarlo al iniciar sesión: System Settings > Autostart > Add Application,"
+    echo "y elegí 'Desktop Stickers' de la lista."
+}
+
+post_upgrade() {
+    post_install
+}
