@@ -309,6 +309,11 @@ Item {
             visible: root.compact
             implicitWidth: 26
             implicitHeight: 26
+            // Clicking this button must not steal keyboard focus away from
+            // the edit TextArea -- StickerWindow.qml's editArea treats any
+            // focus loss as "the user is done editing" and saves+closes on
+            // it, which fired on every toolbar click before this.
+            focusPolicy: Qt.NoFocus
             onClicked: overflowMenu.popup()
             Accessible.name: "Más opciones de formato"
             ToolTip.visible: hovered
@@ -340,6 +345,8 @@ Item {
             font.italic: buttonData ? !!buttonData.italic : false
             font.strikeout: buttonData ? !!buttonData.strike : false
             enabled: root.target !== null
+            // See the "▾" button's own comment above -- same reason.
+            focusPolicy: Qt.NoFocus
             onClicked: if (buttonData) buttonData.run()
             Accessible.name: buttonData ? buttonData.tip : ""
             ToolTip.visible: hovered

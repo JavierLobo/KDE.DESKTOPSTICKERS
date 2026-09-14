@@ -370,14 +370,30 @@ Window {
                             font.pixelSize: mainWindow.stickerFontSize
 
                             onActiveFocusChanged: {
-                                if (!activeFocus && mainWindow.editing) {
-                                    stickerText = text
-                                    Manager.updateText(stickerId, text)
-                                    if (mainWindow.appRoot) {
-                                        mainWindow.appRoot.refreshNoteList()
+                                if (activeFocus || !mainWindow.editing) return
+                                // The toolbar's own buttons no longer steal
+                                // focus (focusPolicy: Qt.NoFocus), but its
+                                // overflow Menu (compact mode's "▾") is a
+                                // Popup that legitimately takes focus while
+                                // open -- that would otherwise trigger this
+                                // same "focus left, must be done editing"
+                                // logic on every single toolbar action.
+                                // Every MarkdownToolbar action already ends
+                                // with target.forceActiveFocus() once it's
+                                // done touching the text, so deferring this
+                                // check one tick lets that happen first;
+                                // only commit save+close if focus genuinely
+                                // never came back.
+                                Qt.callLater(function() {
+                                    if (mainWindow.editing && !editArea.activeFocus) {
+                                        stickerText = editArea.text
+                                        Manager.updateText(stickerId, editArea.text)
+                                        if (mainWindow.appRoot) {
+                                            mainWindow.appRoot.refreshNoteList()
+                                        }
+                                        mainWindow.editing = false
                                     }
-                                    mainWindow.editing = false
-                                }
+                                })
                             }
                         }
                     }
