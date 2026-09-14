@@ -45,6 +45,7 @@ qt_add_qml_module(desktop-stickers
         src/qml/SettingsWindow.qml
         src/qml/SettingsRow.qml
         src/qml/SettingsSection.qml
+        src/qml/MarkdownToolbar.qml
     SOURCES
         src/filestorage.h
         src/filestorage.cpp

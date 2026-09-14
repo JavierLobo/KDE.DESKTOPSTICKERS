@@ -27,6 +27,11 @@ Window {
     // to live one level up and drive both ScrollViews' visible bindings.
     property bool editing: false
     onEditingChanged: if (editing) editArea.forceActiveFocus()
+    // Per-window session toggle, seeded from the Settings default but not
+    // itself persisted -- matches how "editing" mode itself isn't
+    // persisted either. The roadmap's own "Botón de mostrar/ocultar barra
+    // de herramientas Markdown".
+    property bool toolbarVisible: Settings.get().behavior.markdownToolbarVisibleByDefault
     // Sticker windows are ordinary managed KWin toplevels, closable via
     // Alt+F4, KWin's window-operations menu, or a task switcher -- not just
     // this app's own "✕" button. Any of those must also unregister the
@@ -271,6 +276,20 @@ Window {
                     }
 
                     Button {
+                        text: "📝"
+                        Layout.preferredWidth: 28
+                        Layout.preferredHeight: 28
+                        visible: mainWindow.editing
+                        checkable: true
+                        checked: mainWindow.toolbarVisible
+                        onCheckedChanged: mainWindow.toolbarVisible = checked
+                        Accessible.name: mainWindow.toolbarVisible ? "Ocultar barra de formato" : "Mostrar barra de formato"
+                        ToolTip.visible: hovered
+                        ToolTip.text: Accessible.name
+                        ToolTip.delay: 400
+                    }
+
+                    Button {
                         text: "✕"
                         Layout.preferredWidth: 28
                         Layout.preferredHeight: 28
@@ -319,34 +338,46 @@ Window {
                         id: preview
                         width: previewScroll.availableWidth
                         text: stickerText
-                        toolbarVisible: Settings.get().behavior.markdownToolbarVisibleByDefault
                         onEditRequested: mainWindow.editing = true
                     }
                 }
 
-                ScrollView {
-                    id: editScroll
+                ColumnLayout {
                     anchors.fill: parent
                     visible: mainWindow.editing
-                    clip: true
+                    spacing: 0
 
-                    TextArea {
-                        id: editArea
-                        width: editScroll.availableWidth
-                        text: stickerText
-                        wrapMode: TextArea.Wrap
-                        padding: 10
-                        font.family: mainWindow.stickerFontFamily
-                        font.pixelSize: mainWindow.stickerFontSize
+                    MarkdownToolbar {
+                        id: markdownToolbar
+                        Layout.fillWidth: true
+                        visible: mainWindow.toolbarVisible
+                        target: editArea
+                    }
 
-                        onActiveFocusChanged: {
-                            if (!activeFocus && mainWindow.editing) {
-                                stickerText = text
-                                Manager.updateText(stickerId, text)
-                                if (mainWindow.appRoot) {
-                                    mainWindow.appRoot.refreshNoteList()
+                    ScrollView {
+                        id: editScroll
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        clip: true
+
+                        TextArea {
+                            id: editArea
+                            width: editScroll.availableWidth
+                            text: stickerText
+                            wrapMode: TextArea.Wrap
+                            padding: 10
+                            font.family: mainWindow.stickerFontFamily
+                            font.pixelSize: mainWindow.stickerFontSize
+
+                            onActiveFocusChanged: {
+                                if (!activeFocus && mainWindow.editing) {
+                                    stickerText = text
+                                    Manager.updateText(stickerId, text)
+                                    if (mainWindow.appRoot) {
+                                        mainWindow.appRoot.refreshNoteList()
+                                    }
+                                    mainWindow.editing = false
                                 }
-                                mainWindow.editing = false
                             }
                         }
                     }
