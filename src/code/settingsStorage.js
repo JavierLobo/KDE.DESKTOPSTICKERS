@@ -3,8 +3,12 @@
 // Settings v1 - Persistencia en JSON
 //
 // Same delegation pattern as storage.js: file I/O goes through the
-// FileStorage QML singleton, this file only owns the JSON shape. Lives in
-// ~/.stickers/settings.json, alongside stickers.json.
+// FileStorage QML singleton, this file only owns the JSON shape. Lives
+// under FileStorage.configDir() ($XDG_CONFIG_HOME/desktop-stickers) --
+// settings.json is app *preferences*, not user *data* (stickers.json,
+// under dataDir() instead). A one-time migration off the old
+// ~/.stickers/settings.json runs in main.cpp before this is ever called;
+// see migrateLegacyDataDir() there.
 //
 // Unlike stickers.json (an array of independent records), settings.json is
 // a single nested object -- a future version adding a new key must not make
@@ -12,12 +16,12 @@
 // contents onto defaultSettings() one category at a time so missing keys
 // (new field, or a hand-edited/partial file) fall back individually instead
 // of losing the whole category.
-function getStickersDir() {
-    return App.FileStorage.stickersDir()
+function getConfigDir() {
+    return App.FileStorage.configDir()
 }
 
 function ensureDir() {
-    let dir = getStickersDir()
+    let dir = getConfigDir()
     App.FileStorage.ensureDir(dir)
 }
 
@@ -54,7 +58,7 @@ function mergeWithDefaults(loaded) {
 
 function loadSettings() {
     ensureDir()
-    let path = getStickersDir() + "/settings.json"
+    let path = getConfigDir() + "/settings.json"
 
     if (!App.FileStorage.exists(path)) {
         return defaultSettings()
@@ -73,7 +77,7 @@ function loadSettings() {
 
 function saveSettings(settings) {
     ensureDir()
-    let path = getStickersDir() + "/settings.json"
+    let path = getConfigDir() + "/settings.json"
     let json = JSON.stringify(settings, null, 2)
 
     if (!App.FileStorage.writeFile(path, json)) {

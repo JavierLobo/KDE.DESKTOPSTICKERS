@@ -47,10 +47,22 @@ bool FileStorage::writeFile(const QString &path, const QString &content) const
     return true;
 }
 
-QString FileStorage::stickersDir() const
+QString FileStorage::dataDir() const
 {
-    const QString home = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
-    return home + QStringLiteral("/.stickers");
+    // GenericDataLocation resolves $XDG_DATA_HOME (falling back to
+    // ~/.local/share) without any app-name suffix, unlike AppDataLocation
+    // (which, depending on whether organizationName is set, can produce a
+    // nested .../io.github.javierlobo.desktopstickers/desktop-stickers
+    // path) -- appending "desktop-stickers" ourselves keeps this exactly
+    // the flat $XDG_DATA_HOME/desktop-stickers the redesign spec asks for.
+    const QString base = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
+    return base + QStringLiteral("/desktop-stickers");
+}
+
+QString FileStorage::configDir() const
+{
+    const QString base = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation);
+    return base + QStringLiteral("/desktop-stickers");
 }
 
 QString FileStorage::toLocalFile(const QUrl &url) const

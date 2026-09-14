@@ -412,7 +412,16 @@ Window {
                                     editable: true
                                     model: filteredFontFamilies
                                     Accessible.name: "Buscar y añadir una familia de fuente"
-                                    onEditTextChanged: filterFonts(editText)
+                                    // Qt.callLater, not a direct call: reassigning
+                                    // filteredFontFamilies (this ComboBox's own
+                                    // model) synchronously from within its own
+                                    // editTextChanged handler is exactly the
+                                    // pattern QML's binding-loop detector flags --
+                                    // the model swap can itself nudge editText,
+                                    // re-entering this handler in the same tick.
+                                    // Deferring to the next event-loop turn breaks
+                                    // that synchronous cycle.
+                                    onEditTextChanged: Qt.callLater(filterFonts, editText)
                                     Keys.onReturnPressed: addFontFromCombo()
                                 }
                                 Button {
@@ -558,13 +567,13 @@ Window {
                             label: "Carpeta de datos"
 
                             Label {
-                                text: App.FileStorage.stickersDir()
+                                text: App.FileStorage.dataDir()
                                 font.family: "monospace"
                                 elide: Text.ElideMiddle
                                 Layout.preferredWidth: 150
 
                                 ToolTip.visible: dataPathHover.hovered
-                                ToolTip.text: App.FileStorage.stickersDir()
+                                ToolTip.text: App.FileStorage.dataDir()
                                 HoverHandler { id: dataPathHover }
                             }
                             Button {
@@ -574,7 +583,7 @@ Window {
                                 flat: true
                                 implicitWidth: 30; implicitHeight: 30
                                 onClicked: {
-                                    clipboardHelper.text = App.FileStorage.stickersDir()
+                                    clipboardHelper.text = App.FileStorage.dataDir()
                                     clipboardHelper.selectAll()
                                     clipboardHelper.copy()
                                 }
@@ -582,7 +591,7 @@ Window {
                             }
                             Button {
                                 text: "Abrir"
-                                onClicked: Qt.openUrlExternally("file://" + App.FileStorage.stickersDir())
+                                onClicked: Qt.openUrlExternally("file://" + App.FileStorage.dataDir())
                                 Accessible.name: "Abrir la carpeta de datos en el gestor de archivos"
                             }
                         }
@@ -663,11 +672,13 @@ Window {
         id: exportFolderDialog
         title: "Elige una carpeta para la copia de seguridad"
         onAccepted: {
+            // stickers.json and settings.json now live in two separate XDG
+            // directories (dataDir/configDir) -- the backup folder still
+            // holds both flat, side by side, for simplicity.
             var destDir = App.FileStorage.toLocalFile(folder)
-            var srcDir = App.FileStorage.stickersDir()
             var ok = true
-            ok = App.FileStorage.writeFile(destDir + "/stickers.json", App.FileStorage.readFile(srcDir + "/stickers.json")) && ok
-            ok = App.FileStorage.writeFile(destDir + "/settings.json", App.FileStorage.readFile(srcDir + "/settings.json")) && ok
+            ok = App.FileStorage.writeFile(destDir + "/stickers.json", App.FileStorage.readFile(App.FileStorage.dataDir() + "/stickers.json")) && ok
+            ok = App.FileStorage.writeFile(destDir + "/settings.json", App.FileStorage.readFile(App.FileStorage.configDir() + "/settings.json")) && ok
             resultDialog.text = ok ? "Copia de seguridad guardada en " + destDir + "."
                                     : "No se pudo completar la copia de seguridad."
             resultDialog.open()
@@ -689,12 +700,11 @@ Window {
         text: "Esto sobrescribirá tus stickers y ajustes actuales con los de la copia seleccionada. Deberás reiniciar Desktop Stickers para ver los cambios. ¿Continuar?"
         buttons: Platform.MessageDialog.Yes | Platform.MessageDialog.No
         onYesClicked: {
-            var destDir = App.FileStorage.stickersDir()
             var srcStickers = App.FileStorage.readFile(pendingDir + "/stickers.json")
             var srcSettings = App.FileStorage.readFile(pendingDir + "/settings.json")
             var ok = true
-            if (srcStickers.length > 0) ok = App.FileStorage.writeFile(destDir + "/stickers.json", srcStickers) && ok
-            if (srcSettings.length > 0) ok = App.FileStorage.writeFile(destDir + "/settings.json", srcSettings) && ok
+            if (srcStickers.length > 0) ok = App.FileStorage.writeFile(App.FileStorage.dataDir() + "/stickers.json", srcStickers) && ok
+            if (srcSettings.length > 0) ok = App.FileStorage.writeFile(App.FileStorage.configDir() + "/settings.json", srcSettings) && ok
             resultDialog.text = ok ? "Copia importada. Reinicia Desktop Stickers para ver los cambios."
                                     : "No se pudo completar la importación."
             resultDialog.open()
