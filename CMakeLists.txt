@@ -69,6 +69,7 @@ qt_add_qml_module(desktop-stickers
         # here (so it's actually compiled in) and nowhere else.
         src/i18n/es.json
         src/i18n/en.json
+        src/i18n/fr.json
     SOURCES
         src/filestorage.h
         src/filestorage.cpp
