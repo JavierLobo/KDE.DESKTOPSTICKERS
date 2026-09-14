@@ -529,7 +529,11 @@ Window {
                                 ComboBox {
                                     id: trayClickCombo
                                     Layout.preferredWidth: 190
-                                    model: ["Abrir el panel", "Crear nota nueva"]
+                                    // Matches the tray menu's own item names
+                                    // ("Panel de Stickers", "Nuevo sticker")
+                                    // instead of introducing "nota" as a second
+                                    // word for the same concept.
+                                    model: ["Abrir Panel de Stickers", "Nuevo sticker"]
                                     Component.onCompleted: currentIndex = behavior.trayLeftClickAction === "newSticker" ? 1 : 0
                                     onActivated: setBehavior("trayLeftClickAction", currentIndex === 1 ? "newSticker" : "openPanel")
                                 }
