@@ -32,15 +32,84 @@ Window {
         onTriggered: panelWindow.clockTick++
     }
 
+    // Filtering/sorting is plain JS over the (small, in the hundreds at
+    // most) noteList array rather than a QAbstractListModel + proxy --
+    // this toolkit has no such proxy in place today (noteList is a plain
+    // property array, not a real model) and building one would be a much
+    // larger architectural change than this redesign calls for. A few
+    // hundred string comparisons per keystroke is sub-millisecond work, so
+    // a plain re-filter is not the performance risk the brief is warning
+    // against; it just has to not be O(n²) or re-fetch from disk, which it
+    // isn't -- it only ever reads the already-in-memory noteList.
+    //
+    // A genuine QML property binding (not an imperative refresh function)
+    // so it automatically re-evaluates whenever any of its dependencies
+    // (appRoot.noteList, the search text, the sort mode) change.
+    property var filteredList: computeFilteredList()
+
+    function computeFilteredList() {
+        var list = appRoot ? appRoot.noteList : []
+        var query = searchField.text.trim().toLowerCase()
+        if (query.length > 0) {
+            list = list.filter(function(s) {
+                return (s.label && s.label.toLowerCase().indexOf(query) !== -1)
+                    || (s.text && s.text.toLowerCase().indexOf(query) !== -1)
+            })
+        }
+        var sorted = list.slice()
+        if (sortCombo.currentIndex === 1) {
+            sorted.sort(function(a, b) { return a.label.localeCompare(b.label) })
+        } else if (sortCombo.currentIndex === 2) {
+            sorted.sort(function(a, b) { return a.color.localeCompare(b.color) })
+        } else {
+            // "Recientes" (default): most recently modified first. Same
+            // ordering Main.qml's own recentTrayNotes() uses for the tray
+            // menu, just without that function's maxTrayNotes cap.
+            sorted.sort(function(a, b) {
+                var am = a.modified || ""
+                var bm = b.modified || ""
+                if (am === bm) return 0
+                return am < bm ? 1 : -1
+            })
+        }
+        return sorted
+    }
+
+    Shortcut {
+        sequence: "Ctrl+F"
+        onActivated: searchField.forceActiveFocus()
+    }
+
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
 
-        Label {
-            text: "Stickers (" + (appRoot ? appRoot.noteList.length : 0) + ")"
-            font.bold: true
-            font.pixelSize: 14
+        RowLayout {
+            Layout.fillWidth: true
             Layout.margins: 10
+            spacing: 8
+
+            Label {
+                text: "🔍"
+                opacity: 0.6
+            }
+            TextField {
+                id: searchField
+                Layout.fillWidth: true
+                placeholderText: "Buscar en los stickers"
+                Keys.onEscapePressed: text = ""
+            }
+            ComboBox {
+                id: sortCombo
+                Layout.preferredWidth: 130
+                model: ["Recientes", "Alfabético", "Color"]
+            }
+            Button {
+                text: "+ Nuevo"
+                highlighted: true
+                onClicked: appRoot.createNewSticker(panelWindow.x, panelWindow.y)
+                Accessible.name: "Crear un sticker nuevo"
+            }
         }
 
         ListView {
@@ -48,7 +117,7 @@ Window {
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
-            model: appRoot ? appRoot.noteList : []
+            model: filteredList
             boundsBehavior: Flickable.StopAtBounds
 
             Label {
@@ -231,6 +300,19 @@ Window {
                     }
                 }
             }
+        }
+
+        Rectangle {
+            Layout.fillWidth: true
+            height: 1
+            color: pal.mid
+        }
+
+        Label {
+            Layout.margins: 10
+            text: filteredList.length + (filteredList.length === 1 ? " sticker" : " stickers")
+            opacity: 0.6
+            font.pixelSize: 11
         }
     }
 }

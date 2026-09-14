@@ -107,6 +107,7 @@ Item {
             return {
                 id: s.id,
                 name: s.name,
+                text: s.text,
                 label: Manager.displayName(s),
                 hasTitle: Manager.hasTitle(s),
                 snippet: Manager.contentSnippet(s),
