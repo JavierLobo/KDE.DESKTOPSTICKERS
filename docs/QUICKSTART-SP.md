@@ -32,9 +32,16 @@ probarla ahora mismo sin reiniciar sesión:
 ```
 
 Deberías ver un icono en la bandeja del sistema ("Desktop Stickers") y,
-si ya tienes stickers guardados en `~/.stickers/stickers.json`,
-sus ventanas aparecerán en su última posición real (persistida vía
-una regla de KWin por sticker — ver `QA_CHECKLIST.md`).
+si ya tienes stickers guardados, sus ventanas aparecerán en su última
+posición real (persistida vía una regla de KWin por sticker — ver
+`QA_CHECKLIST.md`). Los datos viven en
+`$XDG_DATA_HOME/desktop-stickers/stickers.json` (típicamente
+`~/.local/share/desktop-stickers/`), no en un directorio propio en el
+home.
+
+El idioma de la interfaz sigue el que tengas guardado en Settings (por
+defecto, español). Para cambiarlo: clic derecho en el icono de la
+bandeja → **Opciones → Configuración → Idiomas**.
 
 ## Crear tu primer sticker
 
@@ -43,28 +50,54 @@ una regla de KWin por sticker — ver `QA_CHECKLIST.md`).
 
 ## Editar
 
-Click dentro del sticker para editar en Markdown. Click fuera para
-volver a la vista previa renderizada.
+Click dentro del sticker para editar en Markdown — aparece la barra de
+formato (negrita, encabezados, listas, tablas, enlaces...) sobre el área
+de texto. Click fuera para volver a la vista previa renderizada.
 
 ## Pin (todos los escritorios) y resize
 
 - Botón 📍/📌 en el header: alterna si el sticker es visible en todos
   los escritorios virtuales (📌) o solo en el suyo (📍). Por defecto,
-  todo sticker nuevo empieza sin pin.
+  todo sticker nuevo empieza sin pin (configurable en Settings).
 - Arrastra desde la esquina inferior derecha para redimensionar.
+
+## Panel de Opciones/Settings
+
+Clic derecho en el icono de la bandeja → **Opciones → Configuración**
+abre el panel con cuatro secciones:
+
+- **Apariencia**: color por defecto de los stickers nuevos (aleatorio,
+  acento del sistema o fijo), lista de preferencia de fuentes y tamaño
+  de letra
+- **Comportamiento**: barra de formato Markdown visible por defecto,
+  confirmación antes de borrar, acción del clic izquierdo de la bandeja
+- **Sistema**: autostart on/off, ruta de datos (con botón "abrir
+  carpeta"), exportar/importar copia de seguridad
+- **Idiomas**: selector de idioma de la interfaz
+
+El resto del submenú **Opciones** trae Ayuda (documentación en GitHub),
+Aportaciones (apoyar al desarrollador), Ver licencia y Acerca de.
+
+## Panel de Stickers
+
+Clic izquierdo en el icono de la bandeja (o "Panel de Stickers" en el
+menú) abre el listado completo: buscar por texto, ordenar por
+recientes/alfabético/color, clic para abrir una nota, menú contextual
+(abrir, renombrar, duplicar) y selección múltiple para borrar varias a
+la vez.
 
 ## Datos de prueba
 
-⚠️ Este script **sobrescribe** `~/.stickers/stickers.json` — si ya tienes
-stickers creados, se perderán. Úsalo solo en una instalación nueva o si no
-te importa perder los datos actuales.
+⚠️ Este script **sobrescribe** tu `stickers.json` — si ya tienes
+stickers creados, se perderán. Úsalo solo en una instalación nueva o si
+no te importa perder los datos actuales.
 
 ```bash
 chmod +x scripts/test-sticker.sh
 ./scripts/test-sticker.sh
 ```
 
-Crea 3 stickers de ejemplo en `~/.stickers/stickers.json`.
+Crea 3 stickers de ejemplo.
 
 ## Verificación completa
 
@@ -91,10 +124,13 @@ funcionalidades.
   `desktopstickers-sticker-<id>`.
 - Si los valores son correctos pero no aplica en vivo, fuerza la recarga:
   `qdbus6 org.kde.KWin /KWin org.kde.KWin.reconfigure`
-- Detalle completo del mecanismo (una regla de KWin por sticker, compartida
-  entre pin y posición) en
-  `superpowers/specs/2026-08-18-sticker-pin-position-resize-design.md`,
-  sección "Arquitectura: de regla global a reglas por-ventana"
+
+**No aparece un idioma nuevo que agregué a `src/i18n/`:**
+- Tiene que tener exactamente las mismas claves que `src/i18n/es.json`
+  (incluidas `Language.name` y `Language.flag`).
+- Hace falta recompilar (`cmake --build build`) — el listado de
+  diccionarios se re-detecta solo al configurar/compilar, no al arrancar
+  la app ya instalada.
 
 **Logs:**
 ```bash
