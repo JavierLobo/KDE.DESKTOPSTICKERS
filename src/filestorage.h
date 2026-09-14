@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QUrl>
 
 // Minimal C++ bridge exposing plain file-system primitives to QML/JavaScript.
 //
@@ -39,7 +40,11 @@ public:
     Q_INVOKABLE QString readFile(const QString &path) const;
     Q_INVOKABLE bool writeFile(const QString &path, const QString &content) const;
 
-    // Returns the app's data directory (~/.stickers) as a plain local path.
+    // XDG-compliant data/config directories, replacing the old flat
+    // ~/.stickers (not spec-compliant, breaks under Flatpak's sandboxed
+    // filesystem view). A one-time migration from ~/.stickers runs in
+    // main() before the QML engine loads -- see migrateLegacyDataDir() in
+    // main.cpp -- so these are always safe to use directly from here on.
     // Resolved here in C++ via QStandardPaths::writableLocation(), which in
     // C++ returns a QString local path directly -- unlike the QML/JS-visible
     // QtCore StandardPaths singleton, whose writableLocation() returns a
@@ -49,5 +54,23 @@ public:
     // silently failed to match the single-slash variant and produced a
     // bogus relative path (see git history / review notes for the "file:"
     // directory this created in the repo root).
-    Q_INVOKABLE QString stickersDir() const;
+    Q_INVOKABLE QString dataDir() const;   // $XDG_DATA_HOME/desktop-stickers -- stickers.json
+    Q_INVOKABLE QString configDir() const; // $XDG_CONFIG_HOME/desktop-stickers -- settings.json
+
+    // Converts a file:// QUrl (e.g. from Qt.labs.platform's FolderDialog)
+    // to a plain local path. QUrl::toLocalFile() handles the "file://" vs
+    // "file:/" and percent-encoding differences correctly -- storage.js
+    // used to hand-strip a hardcoded "file://" prefix for a similar case
+    // and silently produced a bogus path on the single-slash variant (see
+    // getStickersDir()'s comment); this avoids repeating that mistake for
+    // Settings' backup export/import folder pickers.
+    Q_INVOKABLE QString toLocalFile(const QUrl &url) const;
+
+    // Base names (no extension) of every file matching nameFilter (e.g.
+    // "*.json") directly inside dirPath -- works for both real filesystem
+    // directories and compiled-in Qt resource paths (":/qt/qml/...", the
+    // same ":/" form QFile/QDir already transparently accept), which is
+    // exactly what lets I18n.qml (see its own comment) discover language
+    // dictionaries that were only ever added as new files, no code change.
+    Q_INVOKABLE QStringList listFileBaseNames(const QString &dirPath, const QString &nameFilter) const;
 };

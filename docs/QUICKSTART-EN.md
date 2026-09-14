@@ -5,6 +5,7 @@
   <a href="QUICKSTART-IT.md"><img alt="IT" src="https://img.shields.io/badge/lang-IT-green.svg"></a>
   <a href="QUICKSTART-EN.md"><img alt="EN" src="https://img.shields.io/badge/lang-EN-blue.svg"></a>
   <a href="QUICKSTART-DE.md"><img alt="DE" src="https://img.shields.io/badge/lang-DE-orange.svg"></a>
+  <a href="QUICKSTART-FR.md"><img alt="FR" src="https://img.shields.io/badge/lang-FR-9cf.svg"></a>
   <a href="QUICKSTART-RU.md"><img alt="RU" src="https://img.shields.io/badge/lang-RU-blueviolet.svg"></a>
   <a href="QUICKSTART-CN.md"><img alt="CN" src="https://img.shields.io/badge/lang-CN-yellow.svg"></a>
   <a href="QUICKSTART-JP.md"><img alt="JP" src="https://img.shields.io/badge/lang-JP-lightgrey.svg"></a>
@@ -31,10 +32,17 @@ right now without logging out:
 ~/.local/bin/desktop-stickers &
 ```
 
-You should see an icon in the system tray ("Desktop Stickers") and, if you
-already have stickers saved in `~/.stickers/stickers.json`, their windows
-will appear at their last real position (persisted via a per-sticker KWin
-rule — see `QA_CHECKLIST.md`).
+You should see an icon in the system tray ("Desktop Stickers") and, if
+you already have stickers saved, their windows will appear at their last
+real position (persisted via a per-sticker KWin rule — see
+`QA_CHECKLIST.md`). Data lives under
+`$XDG_DATA_HOME/desktop-stickers/stickers.json` (typically
+`~/.local/share/desktop-stickers/`), not in a loose folder in your home
+directory.
+
+The UI language follows whatever is saved in Settings (Spanish by
+default). To change it: tray icon right-click → **Options → Settings →
+Languages**.
 
 ## Create your first sticker
 
@@ -43,19 +51,43 @@ rule — see `QA_CHECKLIST.md`).
 
 ## Editing
 
-Click inside a sticker to edit it in Markdown. Click outside to return to
-the rendered preview.
+Click inside a sticker to edit it in Markdown — the formatting toolbar
+(bold, headings, lists, tables, links...) appears above the text area.
+Click outside to return to the rendered preview.
 
 ## Pin (all desktops) and resize
 
 - 📍/📌 button in the header: toggles whether the sticker is visible on
   all virtual desktops (📌) or only on its own (📍). New stickers start
-  unpinned by default.
+  unpinned by default (configurable in Settings).
 - Drag from the bottom-right corner to resize.
+
+## Settings panel
+
+Tray icon right-click → **Options → Settings** opens the panel, with
+four sections:
+
+- **Appearance**: default color for new stickers (random, system accent,
+  or fixed), font preference list, and font size
+- **Behavior**: default Markdown toolbar visibility, delete confirmation,
+  tray left-click action
+- **System**: autostart on/off, data path (with an "open folder"
+  button), export/import backup
+- **Languages**: UI language selector
+
+The rest of the **Options** submenu has Help (documentation on GitHub),
+Donate (support the developer), View license, and About.
+
+## Stickers Panel
+
+Tray icon left-click (or "Panel de Stickers" in the menu) opens the full
+list: search by text, sort by recent/alphabetical/color, click to open a
+note, a context menu (open, rename, duplicate), and multi-select to
+delete several at once.
 
 ## Sample data
 
-⚠️ This script **overwrites** `~/.stickers/stickers.json` — if you already
+⚠️ This script **overwrites** your `stickers.json` — if you already
 have stickers created, they will be lost. Only use it on a fresh install,
 or if you don't mind losing the current data.
 
@@ -64,7 +96,7 @@ chmod +x scripts/test-sticker.sh
 ./scripts/test-sticker.sh
 ```
 
-Creates 3 sample stickers in `~/.stickers/stickers.json`.
+Creates 3 sample stickers.
 
 ## Full verification
 
@@ -91,10 +123,13 @@ functionality.
   include `desktopstickers-sticker-<id>`.
 - If the values are correct but it's not applying live, force a reload:
   `qdbus6 org.kde.KWin /KWin org.kde.KWin.reconfigure`
-- Full detail on the mechanism (one KWin rule per sticker, shared
-  between pin and position) in
-  `superpowers/specs/2026-08-18-sticker-pin-position-resize-design.md`,
-  section "Arquitectura: de regla global a reglas por-ventana"
+
+**A new language I added to `src/i18n/` doesn't show up:**
+- It needs exactly the same keys as `src/i18n/es.json` (including
+  `Language.name` and `Language.flag`).
+- You need to rebuild (`cmake --build build`) — the dictionary list is
+  only re-detected at configure/build time, not when the already-installed
+  app starts.
 
 **Logs:**
 ```bash

@@ -2,7 +2,7 @@
 
 // Storage v1 - Persistencia en JSON
 //
-// File I/O (exists/ensureDir/readFile/writeFile/stickersDir) is delegated to
+// File I/O (exists/ensureDir/readFile/writeFile/dataDir) is delegated to
 // the FileStorage QML singleton (src/filestorage.h/.cpp) because QDir/QFile/
 // QIODevice are not registered as QML-accessible types in Qt6's QtCore QML
 // module — only StandardPaths is. The JSON schema and all four public
@@ -15,8 +15,13 @@
 // produced a bogus relative path. Resolving the path in C++ instead (where
 // QStandardPaths::writableLocation() returns a plain local QString, no URL
 // involved) removes that failure mode entirely.
+//
+// Lives under FileStorage.dataDir() ($XDG_DATA_HOME/desktop-stickers),
+// not configDir() -- stickers.json is user *data*, not app *preferences*.
+// A one-time migration off the old ~/.stickers runs in main.cpp before
+// this is ever called; see migrateLegacyDataDir() there.
 function getStickersDir() {
-    return App.FileStorage.stickersDir()
+    return App.FileStorage.dataDir()
 }
 
 function ensureDir() {
@@ -47,6 +52,8 @@ function loadAllStickers() {
             width: s.width !== undefined ? s.width : 300,
             height: s.height !== undefined ? s.height : 250,
             pinned: s.pinned !== undefined ? s.pinned : false,
+            fontFamily: s.fontFamily !== undefined ? s.fontFamily : "Sans Serif",
+            fontSize: s.fontSize !== undefined ? s.fontSize : 10,
             created: s.created,
             modified: s.modified
         }))
@@ -72,6 +79,8 @@ function saveSticker(sticker) {
         width: sticker.width,
         height: sticker.height,
         pinned: sticker.pinned,
+        fontFamily: sticker.fontFamily,
+        fontSize: sticker.fontSize,
         created: new Date().toISOString(),
         modified: new Date().toISOString()
     }

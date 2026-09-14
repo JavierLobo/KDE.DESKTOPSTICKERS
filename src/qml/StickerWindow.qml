@@ -2,7 +2,9 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
+import StickersApp
 import "StickerManager.js" as Manager
+import "SettingsManager.js" as Settings
 import Stickers.KWin as KWin
 
 Window {
@@ -12,6 +14,8 @@ Window {
     property string stickerName: ""
     property string stickerText: "Nuevo sticker..."
     property string stickerColor: "#FFD700"
+    property string stickerFontFamily: "Sans Serif"
+    property int stickerFontSize: 10
     property int posX: 100
     property int posY: 100
     property int posWidth: 300
@@ -24,6 +28,25 @@ Window {
     // to live one level up and drive both ScrollViews' visible bindings.
     property bool editing: false
     onEditingChanged: if (editing) editArea.forceActiveFocus()
+    // Shared by editArea's onActiveFocusChanged and the overflow-menu
+    // watcher below -- only actually commits if editArea still doesn't
+    // have focus at the moment this runs (both callers defer/wait exactly
+    // so a toolbar action's own target.forceActiveFocus() gets a chance to
+    // run first).
+    function commitEditIfFocusLost() {
+        if (!editing || editArea.activeFocus) return
+        stickerText = editArea.text
+        Manager.updateText(stickerId, editArea.text)
+        if (appRoot) {
+            appRoot.refreshNoteList()
+        }
+        editing = false
+    }
+    // Per-window session toggle, seeded from the Settings default but not
+    // itself persisted -- matches how "editing" mode itself isn't
+    // persisted either. The roadmap's own "Botón de mostrar/ocultar barra
+    // de herramientas Markdown".
+    property bool toolbarVisible: Settings.get().behavior.markdownToolbarVisibleByDefault
     // Sticker windows are ordinary managed KWin toplevels, closable via
     // Alt+F4, KWin's window-operations menu, or a task switcher -- not just
     // this app's own "✕" button. Any of those must also unregister the
@@ -246,18 +269,26 @@ Window {
                         Layout.preferredWidth: 28
                         Layout.preferredHeight: 28
                         onClicked: mainWindow.appRoot.createNewSticker(mainWindow.x, mainWindow.y)
+                        Accessible.name: I18n.t("StickerWindow.header.newSticker")
+                        ToolTip.visible: hovered
+                        ToolTip.text: Accessible.name
+                        ToolTip.delay: 400
                     }
 
                     Button {
                         text: stickerPinned ? "📌" : "📍"
                         Layout.preferredWidth: 28
                         Layout.preferredHeight: 28
-                        onClicked: {
-                            var newPinned = !stickerPinned
-                            stickerPinned = newPinned
-                            Manager.updatePinned(stickerId, newPinned)
-                            KWin.KWinBridge.setPinned(stickerId, mainWindow.title, newPinned)
-                        }
+                        // Routed through appRoot.togglePinned() (Main.qml)
+                        // rather than duplicating the Manager.updatePinned +
+                        // KWinBridge.setPinned calls here -- that's also
+                        // what keeps the Stickers Panel's pin icon in sync
+                        // without this window needing to know about it.
+                        onClicked: mainWindow.appRoot.togglePinned(stickerId)
+                        Accessible.name: stickerPinned ? I18n.t("StickerWindow.header.unpin") : I18n.t("StickerWindow.header.pin")
+                        ToolTip.visible: hovered
+                        ToolTip.text: Accessible.name
+                        ToolTip.delay: 400
                     }
 
                     Button {
@@ -265,12 +296,34 @@ Window {
                         Layout.preferredWidth: 28
                         Layout.preferredHeight: 28
                         onClicked: colorPopup.open()
+                        Accessible.name: I18n.t("StickerWindow.header.color")
+                        ToolTip.visible: hovered
+                        ToolTip.text: Accessible.name
+                        ToolTip.delay: 400
+                    }
+
+                    Button {
+                        text: "📝"
+                        Layout.preferredWidth: 28
+                        Layout.preferredHeight: 28
+                        visible: mainWindow.editing
+                        checkable: true
+                        checked: mainWindow.toolbarVisible
+                        onCheckedChanged: mainWindow.toolbarVisible = checked
+                        Accessible.name: mainWindow.toolbarVisible ? I18n.t("StickerWindow.header.hideToolbar") : I18n.t("StickerWindow.header.showToolbar")
+                        ToolTip.visible: hovered
+                        ToolTip.text: Accessible.name
+                        ToolTip.delay: 400
                     }
 
                     Button {
                         text: "✕"
                         Layout.preferredWidth: 28
                         Layout.preferredHeight: 28
+                        Accessible.name: I18n.t("StickerWindow.header.close")
+                        ToolTip.visible: hovered
+                        ToolTip.text: Accessible.name
+                        ToolTip.delay: 400
                         onClicked: {
                             // "✕" only closes the window now -- the note
                             // itself is NOT deleted (stickers.json keeps the
@@ -320,27 +373,63 @@ Window {
                     }
                 }
 
-                ScrollView {
-                    id: editScroll
+                ColumnLayout {
                     anchors.fill: parent
                     visible: mainWindow.editing
-                    clip: true
+                    spacing: 0
 
-                    TextArea {
-                        id: editArea
-                        width: editScroll.availableWidth
-                        text: stickerText
-                        wrapMode: TextArea.Wrap
-                        padding: 10
+                    MarkdownToolbar {
+                        id: markdownToolbar
+                        Layout.fillWidth: true
+                        visible: mainWindow.toolbarVisible
+                        target: editArea
 
-                        onActiveFocusChanged: {
-                            if (!activeFocus && mainWindow.editing) {
-                                stickerText = text
-                                Manager.updateText(stickerId, text)
-                                if (mainWindow.appRoot) {
-                                    mainWindow.appRoot.refreshNoteList()
-                                }
-                                mainWindow.editing = false
+                        // The moment the overflow Menu itself closes --
+                        // whether because the user picked an item (which
+                        // already restored focus via target.
+                        // forceActiveFocus()) or dismissed it without
+                        // picking anything (focus stays wherever it landed)
+                        // -- is exactly when editArea.onActiveFocusChanged's
+                        // own deferred check (skipped while this menu was
+                        // open) needs to run instead.
+                        onOverflowMenuOpenChanged: {
+                            if (!overflowMenuOpen) {
+                                Qt.callLater(mainWindow.commitEditIfFocusLost)
+                            }
+                        }
+                    }
+
+                    ScrollView {
+                        id: editScroll
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        clip: true
+
+                        TextArea {
+                            id: editArea
+                            width: editScroll.availableWidth
+                            text: stickerText
+                            wrapMode: TextArea.Wrap
+                            padding: 10
+                            font.family: mainWindow.stickerFontFamily
+                            font.pixelSize: mainWindow.stickerFontSize
+
+                            onActiveFocusChanged: {
+                                if (activeFocus || !mainWindow.editing) return
+                                // The toolbar's own buttons no longer steal
+                                // focus (focusPolicy: Qt.NoFocus). Its
+                                // overflow Menu (compact mode's "▾") is a
+                                // Popup that DOES legitimately take focus
+                                // while open, and stays open for as long as
+                                // the user takes to pick something -- a
+                                // single deferred tick here would fire
+                                // while the menu is still open, closing
+                                // editing before the user ever clicks an
+                                // item. Skip entirely while it's open; the
+                                // Connections block below re-checks once it
+                                // actually closes.
+                                if (markdownToolbar.overflowMenuOpen) return
+                                Qt.callLater(mainWindow.commitEditIfFocusLost)
                             }
                         }
                     }
@@ -374,6 +463,9 @@ Window {
                 var colorStr = selectedColor.toString()
                 stickerColor = colorStr
                 Manager.updateColor(stickerId, colorStr)
+                if (mainWindow.appRoot) {
+                    mainWindow.appRoot.refreshNoteList()
+                }
                 colorPopup.close()
             }
         }

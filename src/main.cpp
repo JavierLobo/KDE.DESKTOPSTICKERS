@@ -2,12 +2,106 @@
 #include <QDBusConnection>
 #include <QDBusError>
 #include <QDebug>
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
 #include <QQmlApplicationEngine>
 #include <QQmlEngine>
+#include <QStandardPaths>
 #include <QUrl>
 
 #include "filestorage.h"
 #include "kwinbridge.h"
+#include "systemintegration.h"
+
+namespace {
+
+// Moves a single file from an old path to a new one. Returns true if the
+// file no longer needs moving afterwards -- either because the move
+// succeeded, or because there was nothing to move in the first place
+// (source absent: never existed, or a previous, interrupted run already
+// moved it). Returns false only when a real, unresolved conflict is left
+// behind (both source and destination exist), so the caller can leave the
+// legacy directory alone rather than deleting data.
+bool moveFileIfNeeded(const QString &from, const QString &to)
+{
+    if (!QFile::exists(from)) {
+        return true;
+    }
+    if (QFile::exists(to)) {
+        qWarning() << "desktop-stickers: both" << from << "and" << to << "exist;"
+                   << "leaving the old one in place rather than overwriting -- resolve manually.";
+        return false;
+    }
+    if (QFile::rename(from, to)) {
+        qInfo() << "desktop-stickers: migrated" << from << "->" << to;
+        return true;
+    }
+    qWarning() << "desktop-stickers: failed to migrate" << from << "to" << to;
+    return false;
+}
+
+// One-time, silent migration off the old flat ~/.stickers (not XDG
+// compliant, breaks under Flatpak's sandboxed filesystem view) onto
+// separate $XDG_DATA_HOME/desktop-stickers (stickers.json) and
+// $XDG_CONFIG_HOME/desktop-stickers (settings.json) directories, matching
+// FileStorage::dataDir()/configDir(). Must run before anything reads or
+// writes through those two methods, hence called first thing in main().
+//
+// Idempotent and safe to interrupt at any point:
+//  - Nothing to do (returns immediately) once ~/.stickers is gone or is
+//    already a symlink -- both states mean a previous run completed this.
+//  - Each file is moved independently and only if its destination doesn't
+//    already exist, so a run that gets killed partway through (e.g. after
+//    moving stickers.json but before settings.json) simply finishes the
+//    remaining file on the next launch instead of redoing or losing work.
+//  - The legacy directory is only ever replaced by the compatibility
+//    symlink once it is confirmed empty -- if anything unexpected is left
+//    in it (a moveFileIfNeeded conflict, or a stray file this migration
+//    doesn't know about), it's left alone and logged rather than deleted.
+void migrateLegacyDataDir()
+{
+    const QString oldDir = QDir::homePath() + QStringLiteral("/.stickers");
+    const QFileInfo oldInfo(oldDir);
+    if (!oldInfo.exists() || oldInfo.isSymLink()) {
+        return;
+    }
+
+    const QString newDataDir = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)
+        + QStringLiteral("/desktop-stickers");
+    const QString newConfigDir = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)
+        + QStringLiteral("/desktop-stickers");
+    QDir().mkpath(newDataDir);
+    QDir().mkpath(newConfigDir);
+
+    const bool stickersOk = moveFileIfNeeded(oldDir + QStringLiteral("/stickers.json"),
+                                              newDataDir + QStringLiteral("/stickers.json"));
+    const bool settingsOk = moveFileIfNeeded(oldDir + QStringLiteral("/settings.json"),
+                                              newConfigDir + QStringLiteral("/settings.json"));
+    if (!stickersOk || !settingsOk) {
+        qWarning() << "desktop-stickers: legacy" << oldDir << "left in place; will retry next launch.";
+        return;
+    }
+
+    const QDir remaining(oldDir);
+    const QStringList leftovers = remaining.entryList(QDir::NoDotAndDotDot | QDir::AllEntries);
+    if (!leftovers.isEmpty()) {
+        qWarning() << "desktop-stickers: leaving" << oldDir << "in place, unexpected extra entries:" << leftovers;
+        return;
+    }
+
+    if (!QDir().rmdir(oldDir)) {
+        qWarning() << "desktop-stickers: could not remove now-empty" << oldDir;
+        return;
+    }
+    if (QFile::link(newDataDir, oldDir)) {
+        qInfo() << "desktop-stickers: replaced" << oldDir << "with a compatibility symlink to" << newDataDir;
+    } else {
+        qWarning() << "desktop-stickers: could not create a compatibility symlink at" << oldDir;
+    }
+}
+
+} // namespace
 
 int main(int argc, char *argv[])
 {
@@ -20,6 +114,7 @@ int main(int argc, char *argv[])
     // plain QGuiApplication. Confirmed via journalctl during Task 5.
     QApplication app(argc, argv);
     app.setApplicationName("desktop-stickers");
+    app.setApplicationVersion(QStringLiteral(APP_VERSION_STRING));
     app.setOrganizationName("io.github.javierlobo.desktopstickers");
     // The Wayland app-id / X11 WM_CLASS, used by the KWin window rule
     // (installed separately, see Step 6 and Task 8) to identify which
@@ -29,12 +124,25 @@ int main(int argc, char *argv[])
     // via the tray icon's "Salir", not when the last sticker closes.
     app.setQuitOnLastWindowClosed(false);
 
+    // Must run before anything (QML included) reads through
+    // FileStorage::dataDir()/configDir() -- see migrateLegacyDataDir()'s
+    // own comment above for why this is safe to call unconditionally on
+    // every launch.
+    migrateLegacyDataDir();
+
     // Registered under its own module URI (not "StickersApp") so that
     // storage.js -- itself part of the StickersApp module -- can .import it
     // without creating a cyclic module dependency. See filestorage.h.
     qmlRegisterSingletonType<FileStorage>(
         "Stickers.Storage", 1, 0, "FileStorage",
         [](QQmlEngine *, QJSEngine *) -> QObject * { return new FileStorage(); });
+
+    // Same reasoning as FileStorage above: settingsStorage.js needs to
+    // .import this from within the StickersApp module, so it lives under
+    // its own URI to avoid a cyclic module dependency. See systemintegration.h.
+    qmlRegisterSingletonType<SystemIntegration>(
+        "Stickers.System", 1, 0, "SystemIntegration",
+        [](QQmlEngine *, QJSEngine *) -> QObject * { return new SystemIntegration(); });
 
     // The app is addressed on the session bus at a fixed, well-known name
     // (io.github.javierlobo.desktopstickers), both for the KWin geometry-query
@@ -86,7 +194,20 @@ int main(int argc, char *argv[])
     // wrapper needs Qt 6.5+, and Ubuntu 24.04's own repos only have 6.4.2.
     // This is the equivalent explicit load against the same compiled QML
     // module resource path, and works from Qt 6.2 on.
-    engine.load(QUrl(QStringLiteral("qrc:/qt/qml/StickersApp/Main.qml")));
+    //
+    // The path includes "src/qml/" because qt_add_qml_module's QML_FILES
+    // aliases are computed relative to the project root, preserving the
+    // source tree's own subdirectory structure -- confirmed by inspecting
+    // the generated .qt/rcc/desktop-stickers_raw_qml_0.qrc, whose <file
+    // alias="src/qml/Main.qml"> entry is what actually ends up compiled in,
+    // not a flat "Main.qml". A previous version of this literal path (just
+    // ".../StickersApp/Main.qml") silently 404'd at startup
+    // ("QQmlApplicationEngine failed to load component ... No such file or
+    // directory"), reproduced even on a clean build of otherwise-unmodified
+    // code -- loadFromModule() would have hidden this, since it resolves
+    // through the module's own qmldir type mapping instead of a literal
+    // resource path.
+    engine.load(QUrl(QStringLiteral("qrc:/qt/qml/StickersApp/src/qml/Main.qml")));
 
     return app.exec();
 }

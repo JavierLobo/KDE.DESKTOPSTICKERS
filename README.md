@@ -10,6 +10,7 @@
   <a href="docs/README-IT.md"><img alt="IT" src="https://img.shields.io/badge/lang-IT-green.svg"></a>
   <a href="docs/README-EN.md"><img alt="EN" src="https://img.shields.io/badge/lang-EN-blue.svg"></a>
   <a href="docs/README-DE.md"><img alt="DE" src="https://img.shields.io/badge/lang-DE-orange.svg"></a>
+  <a href="docs/README-FR.md"><img alt="FR" src="https://img.shields.io/badge/lang-FR-9cf.svg"></a>
   <a href="docs/README-RU.md"><img alt="RU" src="https://img.shields.io/badge/lang-RU-blueviolet.svg"></a>
   <a href="docs/README-CN.md"><img alt="CN" src="https://img.shields.io/badge/lang-CN-yellow.svg"></a>
   <a href="docs/README-JP.md"><img alt="JP" src="https://img.shields.io/badge/lang-JP-lightgrey.svg"></a>
@@ -35,10 +36,17 @@ decoración, con posición y tamaño persistentes.
 - Ventanas independientes, arrastrables y redimensionables, con
   posición y tamaño persistentes vía reglas de ventana de KWin
 - Pin por sticker para verlo en todos los escritorios virtuales a la vez
-- Edición en **Markdown completo** (tablas, código, listas, links,
-  checkboxes), con vista previa renderizada al perder el foco
-- Panel de Stickers para listar, abrir, renombrar y eliminar todas las
-  notas sin límite
+- Edición en **Markdown completo** con barra de formato (negrita, cursiva,
+  encabezados, listas, tablas, enlaces, citas, bloques de código...), y
+  vista previa renderizada al perder el foco
+- Cascada de fuentes configurable (preferencia y tamaño) y color por
+  defecto (aleatorio, acento del sistema o fijo)
+- Panel de Stickers para buscar, ordenar, listar, abrir, renombrar,
+  duplicar y eliminar todas las notas sin límite
+- Panel de Opciones/Settings: apariencia, comportamiento, autostart,
+  ruta de datos y selector de idioma (con diccionarios auto-descubiertos)
+- Interfaz disponible en español, inglés, francés y ruso — añadir un
+  idioma nuevo es solo soltar un fichero JSON en `src/i18n/`
 
 <p align="center">
   <img src="img/Desktop-stickers-markdown.png" alt="Ejemplo de sticker con Markdown renderizado: títulos, tablas y bloques de código" width="720">
@@ -62,6 +70,7 @@ Guía completa (primer arranque, datos de prueba, troubleshooting):
 [EN](docs/QUICKSTART-EN.md) ·
 [IT](docs/QUICKSTART-IT.md) ·
 [DE](docs/QUICKSTART-DE.md) ·
+[FR](docs/QUICKSTART-FR.md) ·
 [RU](docs/QUICKSTART-RU.md) ·
 [CN](docs/QUICKSTART-CN.md) ·
 [JP](docs/QUICKSTART-JP.md)
@@ -108,6 +117,7 @@ modelo y por sesión: [docs/TOKEN_REPORT.md](docs/TOKEN_REPORT.md)
 - [Italiano](docs/README-IT.md)
 - [English](docs/README-EN.md)
 - [Deutsch](docs/README-DE.md)
+- [Français](docs/README-FR.md)
 - [Русский](docs/README-RU.md)
 - [中文](docs/README-CN.md)
 - [日本語](docs/README-JP.md)

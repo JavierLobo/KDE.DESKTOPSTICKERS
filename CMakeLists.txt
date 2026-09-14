@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.16)
 # hand-bumped default. Plain local builds (install.sh included) don't pass
 # this, so they just get the fallback below.
 if(NOT DEFINED APP_VERSION)
-    set(APP_VERSION "1.0.0")
+    set(APP_VERSION "1.1.0")
 endif()
 project(desktop-stickers VERSION ${APP_VERSION} LANGUAGES CXX)
 
@@ -21,20 +21,84 @@ qt_add_executable(desktop-stickers
     src/main.cpp
 )
 
+# Every *.json file here is a language dictionary, discovered at runtime by
+# I18n.qml via FileStorage.listFileBaseNames() -- but that only sees what's
+# actually compiled into the binary's Qt resources. CONFIGURE_DEPENDS makes
+# CMake re-glob (and thus notice a newly-dropped file) whenever the build is
+# re-run, so adding a language is now just "drop <code>.json in src/i18n/,
+# rebuild" -- no CMakeLists.txt edit. (CONFIGURE_DEPENDS re-globs on build,
+# not on process launch -- "at app startup" isn't literally possible for
+# files baked into the executable at compile time.)
+file(GLOB I18N_DICTIONARIES_ABS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/i18n/*.json")
+# Qt's resource system rejects absolute source paths outright (it needs a
+# relative path to derive the qrc:/ alias from), so re-relativize what
+# file(GLOB) hands back before this reaches RESOURCES below.
+set(I18N_DICTIONARIES "")
+foreach(_i18n_abs_path ${I18N_DICTIONARIES_ABS})
+    file(RELATIVE_PATH _i18n_rel_path "${CMAKE_CURRENT_SOURCE_DIR}" "${_i18n_abs_path}")
+    list(APPEND I18N_DICTIONARIES "${_i18n_rel_path}")
+endforeach()
+
+# `pragma Singleton` in I18n.qml itself is only a declaration of intent --
+# Qt's CMake QML tooling does not scan file contents for it, it needs this
+# source-file property to actually register the type as a qmldir
+# `singleton` entry (confirmed: without this, I18n.qml still built and ran,
+# but every "I18n.tr(...)" call failed at runtime with "Property 'tr' of
+# object I18n is not a function", because plain-component registration
+# doesn't give QML a live instance to call methods on the way a singleton
+# does). Must be set before qt_add_qml_module() processes the file list.
+set_source_files_properties(src/qml/I18n.qml PROPERTIES
+    QT_QML_SINGLETON_TYPE true
+)
+
 qt_add_qml_module(desktop-stickers
     URI StickersApp
     VERSION 1.0
+    # Explicit, not left to qt_standard_project_setup(REQUIRES 6.4)'s default:
+    # that REQUIRES value sets CMake policy QTP0001 to OLD (pre-6.5 behavior),
+    # which silently changes the module's default resource prefix from
+    # "/qt/qml/StickersApp" to plain "/StickersApp" -- breaking main.cpp's
+    # hardcoded engine.load(QUrl("qrc:/qt/qml/StickersApp/Main.qml")) with a
+    # "No such file or directory" at startup (confirmed: this reproduces on
+    # a totally clean build of unmodified main, i.e. it's a latent bug from
+    # lowering REQUIRES 6.5 -> 6.4, not something introduced here). Pinning
+    # RESOURCE_PREFIX explicitly keeps the path main.cpp expects regardless
+    # of that policy, and works fine under Qt 6.4 too -- this argument isn't
+    # gated behind QTP0001 at all.
+    RESOURCE_PREFIX "/qt/qml"
     QML_FILES
         src/qml/Main.qml
         src/qml/StickerWindow.qml
         src/qml/MarkdownView.qml
         src/qml/ColorPalette.qml
         src/qml/StickerPanel.qml
+        src/qml/SettingsWindow.qml
+        src/qml/SettingsRow.qml
+        src/qml/SettingsSection.qml
+        src/qml/MarkdownToolbar.qml
+        src/qml/I18n.qml
+        src/qml/AboutDialog.qml
+    RESOURCES
+        # Plain JSON data, not QML/JS -- bundled at the SAME resource path
+        # QML_FILES entries get (this module's RESOURCE_PREFIX + the given
+        # relative path, e.g. qrc:/qt/qml/StickersApp/src/i18n/es.json),
+        # which is what I18n.qml's `i18nDir` property assumes. Globbed above
+        # (I18N_DICTIONARIES) instead of listed by hand.
+        ${I18N_DICTIONARIES}
+        # Bundled so "Ver licencia" works regardless of install method
+        # (scripts/install.sh's per-user flow never copies LICENSE anywhere
+        # on disk, unlike the system packaging install() below) -- Main.qml
+        # materializes this resource out to a real file on demand, since
+        # Qt.openUrlExternally() needs a file: URL an external app can read,
+        # not a qrc: one.
+        LICENSE
     SOURCES
         src/filestorage.h
         src/filestorage.cpp
         src/kwinbridge.h
         src/kwinbridge.cpp
+        src/systemintegration.h
+        src/systemintegration.cpp
 )
 
 # StickerManager.js and storage.js use the classic Qt Quick script directives
@@ -54,12 +118,21 @@ qt_target_qml_sources(desktop-stickers
     QML_FILES
         src/qml/StickerManager.js
         src/code/storage.js
+        src/qml/SettingsManager.js
+        src/code/settingsStorage.js
     NO_CACHEGEN
 )
 
 target_include_directories(desktop-stickers
     PRIVATE
         src
+)
+
+# Exposed to QML as Qt.application.version (set via
+# app.setApplicationVersion() in main.cpp) for the Settings window's footer.
+target_compile_definitions(desktop-stickers
+    PRIVATE
+        APP_VERSION_STRING="${PROJECT_VERSION}"
 )
 
 target_link_libraries(desktop-stickers
