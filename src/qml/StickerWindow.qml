@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
+import StickersApp
 import "StickerManager.js" as Manager
 import "SettingsManager.js" as Settings
 import Stickers.KWin as KWin
@@ -268,6 +269,10 @@ Window {
                         Layout.preferredWidth: 28
                         Layout.preferredHeight: 28
                         onClicked: mainWindow.appRoot.createNewSticker(mainWindow.x, mainWindow.y)
+                        Accessible.name: I18n.t("StickerWindow.header.newSticker")
+                        ToolTip.visible: hovered
+                        ToolTip.text: Accessible.name
+                        ToolTip.delay: 400
                     }
 
                     Button {
@@ -280,6 +285,10 @@ Window {
                         // what keeps the Stickers Panel's pin icon in sync
                         // without this window needing to know about it.
                         onClicked: mainWindow.appRoot.togglePinned(stickerId)
+                        Accessible.name: stickerPinned ? I18n.t("StickerWindow.header.unpin") : I18n.t("StickerWindow.header.pin")
+                        ToolTip.visible: hovered
+                        ToolTip.text: Accessible.name
+                        ToolTip.delay: 400
                     }
 
                     Button {
@@ -287,6 +296,10 @@ Window {
                         Layout.preferredWidth: 28
                         Layout.preferredHeight: 28
                         onClicked: colorPopup.open()
+                        Accessible.name: I18n.t("StickerWindow.header.color")
+                        ToolTip.visible: hovered
+                        ToolTip.text: Accessible.name
+                        ToolTip.delay: 400
                     }
 
                     Button {
@@ -297,7 +310,7 @@ Window {
                         checkable: true
                         checked: mainWindow.toolbarVisible
                         onCheckedChanged: mainWindow.toolbarVisible = checked
-                        Accessible.name: mainWindow.toolbarVisible ? "Ocultar barra de formato" : "Mostrar barra de formato"
+                        Accessible.name: mainWindow.toolbarVisible ? I18n.t("StickerWindow.header.hideToolbar") : I18n.t("StickerWindow.header.showToolbar")
                         ToolTip.visible: hovered
                         ToolTip.text: Accessible.name
                         ToolTip.delay: 400
@@ -307,6 +320,10 @@ Window {
                         text: "✕"
                         Layout.preferredWidth: 28
                         Layout.preferredHeight: 28
+                        Accessible.name: I18n.t("StickerWindow.header.close")
+                        ToolTip.visible: hovered
+                        ToolTip.text: Accessible.name
+                        ToolTip.delay: 400
                         onClicked: {
                             // "✕" only closes the window now -- the note
                             // itself is NOT deleted (stickers.json keeps the

@@ -2,13 +2,14 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
+import StickersApp
 import "StickerManager.js" as Manager
 
 Window {
     id: panelWindow
     width: 420
     height: 440
-    title: "Panel de stickers"
+    title: I18n.t("StickerPanel.title")
 
     property var appRoot: null
     // Which row (by sticker id) is showing its inline rename TextField --
@@ -165,19 +166,19 @@ Window {
             TextField {
                 id: searchField
                 Layout.fillWidth: true
-                placeholderText: "Buscar en los stickers"
+                placeholderText: I18n.t("StickerPanel.search.placeholder")
                 Keys.onEscapePressed: text = ""
             }
             ComboBox {
                 id: sortCombo
                 Layout.preferredWidth: 130
-                model: ["Recientes", "Alfabético", "Color"]
+                model: [I18n.t("StickerPanel.sort.recent"), I18n.t("StickerPanel.sort.alphabetical"), I18n.t("StickerPanel.sort.color")]
             }
             Button {
-                text: "+ Nuevo"
+                text: "+ " + I18n.t("StickerPanel.newButton.label")
                 highlighted: true
                 onClicked: appRoot.createNewSticker(panelWindow.x, panelWindow.y)
-                Accessible.name: "Crear un sticker nuevo"
+                Accessible.name: I18n.t("StickerPanel.newButton.tooltip")
             }
         }
 
@@ -215,20 +216,20 @@ Window {
                     opacity: 0.7
                     font.italic: true
                     text: (appRoot && appRoot.noteList.length === 0)
-                        ? "No hay stickers todavía."
-                        : "Sin resultados para «" + searchField.text + "»."
+                        ? I18n.t("StickerPanel.empty.noStickers")
+                        : I18n.tf("StickerPanel.empty.noResults", [searchField.text])
                 }
                 Button {
                     Layout.alignment: Qt.AlignHCenter
                     visible: appRoot && appRoot.noteList.length === 0
-                    text: "Crear el primero"
+                    text: I18n.t("StickerPanel.empty.createFirst")
                     highlighted: true
                     onClicked: appRoot.createNewSticker(panelWindow.x, panelWindow.y)
                 }
                 Button {
                     Layout.alignment: Qt.AlignHCenter
                     visible: appRoot && appRoot.noteList.length > 0
-                    text: "Limpiar búsqueda"
+                    text: I18n.t("StickerPanel.empty.clearSearch")
                     flat: true
                     onClicked: searchField.text = ""
                 }
@@ -310,7 +311,7 @@ Window {
                         visible: !rowItem.renaming
 
                         Label {
-                            text: rowItem.modelData.hasTitle ? rowItem.modelData.label : "Sin título"
+                            text: rowItem.modelData.hasTitle ? rowItem.modelData.label : I18n.t("StickerPanel.row.untitled")
                             font.italic: !rowItem.modelData.hasTitle
                             opacity: rowItem.modelData.hasTitle ? 1.0 : 0.6
                             elide: Text.ElideRight
@@ -384,10 +385,10 @@ Window {
                             implicitHeight: 26
                             onClicked: appRoot.togglePinned(rowItem.modelData.id)
                             Accessible.name: rowItem.modelData.pinned
-                                ? "Quitar \"" + rowItem.modelData.label + "\" de todos los escritorios"
-                                : "Fijar \"" + rowItem.modelData.label + "\" en todos los escritorios"
+                                ? I18n.tf("StickerPanel.row.unpinWithLabel", [rowItem.modelData.label])
+                                : I18n.tf("StickerPanel.row.pinWithLabel", [rowItem.modelData.label])
                             ToolTip.visible: hovered
-                            ToolTip.text: rowItem.modelData.pinned ? "Quitar de todos los escritorios" : "Fijar en todos los escritorios"
+                            ToolTip.text: rowItem.modelData.pinned ? I18n.t("StickerWindow.header.unpin") : I18n.t("StickerWindow.header.pin")
                             ToolTip.delay: 400
                         }
                         Button {
@@ -397,9 +398,9 @@ Window {
                             implicitWidth: 26
                             implicitHeight: 26
                             onClicked: appRoot.confirmDeleteSticker(rowItem.modelData.id, rowItem.modelData.label)
-                            Accessible.name: "Eliminar \"" + rowItem.modelData.label + "\""
+                            Accessible.name: I18n.tf("StickerPanel.row.deleteWithLabel", [rowItem.modelData.label])
                             ToolTip.visible: hovered
-                            ToolTip.text: "Eliminar"
+                            ToolTip.text: I18n.t("StickerPanel.row.delete")
                             ToolTip.delay: 400
                         }
                     }
@@ -409,20 +410,20 @@ Window {
                     id: contextMenu
 
                     MenuItem {
-                        text: "Abrir"
+                        text: I18n.t("StickerPanel.contextMenu.open")
                         onTriggered: appRoot.openOrFocusSticker(rowItem.modelData.id)
                     }
                     MenuItem {
-                        text: rowItem.modelData.pinned ? "Quitar de todos los escritorios" : "Fijar en todos los escritorios"
+                        text: rowItem.modelData.pinned ? I18n.t("StickerWindow.header.unpin") : I18n.t("StickerWindow.header.pin")
                         onTriggered: appRoot.togglePinned(rowItem.modelData.id)
                     }
                     MenuItem {
-                        text: "Eliminar"
+                        text: I18n.t("StickerPanel.row.delete")
                         onTriggered: appRoot.confirmDeleteSticker(rowItem.modelData.id, rowItem.modelData.label)
                     }
                     MenuSeparator {}
                     MenuItem {
-                        text: "Renombrar"
+                        text: I18n.t("StickerPanel.contextMenu.rename")
                         onTriggered: {
                             panelWindow.renamingId = rowItem.modelData.id
                             renameField.forceActiveFocus()
@@ -430,7 +431,7 @@ Window {
                         }
                     }
                     MenuItem {
-                        text: "Duplicar"
+                        text: I18n.t("StickerPanel.contextMenu.duplicate")
                         onTriggered: appRoot.duplicateSticker(rowItem.modelData.id)
                     }
                     MenuSeparator {}
@@ -458,7 +459,7 @@ Window {
                     text: appRoot ? appRoot.undoMessage : ""
                 }
                 Button {
-                    text: "Deshacer"
+                    text: I18n.t("StickerPanel.undo.button")
                     flat: true
                     onClicked: appRoot.undoDelete()
                 }
@@ -473,8 +474,10 @@ Window {
 
         Label {
             Layout.margins: 10
-            text: filteredList.length + (filteredList.length === 1 ? " sticker" : " stickers")
-                  + "  ·  Intro abre  ·  Supr elimina"
+            text: (filteredList.length === 1
+                    ? I18n.tf("StickerPanel.footer.countSingle", [filteredList.length])
+                    : I18n.tf("StickerPanel.footer.countMultiple", [filteredList.length]))
+                  + "  ·  " + I18n.t("StickerPanel.footer.hint")
             opacity: 0.6
             font.pixelSize: 11
         }
