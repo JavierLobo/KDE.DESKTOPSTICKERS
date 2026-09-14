@@ -8,7 +8,12 @@
     "Main.tray.tooltip": "Desktop Stickers",
     "Main.trayMenu.newSticker": "New sticker",
     "Main.trayMenu.stickerPanel": "Stickers Panel",
+    "Main.trayMenu.options": "Options",
+    "Main.trayMenu.help": "Help",
+    "Main.trayMenu.donate": "Donate",
+    "Main.trayMenu.viewLicense": "View license",
     "Main.trayMenu.settings": "Settings…",
+    "Main.trayMenu.about": "About",
     "Main.trayMenu.quit": "Quit",
     "Main.deleteConfirm.single": "Delete \"{0}\"? This action cannot be undone.",
     "Main.deleteConfirm.multiple": "Delete {0} stickers? This action cannot be undone.",
@@ -123,5 +128,9 @@
     "MarkdownToolbar.table.insertTitle": "Insert table",
     "MarkdownToolbar.table.rows": "Rows",
     "MarkdownToolbar.table.columns": "Columns",
-    "MarkdownToolbar.table.insert": "Insert"
+    "MarkdownToolbar.table.insert": "Insert",
+
+    "About.title": "About",
+    "About.description": "Floating sticky notes for the KDE Plasma desktop.",
+    "About.viewRepo": "View on GitHub"
 }

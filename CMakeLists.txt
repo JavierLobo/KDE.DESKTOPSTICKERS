@@ -77,6 +77,7 @@ qt_add_qml_module(desktop-stickers
         src/qml/SettingsSection.qml
         src/qml/MarkdownToolbar.qml
         src/qml/I18n.qml
+        src/qml/AboutDialog.qml
     RESOURCES
         # Plain JSON data, not QML/JS -- bundled at the SAME resource path
         # QML_FILES entries get (this module's RESOURCE_PREFIX + the given
@@ -84,6 +85,13 @@ qt_add_qml_module(desktop-stickers
         # which is what I18n.qml's `i18nDir` property assumes. Globbed above
         # (I18N_DICTIONARIES) instead of listed by hand.
         ${I18N_DICTIONARIES}
+        # Bundled so "Ver licencia" works regardless of install method
+        # (scripts/install.sh's per-user flow never copies LICENSE anywhere
+        # on disk, unlike the system packaging install() below) -- Main.qml
+        # materializes this resource out to a real file on demand, since
+        # Qt.openUrlExternally() needs a file: URL an external app can read,
+        # not a qrc: one.
+        LICENSE
     SOURCES
         src/filestorage.h
         src/filestorage.cpp

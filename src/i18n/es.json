@@ -8,7 +8,12 @@
     "Main.tray.tooltip": "Desktop Stickers",
     "Main.trayMenu.newSticker": "Nuevo sticker",
     "Main.trayMenu.stickerPanel": "Panel de Stickers",
+    "Main.trayMenu.options": "Opciones",
+    "Main.trayMenu.help": "Ayuda",
+    "Main.trayMenu.donate": "Aportaciones",
+    "Main.trayMenu.viewLicense": "Ver licencia",
     "Main.trayMenu.settings": "Configuración…",
+    "Main.trayMenu.about": "Acerca de",
     "Main.trayMenu.quit": "Salir",
     "Main.deleteConfirm.single": "¿Eliminar \"{0}\"? Esta acción no se puede deshacer.",
     "Main.deleteConfirm.multiple": "¿Eliminar {0} stickers? Esta acción no se puede deshacer.",
@@ -123,5 +128,9 @@
     "MarkdownToolbar.table.insertTitle": "Insertar tabla",
     "MarkdownToolbar.table.rows": "Filas",
     "MarkdownToolbar.table.columns": "Columnas",
-    "MarkdownToolbar.table.insert": "Insertar"
+    "MarkdownToolbar.table.insert": "Insertar",
+
+    "About.title": "Acerca de",
+    "About.description": "Notas adhesivas flotantes para el escritorio KDE Plasma.",
+    "About.viewRepo": "Ver en GitHub"
 }

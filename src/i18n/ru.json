@@ -8,7 +8,12 @@
     "Main.tray.tooltip": "Desktop Stickers",
     "Main.trayMenu.newSticker": "Новая заметка",
     "Main.trayMenu.stickerPanel": "Панель заметок",
+    "Main.trayMenu.options": "Опции",
+    "Main.trayMenu.help": "Справка",
+    "Main.trayMenu.donate": "Поддержать автора",
+    "Main.trayMenu.viewLicense": "Просмотреть лицензию",
     "Main.trayMenu.settings": "Настройки…",
+    "Main.trayMenu.about": "О программе",
     "Main.trayMenu.quit": "Выход",
     "Main.deleteConfirm.single": "Удалить «{0}»? Это действие нельзя отменить.",
     "Main.deleteConfirm.multiple": "Удалить {0} заметок? Это действие нельзя отменить.",
@@ -123,5 +128,9 @@
     "MarkdownToolbar.table.insertTitle": "Вставить таблицу",
     "MarkdownToolbar.table.rows": "Строки",
     "MarkdownToolbar.table.columns": "Столбцы",
-    "MarkdownToolbar.table.insert": "Вставить"
+    "MarkdownToolbar.table.insert": "Вставить",
+
+    "About.title": "О программе",
+    "About.description": "Плавающие стикеры для рабочего стола KDE Plasma.",
+    "About.viewRepo": "Открыть на GitHub"
 }

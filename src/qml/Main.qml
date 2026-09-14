@@ -4,6 +4,7 @@ import StickersApp
 import "StickerManager.js" as Manager
 import "SettingsManager.js" as Settings
 import Stickers.KWin as KWin
+import Stickers.Storage as App
 
 Item {
     id: root
@@ -314,6 +315,32 @@ Item {
         appRoot: root
     }
 
+    function openAboutDialog() {
+        aboutDialog.show()
+        aboutDialog.raise()
+        aboutDialog.requestActivate()
+    }
+
+    AboutDialog {
+        id: aboutDialog
+        visible: false
+    }
+
+    // LICENSE is bundled as a Qt resource (CMakeLists.txt RESOURCES) so it's
+    // guaranteed present regardless of install method -- but
+    // Qt.openUrlExternally() needs a real file: URL an external app can
+    // read, not a qrc: one, so materialize it out to the data dir once and
+    // reuse that copy on subsequent opens.
+    function openLicense() {
+        var destPath = App.FileStorage.dataDir() + "/LICENSE"
+        if (!App.FileStorage.exists(destPath)) {
+            App.FileStorage.ensureDir(App.FileStorage.dataDir())
+            var content = App.FileStorage.readFile(":/qt/qml/StickersApp/LICENSE")
+            App.FileStorage.writeFile(destPath, content)
+        }
+        Qt.openUrlExternally("file://" + destPath)
+    }
+
     Platform.SystemTrayIcon {
         id: trayIcon
         visible: true
@@ -365,9 +392,37 @@ Item {
                 onTriggered: root.openStickerPanel()
             }
             Platform.MenuSeparator {}
-            Platform.MenuItem {
-                text: I18n.t("Main.trayMenu.settings")
-                onTriggered: root.openSettingsWindow()
+            // A Platform.Menu nested directly inside another Platform.Menu's
+            // item list becomes a submenu automatically (its `title` is the
+            // label shown on the parent item) -- Qt.labs.platform's
+            // MenuItem.menu/subMenu properties are read-only, so this
+            // nesting is the only way to build one, not a MenuItem property.
+            Platform.Menu {
+                title: I18n.t("Main.trayMenu.options")
+                Platform.MenuItem {
+                    text: I18n.t("Main.trayMenu.help")
+                    onTriggered: Qt.openUrlExternally("https://github.com/JavierLobo/KDE.DESKTOPSTICKERS#readme")
+                }
+                Platform.MenuSeparator {}
+                Platform.MenuItem {
+                    text: I18n.t("Main.trayMenu.donate")
+                    onTriggered: Qt.openUrlExternally("https://github.com/sponsors/JavierLobo")
+                }
+                Platform.MenuSeparator {}
+                Platform.MenuItem {
+                    text: I18n.t("Main.trayMenu.viewLicense")
+                    onTriggered: root.openLicense()
+                }
+                Platform.MenuSeparator {}
+                Platform.MenuItem {
+                    text: I18n.t("Main.trayMenu.settings")
+                    onTriggered: root.openSettingsWindow()
+                }
+                Platform.MenuSeparator {}
+                Platform.MenuItem {
+                    text: I18n.t("Main.trayMenu.about")
+                    onTriggered: root.openAboutDialog()
+                }
             }
             Platform.MenuSeparator {}
             Platform.MenuItem {

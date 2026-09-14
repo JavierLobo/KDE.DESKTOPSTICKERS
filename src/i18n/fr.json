@@ -8,7 +8,12 @@
     "Main.tray.tooltip": "Desktop Stickers",
     "Main.trayMenu.newSticker": "Nouveau sticker",
     "Main.trayMenu.stickerPanel": "Panneau des stickers",
+    "Main.trayMenu.options": "Options",
+    "Main.trayMenu.help": "Aide",
+    "Main.trayMenu.donate": "Faire un don",
+    "Main.trayMenu.viewLicense": "Voir la licence",
     "Main.trayMenu.settings": "Paramètres…",
+    "Main.trayMenu.about": "À propos",
     "Main.trayMenu.quit": "Quitter",
     "Main.deleteConfirm.single": "Supprimer « {0} » ? Cette action est irréversible.",
     "Main.deleteConfirm.multiple": "Supprimer {0} stickers ? Cette action est irréversible.",
@@ -123,5 +128,9 @@
     "MarkdownToolbar.table.insertTitle": "Insérer un tableau",
     "MarkdownToolbar.table.rows": "Lignes",
     "MarkdownToolbar.table.columns": "Colonnes",
-    "MarkdownToolbar.table.insert": "Insérer"
+    "MarkdownToolbar.table.insert": "Insérer",
+
+    "About.title": "À propos",
+    "About.description": "Notes autocollantes flottantes pour le bureau KDE Plasma.",
+    "About.viewRepo": "Voir sur GitHub"
 }
