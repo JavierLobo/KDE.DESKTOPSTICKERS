@@ -18,6 +18,59 @@ Window {
     // lose a plain per-delegate property.
     property string renamingId: ""
 
+    // Multi-select state: a plain JS object used as a set (id -> true),
+    // since filteredList is a plain array with no selection-model
+    // infrastructure of its own. lastClickedIndex anchors Shift-click
+    // range selection.
+    property var selectedIds: ({})
+    property int lastClickedIndex: -1
+
+    function isSelected(id) {
+        return !!selectedIds[id]
+    }
+    function clearSelection() {
+        selectedIds = {}
+    }
+    function toggleSelected(id) {
+        var copy = Object.assign({}, selectedIds)
+        if (copy[id]) {
+            delete copy[id]
+        } else {
+            copy[id] = true
+        }
+        selectedIds = copy
+    }
+    function selectRange(fromIndex, toIndex) {
+        var copy = Object.assign({}, selectedIds)
+        var lo = Math.min(fromIndex, toIndex)
+        var hi = Math.max(fromIndex, toIndex)
+        for (var i = lo; i <= hi; i++) {
+            if (filteredList[i]) {
+                copy[filteredList[i].id] = true
+            }
+        }
+        selectedIds = copy
+    }
+
+    // Entry point for both the keyboard Delete path (below) and anything
+    // else that wants to delete "whatever is currently selected, or just
+    // the focused row if nothing is". Looks up each id's label itself so
+    // callers don't have to.
+    function deleteSelectionOrCurrent() {
+        var ids = Object.keys(selectedIds)
+        if (ids.length === 0 && listView.currentIndex >= 0 && filteredList[listView.currentIndex]) {
+            ids = [filteredList[listView.currentIndex].id]
+        }
+        if (ids.length === 0) return
+        var label = ""
+        if (ids.length === 1) {
+            var found = filteredList.find(function(s) { return s.id === ids[0] })
+            label = found ? found.label : ""
+        }
+        appRoot.deleteStickers(ids, label)
+        clearSelection()
+    }
+
     SystemPalette { id: pal }
 
     // Relative timestamps ("hace 2 h") need to keep advancing while the
@@ -31,6 +84,22 @@ Window {
         repeat: true
         onTriggered: panelWindow.clockTick++
     }
+
+    // Sizes to content up to a reasonable cap, then the ListView scrolls
+    // instead of the window growing further -- recomputed each time the
+    // panel is shown (not a continuous live binding on `height`, which
+    // would fight a user's own manual resize mid-session) since that's
+    // also the one moment a stale size from before stickers were
+    // added/removed is guaranteed to have settled.
+    readonly property int rowHeight: 52
+    readonly property int maxVisibleRows: 8
+    function idealHeight() {
+        var toolbarH = 56
+        var footerH = 34
+        var rows = Math.max(1, Math.min(listView.count, maxVisibleRows))
+        return toolbarH + rows * rowHeight + footerH
+    }
+    onVisibleChanged: if (visible) height = idealHeight()
 
     // Filtering/sorting is plain JS over the (small, in the hundreds at
     // most) noteList array rather than a QAbstractListModel + proxy --
@@ -119,13 +188,50 @@ Window {
             clip: true
             model: filteredList
             boundsBehavior: Flickable.StopAtBounds
+            focus: true
+            currentIndex: -1
 
-            Label {
+            Keys.onUpPressed: currentIndex = currentIndex <= 0 ? 0 : currentIndex - 1
+            Keys.onDownPressed: currentIndex = Math.min(count - 1, currentIndex + 1)
+            Keys.onReturnPressed: {
+                if (currentIndex >= 0 && filteredList[currentIndex]) {
+                    appRoot.openOrFocusSticker(filteredList[currentIndex].id)
+                }
+            }
+            Keys.onDeletePressed: panelWindow.deleteSelectionOrCurrent()
+
+            // Two different empty states: a search that matched nothing
+            // is not the same situation as there being no stickers at all.
+            ColumnLayout {
                 anchors.centerIn: parent
                 visible: listView.count === 0
-                text: "No hay stickers todavía."
-                opacity: 0.6
-                font.italic: true
+                spacing: 10
+                width: Math.min(parent.width - 40, 260)
+
+                Label {
+                    Layout.fillWidth: true
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.Wrap
+                    opacity: 0.7
+                    font.italic: true
+                    text: (appRoot && appRoot.noteList.length === 0)
+                        ? "No hay stickers todavía."
+                        : "Sin resultados para «" + searchField.text + "»."
+                }
+                Button {
+                    Layout.alignment: Qt.AlignHCenter
+                    visible: appRoot && appRoot.noteList.length === 0
+                    text: "Crear el primero"
+                    highlighted: true
+                    onClicked: appRoot.createNewSticker(panelWindow.x, panelWindow.y)
+                }
+                Button {
+                    Layout.alignment: Qt.AlignHCenter
+                    visible: appRoot && appRoot.noteList.length > 0
+                    text: "Limpiar búsqueda"
+                    flat: true
+                    onClicked: searchField.text = ""
+                }
             }
 
             delegate: Item {
@@ -136,10 +242,14 @@ Window {
                 height: 52
 
                 readonly property bool renaming: panelWindow.renamingId === modelData.id
+                readonly property bool selected: panelWindow.isSelected(modelData.id)
+                readonly property bool current: listView.currentIndex === index
 
                 Rectangle {
                     anchors.fill: parent
-                    color: rowMouse.containsMouse ? pal.alternateBase : "transparent"
+                    color: rowItem.selected ? pal.highlight
+                           : ((rowItem.current || rowMouse.containsMouse) ? pal.alternateBase : "transparent")
+                    opacity: rowItem.selected ? 0.35 : 1.0
                 }
 
                 // 3px color stripe on the row's left edge, the sticker's
@@ -164,8 +274,20 @@ Window {
                     acceptedButtons: Qt.LeftButton | Qt.RightButton
                     onClicked: (mouse) => {
                         if (mouse.button === Qt.RightButton) {
+                            listView.currentIndex = rowItem.index
                             contextMenu.popup()
-                        } else if (!rowItem.renaming) {
+                            return
+                        }
+                        if (rowItem.renaming) return
+                        listView.currentIndex = rowItem.index
+                        if (mouse.modifiers & Qt.ControlModifier) {
+                            panelWindow.toggleSelected(rowItem.modelData.id)
+                            panelWindow.lastClickedIndex = rowItem.index
+                        } else if ((mouse.modifiers & Qt.ShiftModifier) && panelWindow.lastClickedIndex >= 0) {
+                            panelWindow.selectRange(panelWindow.lastClickedIndex, rowItem.index)
+                        } else {
+                            panelWindow.clearSelection()
+                            panelWindow.lastClickedIndex = rowItem.index
                             appRoot.openOrFocusSticker(rowItem.modelData.id)
                         }
                     }
@@ -228,12 +350,11 @@ Window {
 
                     RowLayout {
                         spacing: 2
-                        // Visible on hover OR keyboard focus (Tab still
-                        // reaches these buttons even without the panel's
-                        // own up/down row navigation, which is separate,
-                        // later work) -- never while renaming, the text
+                        // Visible on hover, keyboard focus (Tab), or when
+                        // this row is the ListView's current (arrow-key
+                        // navigated) row -- never while renaming, the text
                         // field takes that space instead.
-                        visible: (rowMouse.containsMouse || pinButton.activeFocus || deleteButton.activeFocus)
+                        visible: (rowMouse.containsMouse || rowItem.current || pinButton.activeFocus || deleteButton.activeFocus)
                                  && !rowItem.renaming
 
                         Button {
@@ -304,6 +425,29 @@ Window {
 
         Rectangle {
             Layout.fillWidth: true
+            visible: appRoot && appRoot.undoVisible
+            color: pal.alternateBase
+            implicitHeight: undoRow.implicitHeight + 12
+
+            RowLayout {
+                id: undoRow
+                anchors.fill: parent
+                anchors.margins: 8
+                Label {
+                    Layout.fillWidth: true
+                    elide: Text.ElideRight
+                    text: appRoot ? appRoot.undoMessage : ""
+                }
+                Button {
+                    text: "Deshacer"
+                    flat: true
+                    onClicked: appRoot.undoDelete()
+                }
+            }
+        }
+
+        Rectangle {
+            Layout.fillWidth: true
             height: 1
             color: pal.mid
         }
@@ -311,6 +455,7 @@ Window {
         Label {
             Layout.margins: 10
             text: filteredList.length + (filteredList.length === 1 ? " sticker" : " stickers")
+                  + "  ·  Intro abre  ·  Supr elimina"
             opacity: 0.6
             font.pixelSize: 11
         }

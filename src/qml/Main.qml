@@ -171,18 +171,27 @@ Item {
 
     property var activeDeleteDialog: null
 
+    // Kept as a thin compatibility wrapper -- every existing call site
+    // (the panel's hover delete icon, its context menu, anywhere else that
+    // already knew a single id+label) still works unchanged; it's just a
+    // 1-element deleteStickers() call now.
     function confirmDeleteSticker(id, label) {
-        // The tray menu is drawn by plasmashell over DBusMenu, not by this
-        // app's own process -- an app-side modal MessageDialog cannot block
-        // input to that other process's menu. A user really can reopen the
-        // tray menu and trigger a second delete while this dialog is still
-        // open; ignore it rather than silently spawning a second one (which
-        // would either drop the first request or make "Sí" delete the
-        // wrong note while still showing the first note's label).
-        if (activeDeleteDialog !== null) {
-            return
-        }
-        if (!Settings.get().behavior.askBeforeDeleting) {
+        deleteStickers([id], label)
+    }
+
+    // Closes and destroys each id's open window (if any) and removes it
+    // from the model/storage. Pure mechanics, no dialog/undo decision --
+    // deleteStickers() below and the confirm dialog's onYesClicked both
+    // funnel through here. Returns deep-copied snapshots of what was
+    // removed, for the undo toast to restore later.
+    function performDelete(ids) {
+        var removed = []
+        for (var i = 0; i < ids.length; i++) {
+            var id = ids[i]
+            var sticker = Manager.stickers.find(function(s) { return s.id === id })
+            if (sticker) {
+                removed.push(JSON.parse(JSON.stringify(sticker)))
+            }
             var win = root.openWindows[id]
             if (win) {
                 root.unregisterWindow(id)
@@ -190,37 +199,86 @@ Item {
                 win.destroy()
             }
             Manager.removeSticker(id)
-            root.refreshNoteList()
+        }
+        root.refreshNoteList()
+        return removed
+    }
+
+    property var lastDeletedSnapshot: []
+    property string undoMessage: ""
+    property bool undoVisible: false
+
+    Timer {
+        id: undoTimer
+        interval: 6000
+        onTriggered: root.undoVisible = false
+    }
+
+    function undoDelete() {
+        undoVisible = false
+        undoTimer.stop()
+        for (var i = 0; i < lastDeletedSnapshot.length; i++) {
+            Manager.restoreSticker(lastDeletedSnapshot[i])
+        }
+        lastDeletedSnapshot = []
+        refreshNoteList()
+    }
+
+    // ids: one or more sticker ids. singleLabel is only used for the
+    // confirm dialog's/toast's wording when ids has exactly one entry (a
+    // batch delete gets a generic "N stickers" message instead) -- pass
+    // anything (even "") for a real multi-id batch.
+    //
+    // "Confirmar antes de eliminar" ON keeps the old confirm-dialog flow
+    // exactly as it always worked. OFF is the new behavior this redesign
+    // adds: delete immediately, no dialog, but show an undo toast for a
+    // few seconds instead of just silently losing the item with no safety
+    // net at all (which is what the OFF path used to do).
+    function deleteStickers(ids, singleLabel) {
+        if (ids.length === 0) return
+        // The tray menu is drawn by plasmashell over DBusMenu, not by this
+        // app's own process -- an app-side modal MessageDialog cannot block
+        // input to that other process's menu. A user really can reopen the
+        // tray menu and trigger a second delete while this dialog is still
+        // open; ignore it rather than silently spawning a second one (which
+        // would either drop the first request or delete the wrong item
+        // while still showing the first request's label).
+        if (activeDeleteDialog !== null) {
             return
         }
-        // A fresh Platform.MessageDialog per request, destroyed right after
-        // it's answered -- reusing one persistent instance across separate
-        // delete confirmations left its native standard buttons (Sí/No)
-        // stacking up on each successive open() instead of resetting, so a
-        // 2nd delete in the same session showed 4 buttons, a 3rd showed 6,
-        // etc. (see bug report: repeated deletes -> growing rows of Sí/No).
-        activeDeleteDialog = deleteConfirmDialogComponent.createObject(root, {
-            pendingId: id,
-            text: "¿Eliminar \"" + label + "\"? Esta acción no se puede deshacer."
-        })
-        activeDeleteDialog.open()
+        if (Settings.get().behavior.askBeforeDeleting) {
+            var text = ids.length === 1
+                ? "¿Eliminar \"" + singleLabel + "\"? Esta acción no se puede deshacer."
+                : "¿Eliminar " + ids.length + " stickers? Esta acción no se puede deshacer."
+            // A fresh Platform.MessageDialog per request, destroyed right
+            // after it's answered -- reusing one persistent instance across
+            // separate delete confirmations left its native standard
+            // buttons (Sí/No) stacking up on each successive open() instead
+            // of resetting, so a 2nd delete in the same session showed 4
+            // buttons, a 3rd showed 6, etc.
+            activeDeleteDialog = deleteConfirmDialogComponent.createObject(root, {
+                pendingIds: ids,
+                text: text
+            })
+            activeDeleteDialog.open()
+            return
+        }
+        lastDeletedSnapshot = performDelete(ids)
+        undoMessage = ids.length === 1
+            ? ("\"" + singleLabel + "\" eliminado.")
+            : (ids.length + " stickers eliminados.")
+        undoVisible = true
+        undoTimer.restart()
     }
 
     Component {
         id: deleteConfirmDialogComponent
         Platform.MessageDialog {
             id: dlg
-            property string pendingId: ""
+            property var pendingIds: []
             buttons: Platform.MessageDialog.Yes | Platform.MessageDialog.No
             onYesClicked: {
-                var win = root.openWindows[pendingId]
-                if (win) {
-                    root.unregisterWindow(pendingId)
-                    win.close()
-                    win.destroy()
-                }
-                Manager.removeSticker(pendingId)
-                root.refreshNoteList()
+                root.performDelete(pendingIds)
                 root.activeDeleteDialog = null
                 dlg.destroy()
             }

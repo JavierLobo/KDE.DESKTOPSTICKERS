@@ -233,6 +233,18 @@ function duplicateSticker(id) {
     return copy
 }
 
+// Re-inserts a full sticker record previously removed by removeSticker()
+// -- the Stickers Panel's delete-undo toast keeps a deep-copied snapshot
+// of exactly what removeSticker() took out, and this is its mirror image.
+// Does not restore any KWin pin rule (removeSticker's KWin.KWinBridge.
+// removeRules(id) already tore that down); a still-pinned sticker just
+// gets its rule re-applied the next time its window opens, the same as
+// any other sticker.
+function restoreSticker(sticker) {
+    stickers.push(sticker)
+    Storage.saveSticker(sticker)
+}
+
 function removeSticker(id) {
     stickers = stickers.filter(function(s) { return s.id !== id })
     Storage.deleteSticker(id)
