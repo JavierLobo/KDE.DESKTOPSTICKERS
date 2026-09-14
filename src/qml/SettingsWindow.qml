@@ -19,7 +19,7 @@ Window {
     height: Math.min(mainColumn.implicitHeight + footerRow.implicitHeight + 96,
                       (Screen.height || 1000) * 0.85)
     minimumHeight: 320
-    title: "Configuración"
+    title: I18n.t("Settings.title")
 
     property var appRoot: null
 
@@ -171,7 +171,7 @@ Window {
 
                     // ---------------------------------------------------- Apariencia
                     SettingsSection {
-                        title: "Apariencia"
+                        title: I18n.t("Settings.appearance.title")
 
                         // A label-above / controls-below block rather than
                         // a SettingsRow (label-left / control-right):
@@ -191,7 +191,7 @@ Window {
                                 width: parent.width - 24
                                 spacing: 8
 
-                                Label { text: "Color de los stickers nuevos" }
+                                Label { text: I18n.t("Settings.appearance.colorLabel") }
 
                                 Flow {
                                     Layout.fillWidth: true
@@ -200,14 +200,14 @@ Window {
                                     Row {
                                         spacing: 0
                                         Button {
-                                            text: "Aleatorio"
+                                            text: I18n.t("Settings.appearance.colorRandom")
                                             checkable: true
                                             autoExclusive: true
                                             Component.onCompleted: checked = appearance.defaultColorMode === "random"
                                             onCheckedChanged: if (checked) setAppearance("defaultColorMode", "random")
                                         }
                                         Button {
-                                            text: "Acento"
+                                            text: I18n.t("Settings.appearance.colorAccent")
                                             checkable: true
                                             autoExclusive: true
                                             Component.onCompleted: checked = appearance.defaultColorMode === "accent"
@@ -215,7 +215,7 @@ Window {
                                         }
                                         Button {
                                             id: fixedColorButton
-                                            text: "Fijo"
+                                            text: I18n.t("Settings.appearance.colorFixed")
                                             checkable: true
                                             autoExclusive: true
                                             Component.onCompleted: checked = appearance.defaultColorMode === "fixed"
@@ -240,10 +240,10 @@ Window {
                                             opacity: fixedColorButton.checked ? 1.0 : 0.4
                                         }
                                         Button {
-                                            text: "Elegir…"
+                                            text: I18n.t("Settings.appearance.chooseColor")
                                             enabled: fixedColorButton.checked
                                             onClicked: colorPopup.open()
-                                            Accessible.name: "Elegir color fijo para stickers nuevos"
+                                            Accessible.name: I18n.t("Settings.appearance.chooseColorTooltip")
                                         }
                                     }
                                 }
@@ -276,12 +276,12 @@ Window {
                                 width: parent.width - 24
                                 spacing: 6
                                 Label {
-                                    text: "Fuentes preferidas"
+                                    text: I18n.t("Settings.appearance.fontsTitle")
                                     font.bold: true
                                     font.pixelSize: 13
                                 }
                                 Label {
-                                    text: "Por orden; se usa la primera instalada en este equipo."
+                                    text: I18n.t("Settings.appearance.fontsSubtitle")
                                     font.pixelSize: 11
                                     opacity: 0.65
                                     wrapMode: Text.Wrap
@@ -323,7 +323,7 @@ Window {
                                         text: "⠿"
                                         font.pixelSize: 16
                                         opacity: 0.5
-                                        Accessible.name: "Arrastra para reordenar " + fontRowScope.family
+                                        Accessible.name: I18n.tf("Settings.appearance.dragHandle", [fontRowScope.family])
 
                                         DragHandler {
                                             id: dragHandler
@@ -351,10 +351,10 @@ Window {
                                         visible: !System.SystemIntegration.isFontFamilyInstalled(fontRowScope.family)
                                         text: "⚠"
                                         opacity: 0.8
-                                        Accessible.name: "\"" + fontRowScope.family + "\" no está instalada en este equipo"
+                                        Accessible.name: I18n.tf("Settings.appearance.notInstalled", [fontRowScope.family])
 
                                         ToolTip.visible: warnHover.hovered
-                                        ToolTip.text: "\"" + fontRowScope.family + "\" no está instalada en este equipo."
+                                        ToolTip.text: I18n.tf("Settings.appearance.notInstalled", [fontRowScope.family])
                                         HoverHandler { id: warnHover }
                                     }
 
@@ -367,7 +367,7 @@ Window {
                                             fontPrefsModel.move(fontRowScope.index, fontRowScope.index - 1, 1)
                                             persistFontPrefsFromModel()
                                         }
-                                        Accessible.name: "Subir " + fontRowScope.family + " en la lista"
+                                        Accessible.name: I18n.tf("Settings.appearance.moveUp", [fontRowScope.family])
                                     }
                                     Button {
                                         text: "↓"
@@ -378,7 +378,7 @@ Window {
                                             fontPrefsModel.move(fontRowScope.index, fontRowScope.index + 1, 1)
                                             persistFontPrefsFromModel()
                                         }
-                                        Accessible.name: "Bajar " + fontRowScope.family + " en la lista"
+                                        Accessible.name: I18n.tf("Settings.appearance.moveDown", [fontRowScope.family])
                                     }
                                     Button {
                                         icon.name: "list-remove"
@@ -390,7 +390,7 @@ Window {
                                             fontPrefsModel.remove(fontRowScope.index)
                                             persistFontPrefsFromModel()
                                         }
-                                        Accessible.name: "Quitar " + fontRowScope.family + " de la lista"
+                                        Accessible.name: I18n.tf("Settings.appearance.removeFont", [fontRowScope.family])
                                     }
                                 }
                             }
@@ -412,7 +412,7 @@ Window {
                                     Layout.fillWidth: true
                                     editable: true
                                     model: filteredFontFamilies
-                                    Accessible.name: "Buscar y añadir una familia de fuente"
+                                    Accessible.name: I18n.t("Settings.appearance.searchFont")
                                     // Qt.callLater, not a direct call: reassigning
                                     // filteredFontFamilies (this ComboBox's own
                                     // model) synchronously from within its own
@@ -426,7 +426,7 @@ Window {
                                     Keys.onReturnPressed: addFontFromCombo()
                                 }
                                 Button {
-                                    text: "Añadir"
+                                    text: I18n.t("Settings.appearance.addFont")
                                     enabled: addFontCombo.editText.trim().length > 0
                                     onClicked: addFontFromCombo()
                                 }
@@ -434,7 +434,7 @@ Window {
                         }
 
                         SettingsRow {
-                            label: "Tamaño de letra"
+                            label: I18n.t("Settings.appearance.fontSizeLabel")
                             separator: false
                             SpinBox {
                                 from: 6
@@ -453,7 +453,7 @@ Window {
                         spacing: 6
 
                         Label {
-                            text: "Vista previa"
+                            text: I18n.t("Settings.appearance.previewLabel")
                             font.pixelSize: 11
                             opacity: 0.65
                         }
@@ -468,7 +468,7 @@ Window {
                             Text {
                                 anchors.fill: parent
                                 anchors.margins: 10
-                                text: "Vista previa"
+                                text: I18n.t("Settings.appearance.previewLabel")
                                 wrapMode: Text.Wrap
                                 color: "#222"
                                 font.family: System.SystemIntegration.resolveFontFamily(appearance.fontFamilyPreferences, "Sans Serif")
@@ -483,26 +483,26 @@ Window {
                         spacing: 10
 
                         SettingsSection {
-                            title: "Comportamiento"
+                            title: I18n.t("Settings.behavior.title")
 
                             SettingsRow {
-                                label: "Barra de Markdown visible al abrir un sticker"
-                                subtitle: "Solo afecta a los stickers que abras a partir de ahora."
+                                label: I18n.t("Settings.behavior.markdownToolbar")
+                                subtitle: I18n.t("Settings.behavior.markdownToolbarSubtitle")
                                 Switch {
                                     checked: behavior.markdownToolbarVisibleByDefault
                                     onToggled: setBehavior("markdownToolbarVisibleByDefault", checked)
                                 }
                             }
                             SettingsRow {
-                                label: "Confirmar antes de eliminar un sticker"
+                                label: I18n.t("Settings.behavior.askBeforeDeleting")
                                 Switch {
                                     checked: behavior.askBeforeDeleting
                                     onToggled: setBehavior("askBeforeDeleting", checked)
                                 }
                             }
                             SettingsRow {
-                                label: "Fijar los stickers nuevos en todos los escritorios"
-                                subtitle: "Si se desactiva, cada sticker vive en el escritorio donde se creó."
+                                label: I18n.t("Settings.behavior.pinNewStickers")
+                                subtitle: I18n.t("Settings.behavior.pinNewStickersSubtitle")
                                 separator: false
                                 Switch {
                                     checked: desktops.pinNewStickersByDefault
@@ -524,7 +524,7 @@ Window {
                             SettingsRow {
                                 id: trayRow
                                 width: parent.width
-                                label: "Clic izquierdo en el icono de la bandeja"
+                                label: I18n.t("Settings.behavior.trayClickLabel")
                                 separator: false
 
                                 ComboBox {
@@ -533,8 +533,10 @@ Window {
                                     // Matches the tray menu's own item names
                                     // ("Panel de Stickers", "Nuevo sticker")
                                     // instead of introducing "nota" as a second
-                                    // word for the same concept.
-                                    model: ["Abrir Panel de Stickers", "Nuevo sticker"]
+                                    // word for the same concept -- reuses
+                                    // Main.trayMenu.newSticker verbatim since
+                                    // that one really is the identical string.
+                                    model: [I18n.t("Settings.behavior.trayClickOpenPanel"), I18n.t("Main.trayMenu.newSticker")]
                                     Component.onCompleted: currentIndex = behavior.trayLeftClickAction === "newSticker" ? 1 : 0
                                     onActivated: setBehavior("trayLeftClickAction", currentIndex === 1 ? "newSticker" : "openPanel")
                                 }
@@ -544,11 +546,11 @@ Window {
 
                     // ------------------------------------------------------- Sistema
                     SettingsSection {
-                        title: "Sistema"
+                        title: I18n.t("Settings.system.title")
 
                         SettingsRow {
-                            label: "Iniciar con la sesión"
-                            subtitle: "Crea una entrada en ~/.config/autostart."
+                            label: I18n.t("Settings.system.autostart")
+                            subtitle: I18n.t("Settings.system.autostartSubtitle")
                             Switch {
                                 id: autostartCheck
                                 // The autostart file on disk is the source
@@ -569,7 +571,7 @@ Window {
                         }
 
                         SettingsRow {
-                            label: "Carpeta de datos"
+                            label: I18n.t("Settings.system.dataFolder")
 
                             Label {
                                 text: App.FileStorage.dataDir()
@@ -592,28 +594,28 @@ Window {
                                     clipboardHelper.selectAll()
                                     clipboardHelper.copy()
                                 }
-                                Accessible.name: "Copiar la ruta de la carpeta de datos"
+                                Accessible.name: I18n.t("Settings.system.copyPath")
                             }
                             Button {
-                                text: "Abrir"
+                                text: I18n.t("Settings.system.openFolder")
                                 onClicked: Qt.openUrlExternally("file://" + App.FileStorage.dataDir())
-                                Accessible.name: "Abrir la carpeta de datos en el gestor de archivos"
+                                Accessible.name: I18n.t("Settings.system.openFolderTooltip")
                             }
                         }
 
                         SettingsRow {
-                            label: "Copia de seguridad"
+                            label: I18n.t("Settings.system.backup")
                             separator: false
 
                             Button {
-                                text: "Exportar…"
+                                text: I18n.t("Settings.system.export")
                                 onClicked: exportFolderDialog.open()
-                                Accessible.name: "Exportar copia de seguridad de stickers y ajustes"
+                                Accessible.name: I18n.t("Settings.system.exportTooltip")
                             }
                             Button {
-                                text: "Importar…"
+                                text: I18n.t("Settings.system.import")
                                 onClicked: importFolderDialog.open()
-                                Accessible.name: "Importar copia de seguridad de stickers y ajustes"
+                                Accessible.name: I18n.t("Settings.system.importTooltip")
                             }
                         }
                     }
@@ -661,17 +663,17 @@ Window {
             Layout.margins: 12
 
             Label {
-                text: "Desktop Stickers " + Qt.application.version
+                text: I18n.t("Main.tray.tooltip") + " " + Qt.application.version
                 opacity: 0.6
                 font.pixelSize: 12
             }
             Item { Layout.fillWidth: true }
             Button {
-                text: "Restablecer configuración"
+                text: I18n.t("Settings.footer.reset")
                 flat: true
                 palette.buttonText: "#e74c3c"
                 onClicked: resetConfirmDialog.open()
-                Accessible.name: "Restablecer toda la configuración a sus valores predeterminados"
+                Accessible.name: I18n.t("Settings.footer.resetTooltip")
             }
         }
     }
@@ -692,7 +694,7 @@ Window {
 
     Platform.MessageDialog {
         id: resetConfirmDialog
-        text: "¿Restablecer toda la configuración a sus valores predeterminados? Esta acción no se puede deshacer."
+        text: I18n.t("Settings.resetConfirm.text")
         buttons: Platform.MessageDialog.Yes | Platform.MessageDialog.No
         onYesClicked: resetSettings()
     }
@@ -703,7 +705,7 @@ Window {
 
     Platform.FolderDialog {
         id: exportFolderDialog
-        title: "Elige una carpeta para la copia de seguridad"
+        title: I18n.t("Settings.exportDialog.title")
         onAccepted: {
             // stickers.json and settings.json now live in two separate XDG
             // directories (dataDir/configDir) -- the backup folder still
@@ -712,15 +714,15 @@ Window {
             var ok = true
             ok = App.FileStorage.writeFile(destDir + "/stickers.json", App.FileStorage.readFile(App.FileStorage.dataDir() + "/stickers.json")) && ok
             ok = App.FileStorage.writeFile(destDir + "/settings.json", App.FileStorage.readFile(App.FileStorage.configDir() + "/settings.json")) && ok
-            resultDialog.text = ok ? "Copia de seguridad guardada en " + destDir + "."
-                                    : "No se pudo completar la copia de seguridad."
+            resultDialog.text = ok ? I18n.tf("Settings.exportDialog.success", [destDir])
+                                    : I18n.t("Settings.exportDialog.failure")
             resultDialog.open()
         }
     }
 
     Platform.FolderDialog {
         id: importFolderDialog
-        title: "Elige la carpeta de la copia de seguridad a importar"
+        title: I18n.t("Settings.importDialog.title")
         onAccepted: {
             importConfirmDialog.pendingDir = App.FileStorage.toLocalFile(folder)
             importConfirmDialog.open()
@@ -730,7 +732,7 @@ Window {
     Platform.MessageDialog {
         id: importConfirmDialog
         property string pendingDir: ""
-        text: "Esto sobrescribirá tus stickers y ajustes actuales con los de la copia seleccionada. Deberás reiniciar Desktop Stickers para ver los cambios. ¿Continuar?"
+        text: I18n.t("Settings.importDialog.confirm")
         buttons: Platform.MessageDialog.Yes | Platform.MessageDialog.No
         onYesClicked: {
             var srcStickers = App.FileStorage.readFile(pendingDir + "/stickers.json")
@@ -738,8 +740,8 @@ Window {
             var ok = true
             if (srcStickers.length > 0) ok = App.FileStorage.writeFile(App.FileStorage.dataDir() + "/stickers.json", srcStickers) && ok
             if (srcSettings.length > 0) ok = App.FileStorage.writeFile(App.FileStorage.configDir() + "/settings.json", srcSettings) && ok
-            resultDialog.text = ok ? "Copia importada. Reinicia Desktop Stickers para ver los cambios."
-                                    : "No se pudo completar la importación."
+            resultDialog.text = ok ? I18n.t("Settings.importDialog.success")
+                                    : I18n.t("Settings.importDialog.failure")
             resultDialog.open()
         }
     }
