@@ -255,12 +255,12 @@ Window {
                         text: stickerPinned ? "📌" : "📍"
                         Layout.preferredWidth: 28
                         Layout.preferredHeight: 28
-                        onClicked: {
-                            var newPinned = !stickerPinned
-                            stickerPinned = newPinned
-                            Manager.updatePinned(stickerId, newPinned)
-                            KWin.KWinBridge.setPinned(stickerId, mainWindow.title, newPinned)
-                        }
+                        // Routed through appRoot.togglePinned() (Main.qml)
+                        // rather than duplicating the Manager.updatePinned +
+                        // KWinBridge.setPinned calls here -- that's also
+                        // what keeps the Stickers Panel's pin icon in sync
+                        // without this window needing to know about it.
+                        onClicked: mainWindow.appRoot.togglePinned(stickerId)
                     }
 
                     Button {
@@ -380,6 +380,9 @@ Window {
                 var colorStr = selectedColor.toString()
                 stickerColor = colorStr
                 Manager.updateColor(stickerId, colorStr)
+                if (mainWindow.appRoot) {
+                    mainWindow.appRoot.refreshNoteList()
+                }
                 colorPopup.close()
             }
         }

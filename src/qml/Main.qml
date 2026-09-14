@@ -2,6 +2,7 @@ import QtQuick
 import Qt.labs.platform as Platform
 import "StickerManager.js" as Manager
 import "SettingsManager.js" as Settings
+import Stickers.KWin as KWin
 
 Item {
     id: root
@@ -103,7 +104,16 @@ Item {
 
     function refreshNoteList() {
         noteList = Manager.stickers.map(function(s) {
-            return { id: s.id, name: s.name, label: Manager.displayName(s), color: s.color, modified: s.modified }
+            return {
+                id: s.id,
+                name: s.name,
+                label: Manager.displayName(s),
+                hasTitle: Manager.hasTitle(s),
+                snippet: Manager.contentSnippet(s),
+                color: s.color,
+                pinned: s.pinned,
+                modified: s.modified
+            }
         })
         trayNotes = recentTrayNotes()
     }
@@ -120,6 +130,33 @@ Item {
             return am < bm ? 1 : -1
         })
         return sorted.slice(0, maxTrayNotes)
+    }
+
+    // Callable from the Stickers Panel (no open window required) as well
+    // as from an already-open StickerWindow's own pin button -- KWin rules
+    // are matched by the "Sticker " + id title string, so this works
+    // whether or not that window actually exists right now.
+    function togglePinned(id) {
+        var sticker = Manager.stickers.find(function(s) { return s.id === id })
+        if (!sticker) return
+        var newPinned = !sticker.pinned
+        Manager.updatePinned(id, newPinned)
+        var win = openWindows[id]
+        if (win) {
+            win.stickerPinned = newPinned
+        }
+        KWin.KWinBridge.setPinned(id, "Sticker " + id, newPinned)
+        refreshNoteList()
+    }
+
+    // Panel context menu's "Duplicar" -- mirrors createNewSticker()'s own
+    // create-then-open-a-window pattern, the convention every other
+    // sticker-creation path in this app already follows.
+    function duplicateSticker(id) {
+        var copy = Manager.duplicateSticker(id)
+        if (!copy) return
+        createStickerWindow(copy)
+        refreshNoteList()
     }
 
     function renameSticker(id, name) {
