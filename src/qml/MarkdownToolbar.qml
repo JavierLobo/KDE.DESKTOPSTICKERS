@@ -33,15 +33,51 @@ Item {
     // exactly why clicking "▾" itself closed editing). `visible` flips
     // true synchronously at the same moment popup() is called.
     readonly property alias overflowMenuOpen: overflowMenu.visible
-    // Below this width the full button row doesn't fit a typical sticker
-    // (17 buttons + separators need ~550px; the app's own minimum sticker
-    // width is 210px) -- the roadmap explicitly describes this as the
-    // expected common case ("Versión reducida (comentarios, campos
-    // pequeños)"), not a rare edge case.
-    readonly property int compactThreshold: 480
-    readonly property bool compact: width < compactThreshold
 
     implicitHeight: 34
+
+    // Progressive right-to-left collapse: buttons disappear one at a time
+    // starting from the end of `actions` as the toolbar narrows (the app's
+    // own minimum sticker width, 210px, can't fit anywhere near the full
+    // 17-button row, so this is the common case, not an edge case), rather
+    // than a fixed "compact set" jumping in at one breakpoint. Estimated
+    // analytically (button ≈28px, separator ≈1px, +2px RowLayout spacing
+    // between every pair) instead of actually laying out and measuring --
+    // simpler, and the two Button components below use the same fixed
+    // implicitWidth this estimate assumes.
+    readonly property int buttonW: 28
+    readonly property int sepW: 1
+    readonly property int itemSpacing: 2
+    readonly property int overflowW: 26
+    readonly property int rowMargins: 8 // left+right anchors margins below
+
+    function actionWidth(action) {
+        return action.separator ? sepW : buttonW
+    }
+
+    readonly property int visibleCount: computeVisibleCount()
+
+    function computeVisibleCount() {
+        var avail = width - rowMargins
+        var full = 0
+        for (var i = 0; i < actions.length; i++) {
+            full += actionWidth(actions[i]) + (i > 0 ? itemSpacing : 0)
+        }
+        if (full <= avail) return actions.length
+
+        avail -= overflowW + itemSpacing
+        var w = 0
+        var count = 0
+        for (var j = 0; j < actions.length; j++) {
+            var addW = actionWidth(actions[j]) + (count > 0 ? itemSpacing : 0)
+            if (w + addW > avail) break
+            w += addW
+            count = j + 1
+        }
+        // Never leave a separator dangling as the last visible item.
+        while (count > 0 && actions[count - 1].separator) count--
+        return count
+    }
 
     SystemPalette { id: pal }
 
@@ -271,27 +307,33 @@ Item {
     // plus the overflow menu, are built from this single list instead of
     // three separately hand-written button sets that could drift out of
     // sync with each other.
+    // Order IS priority: the progressive collapse above hides from the end
+    // of this list first, so the most-wanted actions (matching what the
+    // roadmap names as the always-visible set: Negrita, Cursiva, Enlace,
+    // Código en línea, Cita) come first and survive longest; everything
+    // else follows in decreasing importance.
     readonly property var actions: [
-        { id: "bold", label: "B", bold: true, tip: "Negrita (Ctrl+B)", compact: true, run: function() { toggleInline("**") } },
-        { id: "italic", label: "I", italic: true, tip: "Cursiva (Ctrl+I)", compact: true, run: function() { toggleInline("*") } },
-        { id: "strike", label: "S", strike: true, tip: "Tachado (Ctrl+Shift+X)", compact: false, run: function() { toggleInline("~~") } },
+        { id: "bold", label: "B", bold: true, tip: "Negrita (Ctrl+B)", run: function() { toggleInline("**") } },
+        { id: "italic", label: "I", italic: true, tip: "Cursiva (Ctrl+I)", run: function() { toggleInline("*") } },
         { id: "sep1", separator: true },
-        { id: "h1", label: "H1", tip: "Encabezado 1 (Ctrl+Alt+1)", compact: false, run: function() { toggleHeading(1) } },
-        { id: "h2", label: "H2", tip: "Encabezado 2 (Ctrl+Alt+2)", compact: false, run: function() { toggleHeading(2) } },
-        { id: "h3", label: "H3", tip: "Encabezado 3 (Ctrl+Alt+3)", compact: false, run: function() { toggleHeading(3) } },
+        { id: "link", label: "🔗", tip: "Enlace (Ctrl+K)", run: function() { insertLink() } },
+        { id: "code", label: "</>", tip: "Código en línea (Ctrl+Shift+C)", run: function() { toggleInline("`") } },
+        { id: "quote", label: "❝", tip: "Cita (Ctrl+Shift+.)", run: function() { toggleLinePrefix("> ") } },
         { id: "sep2", separator: true },
-        { id: "bullets", label: "•", tip: "Viñetas (Ctrl+Shift+8)", compact: false, run: function() { toggleLinePrefix("- ") } },
-        { id: "numbered", label: "1.", tip: "Numerada (Ctrl+Shift+7)", compact: false, run: function() { toggleNumberedList() } },
-        { id: "tasks", label: "☑", tip: "Tareas (Ctrl+Shift+9)", compact: false, run: function() { toggleLinePrefix("- [ ] ") } },
+        { id: "strike", label: "S", strike: true, tip: "Tachado (Ctrl+Shift+X)", run: function() { toggleInline("~~") } },
+        { id: "h1", label: "H1", tip: "Encabezado 1 (Ctrl+Alt+1)", run: function() { toggleHeading(1) } },
+        { id: "h2", label: "H2", tip: "Encabezado 2 (Ctrl+Alt+2)", run: function() { toggleHeading(2) } },
+        { id: "h3", label: "H3", tip: "Encabezado 3 (Ctrl+Alt+3)", run: function() { toggleHeading(3) } },
         { id: "sep3", separator: true },
-        { id: "link", label: "🔗", tip: "Enlace (Ctrl+K)", compact: true, run: function() { insertLink() } },
-        { id: "image", label: "🖼", tip: "Imagen", compact: false, run: function() { insertImage() } },
-        { id: "code", label: "</>", tip: "Código en línea (Ctrl+Shift+C)", compact: true, run: function() { toggleInline("`") } },
-        { id: "quote", label: "❝", tip: "Cita (Ctrl+Shift+.)", compact: true, run: function() { toggleLinePrefix("> ") } },
+        { id: "bullets", label: "•", tip: "Viñetas (Ctrl+Shift+8)", run: function() { toggleLinePrefix("- ") } },
+        { id: "numbered", label: "1.", tip: "Numerada (Ctrl+Shift+7)", run: function() { toggleNumberedList() } },
+        { id: "tasks", label: "☑", tip: "Tareas (Ctrl+Shift+9)", run: function() { toggleLinePrefix("- [ ] ") } },
         { id: "sep4", separator: true },
-        { id: "codeblock", label: "{ }", tip: "Bloque de código (Ctrl+Shift+K)", compact: false, run: function() { toggleCodeBlock() } },
-        { id: "hr", label: "―", tip: "Línea horizontal (Ctrl+Shift+H)", compact: false, run: function() { insertHorizontalRule() } },
-        { id: "table", label: "⊞", tip: "Tabla", compact: false, run: function() { tablePopup.open() } }
+        { id: "image", label: "🖼", tip: "Imagen", run: function() { insertImage() } },
+        { id: "table", label: "⊞", tip: "Tabla", run: function() { tablePopup.open() } },
+        { id: "sep5", separator: true },
+        { id: "codeblock", label: "{ }", tip: "Bloque de código (Ctrl+Shift+K)", run: function() { toggleCodeBlock() } },
+        { id: "hr", label: "―", tip: "Línea horizontal (Ctrl+Shift+H)", run: function() { insertHorizontalRule() } }
     ]
 
     RowLayout {
@@ -305,8 +347,9 @@ Item {
 
             delegate: Loader {
                 required property var modelData
+                required property int index
                 sourceComponent: modelData.separator ? sepComp : buttonComp
-                visible: !root.compact || modelData.separator || modelData.compact === true
+                visible: index < root.visibleCount
                 onLoaded: {
                     if (!modelData.separator) {
                         item.buttonData = modelData
@@ -320,7 +363,7 @@ Item {
         Button {
             text: "▾"
             flat: true
-            visible: root.compact
+            visible: root.visibleCount < root.actions.length
             implicitWidth: 26
             implicitHeight: 26
             // Clicking this button must not steal keyboard focus away from
@@ -372,7 +415,7 @@ Item {
     Menu {
         id: overflowMenu
         Repeater {
-            model: root.actions.filter(function(a) { return !a.separator && !a.compact })
+            model: root.actions.slice(root.visibleCount).filter(function(a) { return !a.separator })
             delegate: MenuItem {
                 required property var modelData
                 text: modelData.label + "  " + modelData.tip.replace(/\s*\([^)]*\)/, "")
