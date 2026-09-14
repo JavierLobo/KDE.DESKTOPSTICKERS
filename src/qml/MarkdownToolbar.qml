@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import StickersApp
 
 // Markdown formatting toolbar for StickerWindow's edit TextArea (see
 // Version-1.1.0.md's "Barra de herramientas Markdown" section). Every
@@ -313,27 +314,27 @@ Item {
     // Código en línea, Cita) come first and survive longest; everything
     // else follows in decreasing importance.
     readonly property var actions: [
-        { id: "bold", label: "B", bold: true, tip: "Negrita (Ctrl+B)", run: function() { toggleInline("**") } },
-        { id: "italic", label: "I", italic: true, tip: "Cursiva (Ctrl+I)", run: function() { toggleInline("*") } },
+        { id: "bold", label: "B", bold: true, tip: I18n.t("MarkdownToolbar.bold") + " (Ctrl+B)", run: function() { toggleInline("**") } },
+        { id: "italic", label: "I", italic: true, tip: I18n.t("MarkdownToolbar.italic") + " (Ctrl+I)", run: function() { toggleInline("*") } },
         { id: "sep1", separator: true },
-        { id: "link", label: "🔗", tip: "Enlace (Ctrl+K)", run: function() { insertLink() } },
-        { id: "code", label: "</>", tip: "Código en línea (Ctrl+Shift+C)", run: function() { toggleInline("`") } },
-        { id: "quote", label: "❝", tip: "Cita (Ctrl+Shift+.)", run: function() { toggleLinePrefix("> ") } },
+        { id: "link", label: "🔗", tip: I18n.t("MarkdownToolbar.link") + " (Ctrl+K)", run: function() { insertLink() } },
+        { id: "code", label: "</>", tip: I18n.t("MarkdownToolbar.code") + " (Ctrl+Shift+C)", run: function() { toggleInline("`") } },
+        { id: "quote", label: "❝", tip: I18n.t("MarkdownToolbar.quote") + " (Ctrl+Shift+.)", run: function() { toggleLinePrefix("> ") } },
         { id: "sep2", separator: true },
-        { id: "strike", label: "S", strike: true, tip: "Tachado (Ctrl+Shift+X)", run: function() { toggleInline("~~") } },
-        { id: "h1", label: "H1", tip: "Encabezado 1 (Ctrl+Alt+1)", run: function() { toggleHeading(1) } },
-        { id: "h2", label: "H2", tip: "Encabezado 2 (Ctrl+Alt+2)", run: function() { toggleHeading(2) } },
-        { id: "h3", label: "H3", tip: "Encabezado 3 (Ctrl+Alt+3)", run: function() { toggleHeading(3) } },
+        { id: "strike", label: "S", strike: true, tip: I18n.t("MarkdownToolbar.strike") + " (Ctrl+Shift+X)", run: function() { toggleInline("~~") } },
+        { id: "h1", label: "H1", tip: I18n.t("MarkdownToolbar.h1") + " (Ctrl+Alt+1)", run: function() { toggleHeading(1) } },
+        { id: "h2", label: "H2", tip: I18n.t("MarkdownToolbar.h2") + " (Ctrl+Alt+2)", run: function() { toggleHeading(2) } },
+        { id: "h3", label: "H3", tip: I18n.t("MarkdownToolbar.h3") + " (Ctrl+Alt+3)", run: function() { toggleHeading(3) } },
         { id: "sep3", separator: true },
-        { id: "bullets", label: "•", tip: "Viñetas (Ctrl+Shift+8)", run: function() { toggleLinePrefix("- ") } },
-        { id: "numbered", label: "1.", tip: "Numerada (Ctrl+Shift+7)", run: function() { toggleNumberedList() } },
-        { id: "tasks", label: "☑", tip: "Tareas (Ctrl+Shift+9)", run: function() { toggleLinePrefix("- [ ] ") } },
+        { id: "bullets", label: "•", tip: I18n.t("MarkdownToolbar.bullets") + " (Ctrl+Shift+8)", run: function() { toggleLinePrefix("- ") } },
+        { id: "numbered", label: "1.", tip: I18n.t("MarkdownToolbar.numbered") + " (Ctrl+Shift+7)", run: function() { toggleNumberedList() } },
+        { id: "tasks", label: "☑", tip: I18n.t("MarkdownToolbar.tasks") + " (Ctrl+Shift+9)", run: function() { toggleLinePrefix("- [ ] ") } },
         { id: "sep4", separator: true },
-        { id: "image", label: "🖼", tip: "Imagen", run: function() { insertImage() } },
-        { id: "table", label: "⊞", tip: "Tabla", run: function() { tablePopup.open() } },
+        { id: "image", label: "🖼", tip: I18n.t("MarkdownToolbar.image"), run: function() { insertImage() } },
+        { id: "table", label: "⊞", tip: I18n.t("MarkdownToolbar.table"), run: function() { tablePopup.open() } },
         { id: "sep5", separator: true },
-        { id: "codeblock", label: "{ }", tip: "Bloque de código (Ctrl+Shift+K)", run: function() { toggleCodeBlock() } },
-        { id: "hr", label: "―", tip: "Línea horizontal (Ctrl+Shift+H)", run: function() { insertHorizontalRule() } }
+        { id: "codeblock", label: "{ }", tip: I18n.t("MarkdownToolbar.codeblock") + " (Ctrl+Shift+K)", run: function() { toggleCodeBlock() } },
+        { id: "hr", label: "―", tip: I18n.t("MarkdownToolbar.hr") + " (Ctrl+Shift+H)", run: function() { insertHorizontalRule() } }
     ]
 
     RowLayout {
@@ -372,9 +373,9 @@ Item {
             // it, which fired on every toolbar click before this.
             focusPolicy: Qt.NoFocus
             onClicked: overflowMenu.popup()
-            Accessible.name: "Más opciones de formato"
+            Accessible.name: I18n.t("MarkdownToolbar.moreOptions")
             ToolTip.visible: hovered
-            ToolTip.text: "Más opciones"
+            ToolTip.text: I18n.t("MarkdownToolbar.moreOptionsShort")
             ToolTip.delay: 400
         }
     }
@@ -434,19 +435,19 @@ Item {
         ColumnLayout {
             spacing: 8
 
-            Label { text: "Insertar tabla" ; font.bold: true }
+            Label { text: I18n.t("MarkdownToolbar.table.insertTitle") ; font.bold: true }
 
             RowLayout {
                 spacing: 8
-                Label { text: "Filas" }
+                Label { text: I18n.t("MarkdownToolbar.table.rows") }
                 SpinBox { id: rowsSpin; from: 1; to: 20; value: 2 }
-                Label { text: "Columnas" }
+                Label { text: I18n.t("MarkdownToolbar.table.columns") }
                 SpinBox { id: colsSpin; from: 1; to: 10; value: 2 }
             }
 
             Button {
                 Layout.alignment: Qt.AlignRight
-                text: "Insertar"
+                text: I18n.t("MarkdownToolbar.table.insert")
                 highlighted: true
                 onClicked: {
                     root.insertTable(rowsSpin.value, colsSpin.value)
