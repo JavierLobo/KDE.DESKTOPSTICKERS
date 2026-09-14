@@ -67,11 +67,18 @@ if [ "$SWEPT_OLD" = "1" ]; then
     echo "✓ Reglas del naming antiguo retiradas de la lista activa"
 fi
 
-mkdir -p "$HOME/.stickers"
+# Debe coincidir con FileStorage::dataDir() (src/filestorage.cpp):
+# $XDG_DATA_HOME/desktop-stickers, no la ruta plana ~/.stickers de antes de
+# la migración a XDG Base Directory -- leer de la ruta vieja aquí hacía que
+# STICKER_IDS saliera siempre vacío tras la migración, y por tanto que ESTA
+# limpieza tratara reglas KWin de stickers reales y en uso como huérfanas.
+XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+STICKERS_DATA_DIR="$XDG_DATA_HOME/desktop-stickers"
+mkdir -p "$STICKERS_DATA_DIR"
 
 if command -v jq >/dev/null 2>&1; then
     echo "📦 Limpiando reglas KWin huérfanas de stickers ya eliminados"
-    STICKERS_JSON="$HOME/.stickers/stickers.json"
+    STICKERS_JSON="$STICKERS_DATA_DIR/stickers.json"
     STICKER_IDS="$( [ -f "$STICKERS_JSON" ] && jq -r '.stickers[].id' "$STICKERS_JSON" 2>/dev/null || true)"
     EXISTING_RULES="$(kreadconfig6 --file kwinrulesrc --group General --key rules 2>/dev/null || true)"
     IFS=',' read -ra RULE_ARRAY <<< "$EXISTING_RULES"

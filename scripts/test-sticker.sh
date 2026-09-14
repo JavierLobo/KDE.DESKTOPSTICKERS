@@ -1,7 +1,11 @@
 #!/bin/bash
 # Test script - crear stickers de prueba
 
-STICKERS_DIR="$HOME/.stickers"
+# Debe coincidir con FileStorage::dataDir() (src/filestorage.cpp):
+# $XDG_DATA_HOME/desktop-stickers, no la ruta plana ~/.stickers de antes
+# de la migración a XDG Base Directory.
+XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+STICKERS_DIR="$XDG_DATA_HOME/desktop-stickers"
 
 mkdir -p "$STICKERS_DIR"
 
