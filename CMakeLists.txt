@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.16)
 # hand-bumped default. Plain local builds (install.sh included) don't pass
 # this, so they just get the fallback below.
 if(NOT DEFINED APP_VERSION)
-    set(APP_VERSION "1.0.0")
+    set(APP_VERSION "1.1.0")
 endif()
 project(desktop-stickers VERSION ${APP_VERSION} LANGUAGES CXX)
 
