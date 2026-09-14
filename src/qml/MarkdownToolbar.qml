@@ -23,7 +23,16 @@ Item {
     // takes focus away from `target` while it's open -- exposed so the
     // caller (StickerWindow.qml) can tell "focus left because this menu is
     // still open, waiting for a pick" apart from "focus left for real".
-    readonly property alias overflowMenuOpen: overflowMenu.opened
+    //
+    // Aliased to `visible`, not Popup's own `opened` property: `opened`
+    // only flips true once the popup's *opening transition finishes*, not
+    // when popup() is called -- editArea's focus is already lost by then
+    // (synchronously, as part of that same popup() call), so checking
+    // `opened` left a real window where focus had left but this still read
+    // false, and the caller's guard did nothing (confirmed: this is
+    // exactly why clicking "▾" itself closed editing). `visible` flips
+    // true synchronously at the same moment popup() is called.
+    readonly property alias overflowMenuOpen: overflowMenu.visible
     // Below this width the full button row doesn't fit a typical sticker
     // (17 buttons + separators need ~550px; the app's own minimum sticker
     // width is 210px) -- the roadmap explicitly describes this as the
