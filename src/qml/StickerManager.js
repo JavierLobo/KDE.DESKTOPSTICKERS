@@ -1,6 +1,8 @@
 .pragma library
 .import "../code/storage.js" as Storage
 .import Stickers.KWin 1.0 as KWin
+.import Stickers.System 1.0 as System
+.import "SettingsManager.js" as Settings
 
 var stickers = []
 
@@ -84,18 +86,33 @@ function updateName(id, name) {
     Storage.saveSticker(sticker)
 }
 
-function createSticker(originX, originY) {
+// accentColor is the caller's current system accent color (a live QML
+// SystemPalette binding, read in Main.qml -- a .pragma library file can't
+// instantiate a QML Item itself, same reason RANDOM_COLORS is duplicated
+// above instead of read from ColorPalette.qml). Only used when the
+// "appearance.defaultColorMode" setting is "accent".
+function resolveDefaultColor(accentColor) {
+    var mode = Settings.get().appearance.defaultColorMode
+    if (mode === "fixed") return Settings.get().appearance.defaultFixedColor
+    if (mode === "accent" && accentColor) return accentColor
+    return randomColor()
+}
+
+function createSticker(originX, originY, accentColor) {
     var id = Storage.newStickerId()
+    var appearance = Settings.get().appearance
     var sticker = {
         id: id,
         name: "",
         text: "Nuevo sticker...",
-        color: randomColor(),
+        color: resolveDefaultColor(accentColor),
         x: originX + 30,
         y: originY + 30,
         width: 300,
         height: 250,
-        pinned: false
+        pinned: Settings.get().desktops.pinNewStickersByDefault,
+        fontFamily: System.SystemIntegration.resolveFontFamily(appearance.fontFamilyPreferences, "Sans Serif"),
+        fontSize: appearance.fontSize
     }
     stickers.push(sticker)
     Storage.saveSticker(sticker)

@@ -47,6 +47,8 @@ function loadAllStickers() {
             width: s.width !== undefined ? s.width : 300,
             height: s.height !== undefined ? s.height : 250,
             pinned: s.pinned !== undefined ? s.pinned : false,
+            fontFamily: s.fontFamily !== undefined ? s.fontFamily : "Sans Serif",
+            fontSize: s.fontSize !== undefined ? s.fontSize : 10,
             created: s.created,
             modified: s.modified
         }))
@@ -72,6 +74,8 @@ function saveSticker(sticker) {
         width: sticker.width,
         height: sticker.height,
         pinned: sticker.pinned,
+        fontFamily: sticker.fontFamily,
+        fontSize: sticker.fontSize,
         created: new Date().toISOString(),
         modified: new Date().toISOString()
     }

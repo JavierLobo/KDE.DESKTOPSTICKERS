@@ -13,6 +13,11 @@ import QtQuick
 Column {
     id: root
     property string text: ""
+    // Seeds the initial visibility a future Markdown toolbar (see
+    // Version-1.1.0.md's roadmap) will read/bind to -- no toolbar UI exists
+    // yet, this property has no visual consumer of its own today. Wired
+    // from Settings' "behavior.markdownToolbarVisibleByDefault".
+    property bool toolbarVisible: true
     signal editRequested()
 
     spacing: 6

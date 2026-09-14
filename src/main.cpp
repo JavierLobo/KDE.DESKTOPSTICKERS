@@ -8,6 +8,7 @@
 
 #include "filestorage.h"
 #include "kwinbridge.h"
+#include "systemintegration.h"
 
 int main(int argc, char *argv[])
 {
@@ -35,6 +36,13 @@ int main(int argc, char *argv[])
     qmlRegisterSingletonType<FileStorage>(
         "Stickers.Storage", 1, 0, "FileStorage",
         [](QQmlEngine *, QJSEngine *) -> QObject * { return new FileStorage(); });
+
+    // Same reasoning as FileStorage above: settingsStorage.js needs to
+    // .import this from within the StickersApp module, so it lives under
+    // its own URI to avoid a cyclic module dependency. See systemintegration.h.
+    qmlRegisterSingletonType<SystemIntegration>(
+        "Stickers.System", 1, 0, "SystemIntegration",
+        [](QQmlEngine *, QJSEngine *) -> QObject * { return new SystemIntegration(); });
 
     // The app is addressed on the session bus at a fixed, well-known name
     // (io.github.javierlobo.desktopstickers), both for the KWin geometry-query
@@ -86,7 +94,20 @@ int main(int argc, char *argv[])
     // wrapper needs Qt 6.5+, and Ubuntu 24.04's own repos only have 6.4.2.
     // This is the equivalent explicit load against the same compiled QML
     // module resource path, and works from Qt 6.2 on.
-    engine.load(QUrl(QStringLiteral("qrc:/qt/qml/StickersApp/Main.qml")));
+    //
+    // The path includes "src/qml/" because qt_add_qml_module's QML_FILES
+    // aliases are computed relative to the project root, preserving the
+    // source tree's own subdirectory structure -- confirmed by inspecting
+    // the generated .qt/rcc/desktop-stickers_raw_qml_0.qrc, whose <file
+    // alias="src/qml/Main.qml"> entry is what actually ends up compiled in,
+    // not a flat "Main.qml". A previous version of this literal path (just
+    // ".../StickersApp/Main.qml") silently 404'd at startup
+    // ("QQmlApplicationEngine failed to load component ... No such file or
+    // directory"), reproduced even on a clean build of otherwise-unmodified
+    // code -- loadFromModule() would have hidden this, since it resolves
+    // through the module's own qmldir type mapping instead of a literal
+    // resource path.
+    engine.load(QUrl(QStringLiteral("qrc:/qt/qml/StickersApp/src/qml/Main.qml")));
 
     return app.exec();
 }

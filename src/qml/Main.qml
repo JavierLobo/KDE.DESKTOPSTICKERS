@@ -1,6 +1,7 @@
 import QtQuick
 import Qt.labs.platform as Platform
 import "StickerManager.js" as Manager
+import "SettingsManager.js" as Settings
 
 Item {
     id: root
@@ -9,6 +10,17 @@ Item {
     property var noteList: []
     property var trayNotes: []
     readonly property int maxTrayNotes: 10
+
+    // Live binding to Plasma/Qt's current theme accent color, used as the
+    // "accent" option for appearance.defaultColorMode -- a QML item
+    // property, so it must be read here (StickerManager.js is a .pragma
+    // library and cannot instantiate a QML SystemPalette itself) and passed
+    // into Manager.createSticker(). Automatically follows theme changes
+    // since it's a live binding, not a cached value.
+    SystemPalette {
+        id: sysPalette
+        colorGroup: SystemPalette.Active
+    }
 
     Component {
         id: stickerWindowComponent
@@ -34,6 +46,8 @@ Item {
             posWidth: sticker.width,
             posHeight: sticker.height,
             stickerPinned: sticker.pinned,
+            stickerFontFamily: sticker.fontFamily,
+            stickerFontSize: sticker.fontSize,
             appRoot: root
         })
         // StickerWindow declares "visible: true", but a Window instantiated
@@ -52,7 +66,7 @@ Item {
     }
 
     function createNewSticker(originX, originY) {
-        var sticker = Manager.createSticker(originX, originY)
+        var sticker = Manager.createSticker(originX, originY, sysPalette.highlight.toString())
         createStickerWindow(sticker)
         refreshNoteList()
     }
@@ -130,6 +144,17 @@ Item {
         if (activeDeleteDialog !== null) {
             return
         }
+        if (!Settings.get().behavior.askBeforeDeleting) {
+            var win = root.openWindows[id]
+            if (win) {
+                root.unregisterWindow(id)
+                win.close()
+                win.destroy()
+            }
+            Manager.removeSticker(id)
+            root.refreshNoteList()
+            return
+        }
         // A fresh Platform.MessageDialog per request, destroyed right after
         // it's answered -- reusing one persistent instance across separate
         // delete confirmations left its native standard buttons (Sí/No)
@@ -180,11 +205,35 @@ Item {
         appRoot: root
     }
 
+    function openSettingsWindow() {
+        settingsWindow.show()
+        settingsWindow.raise()
+        settingsWindow.requestActivate()
+    }
+
+    SettingsWindow {
+        id: settingsWindow
+        visible: false
+        appRoot: root
+    }
+
     Platform.SystemTrayIcon {
         id: trayIcon
         visible: true
         icon.name: "document-properties"
         tooltip: "Desktop Stickers"
+
+        // Only Trigger (single left-click) is handled here -- Context
+        // (right-click) already opens `menu:` below automatically and must
+        // not be touched; DoubleClick/MiddleClick/Unknown are no-ops.
+        onActivated: function(reason) {
+            if (reason !== Platform.SystemTrayIcon.Trigger) return
+            if (Settings.get().behavior.trayLeftClickAction === "newSticker") {
+                root.createNewSticker(100, 100)
+            } else {
+                root.openStickerPanel()
+            }
+        }
 
         menu: Platform.Menu {
             id: trayMenu
@@ -217,6 +266,11 @@ Item {
             Platform.MenuItem {
                 text: "Panel de Stickers"
                 onTriggered: root.openStickerPanel()
+            }
+            Platform.MenuSeparator {}
+            Platform.MenuItem {
+                text: "Configuración…"
+                onTriggered: root.openSettingsWindow()
             }
             Platform.MenuSeparator {}
             Platform.MenuItem {

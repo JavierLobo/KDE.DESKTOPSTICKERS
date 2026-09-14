@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
 import "StickerManager.js" as Manager
+import "SettingsManager.js" as Settings
 import Stickers.KWin as KWin
 
 Window {
@@ -12,6 +13,8 @@ Window {
     property string stickerName: ""
     property string stickerText: "Nuevo sticker..."
     property string stickerColor: "#FFD700"
+    property string stickerFontFamily: "Sans Serif"
+    property int stickerFontSize: 10
     property int posX: 100
     property int posY: 100
     property int posWidth: 300
@@ -316,6 +319,7 @@ Window {
                         id: preview
                         width: previewScroll.availableWidth
                         text: stickerText
+                        toolbarVisible: Settings.get().behavior.markdownToolbarVisibleByDefault
                         onEditRequested: mainWindow.editing = true
                     }
                 }
@@ -332,6 +336,8 @@ Window {
                         text: stickerText
                         wrapMode: TextArea.Wrap
                         padding: 10
+                        font.family: mainWindow.stickerFontFamily
+                        font.pixelSize: mainWindow.stickerFontSize
 
                         onActiveFocusChanged: {
                             if (!activeFocus && mainWindow.editing) {

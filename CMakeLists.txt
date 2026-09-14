@@ -24,17 +24,32 @@ qt_add_executable(desktop-stickers
 qt_add_qml_module(desktop-stickers
     URI StickersApp
     VERSION 1.0
+    # Explicit, not left to qt_standard_project_setup(REQUIRES 6.4)'s default:
+    # that REQUIRES value sets CMake policy QTP0001 to OLD (pre-6.5 behavior),
+    # which silently changes the module's default resource prefix from
+    # "/qt/qml/StickersApp" to plain "/StickersApp" -- breaking main.cpp's
+    # hardcoded engine.load(QUrl("qrc:/qt/qml/StickersApp/Main.qml")) with a
+    # "No such file or directory" at startup (confirmed: this reproduces on
+    # a totally clean build of unmodified main, i.e. it's a latent bug from
+    # lowering REQUIRES 6.5 -> 6.4, not something introduced here). Pinning
+    # RESOURCE_PREFIX explicitly keeps the path main.cpp expects regardless
+    # of that policy, and works fine under Qt 6.4 too -- this argument isn't
+    # gated behind QTP0001 at all.
+    RESOURCE_PREFIX "/qt/qml"
     QML_FILES
         src/qml/Main.qml
         src/qml/StickerWindow.qml
         src/qml/MarkdownView.qml
         src/qml/ColorPalette.qml
         src/qml/StickerPanel.qml
+        src/qml/SettingsWindow.qml
     SOURCES
         src/filestorage.h
         src/filestorage.cpp
         src/kwinbridge.h
         src/kwinbridge.cpp
+        src/systemintegration.h
+        src/systemintegration.cpp
 )
 
 # StickerManager.js and storage.js use the classic Qt Quick script directives
@@ -54,6 +69,8 @@ qt_target_qml_sources(desktop-stickers
     QML_FILES
         src/qml/StickerManager.js
         src/code/storage.js
+        src/qml/SettingsManager.js
+        src/code/settingsStorage.js
     NO_CACHEGEN
 )
 
