@@ -21,6 +21,24 @@ qt_add_executable(desktop-stickers
     src/main.cpp
 )
 
+# Every *.json file here is a language dictionary, discovered at runtime by
+# I18n.qml via FileStorage.listFileBaseNames() -- but that only sees what's
+# actually compiled into the binary's Qt resources. CONFIGURE_DEPENDS makes
+# CMake re-glob (and thus notice a newly-dropped file) whenever the build is
+# re-run, so adding a language is now just "drop <code>.json in src/i18n/,
+# rebuild" -- no CMakeLists.txt edit. (CONFIGURE_DEPENDS re-globs on build,
+# not on process launch -- "at app startup" isn't literally possible for
+# files baked into the executable at compile time.)
+file(GLOB I18N_DICTIONARIES_ABS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/i18n/*.json")
+# Qt's resource system rejects absolute source paths outright (it needs a
+# relative path to derive the qrc:/ alias from), so re-relativize what
+# file(GLOB) hands back before this reaches RESOURCES below.
+set(I18N_DICTIONARIES "")
+foreach(_i18n_abs_path ${I18N_DICTIONARIES_ABS})
+    file(RELATIVE_PATH _i18n_rel_path "${CMAKE_CURRENT_SOURCE_DIR}" "${_i18n_abs_path}")
+    list(APPEND I18N_DICTIONARIES "${_i18n_rel_path}")
+endforeach()
+
 # `pragma Singleton` in I18n.qml itself is only a declaration of intent --
 # Qt's CMake QML tooling does not scan file contents for it, it needs this
 # source-file property to actually register the type as a qmldir
@@ -63,13 +81,9 @@ qt_add_qml_module(desktop-stickers
         # Plain JSON data, not QML/JS -- bundled at the SAME resource path
         # QML_FILES entries get (this module's RESOURCE_PREFIX + the given
         # relative path, e.g. qrc:/qt/qml/StickersApp/src/i18n/es.json),
-        # which is what I18n.qml's `i18nDir` property assumes. Every file
-        # matching *.json here IS a language, discovered at runtime via
-        # FileStorage.listFileBaseNames() -- adding one means listing it
-        # here (so it's actually compiled in) and nowhere else.
-        src/i18n/es.json
-        src/i18n/en.json
-        src/i18n/fr.json
+        # which is what I18n.qml's `i18nDir` property assumes. Globbed above
+        # (I18N_DICTIONARIES) instead of listed by hand.
+        ${I18N_DICTIONARIES}
     SOURCES
         src/filestorage.h
         src/filestorage.cpp
