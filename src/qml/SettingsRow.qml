@@ -32,7 +32,7 @@ Item {
         ColumnLayout {
             id: labelColumn
             Layout.fillWidth: true
-            spacing: 2
+            spacing: 6
 
             Label {
                 text: row.label

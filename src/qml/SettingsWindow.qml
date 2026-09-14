@@ -129,69 +129,132 @@ Window {
         spacing: 0
 
         Item {
+            id: contentArea
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.margins: 16
 
             ScrollView {
+                id: scrollArea
                 anchors.fill: parent
                 clip: true
+                // Basic style's scrollbar is a transient overlay that
+                // floats ON TOP of content rather than reserving its own
+                // lane -- it was covering the right edge of every row's
+                // controls. AlwaysOn keeps it visibly present (matching
+                // normal desktop scrollbar behavior) and, combined with
+                // reserving space in mainColumn's width below, gives it a
+                // real gutter instead of overlapping.
+                ScrollBar.vertical.policy: ScrollBar.AlwaysOn
 
+                // ScrollView wraps its content in a Flickable whose
+                // contentWidth is normally derived FROM the child's own
+                // implicit width -- binding mainColumn's width to
+                // `parent.width` (the Flickable) is circular and resolves
+                // to mainColumn's shrink-to-fit width instead of the
+                // viewport's, so every row's label column collapses to a
+                // sliver and wide rows (e.g. the color segmented control)
+                // get silently pushed off into unreachable horizontal
+                // scroll instead of wrapping/fitting. Binding to
+                // contentArea's width (computed by the OUTER Layout,
+                // outside this ScrollView/Flickable) breaks the cycle.
                 ColumnLayout {
                     id: mainColumn
-                    width: parent.width
+                    // Reserve a fixed gutter for the scrollbar (its own
+                    // implicit width varies slightly by style/theme, but a
+                    // real OS scrollbar lane is consistently in this
+                    // ballpark) so it sits beside the controls, not on top
+                    // of them.
+                    width: contentArea.width - 16
                     spacing: 24
 
                     // ---------------------------------------------------- Apariencia
                     SettingsSection {
                         title: "Apariencia"
 
-                        SettingsRow {
-                            label: "Color de los stickers nuevos"
+                        // A label-above / controls-below block rather than
+                        // a SettingsRow (label-left / control-right):
+                        // the segmented trio plus swatch+hex+button cluster
+                        // is too wide to share a line with a full-sentence
+                        // label at this window width, so it gets a Flow
+                        // (wraps to a second line if it still doesn't fit,
+                        // instead of silently overflowing off-screen).
+                        Item {
+                            Layout.fillWidth: true
+                            implicitHeight: colorBlock.implicitHeight + 20
 
-                            RowLayout {
-                                spacing: 0
-                                Button {
-                                    text: "Aleatorio"
-                                    checkable: true
-                                    autoExclusive: true
-                                    Component.onCompleted: checked = appearance.defaultColorMode === "random"
-                                    onCheckedChanged: if (checked) setAppearance("defaultColorMode", "random")
-                                }
-                                Button {
-                                    text: "Acento"
-                                    checkable: true
-                                    autoExclusive: true
-                                    Component.onCompleted: checked = appearance.defaultColorMode === "accent"
-                                    onCheckedChanged: if (checked) setAppearance("defaultColorMode", "accent")
-                                }
-                                Button {
-                                    id: fixedColorButton
-                                    text: "Fijo"
-                                    checkable: true
-                                    autoExclusive: true
-                                    Component.onCompleted: checked = appearance.defaultColorMode === "fixed"
-                                    onCheckedChanged: if (checked) setAppearance("defaultColorMode", "fixed")
+                            ColumnLayout {
+                                id: colorBlock
+                                x: 12
+                                y: 10
+                                width: parent.width - 24
+                                spacing: 8
+
+                                Label { text: "Color de los stickers nuevos" }
+
+                                Flow {
+                                    Layout.fillWidth: true
+                                    spacing: 8
+
+                                    Row {
+                                        spacing: 0
+                                        Button {
+                                            text: "Aleatorio"
+                                            checkable: true
+                                            autoExclusive: true
+                                            Component.onCompleted: checked = appearance.defaultColorMode === "random"
+                                            onCheckedChanged: if (checked) setAppearance("defaultColorMode", "random")
+                                        }
+                                        Button {
+                                            text: "Acento"
+                                            checkable: true
+                                            autoExclusive: true
+                                            Component.onCompleted: checked = appearance.defaultColorMode === "accent"
+                                            onCheckedChanged: if (checked) setAppearance("defaultColorMode", "accent")
+                                        }
+                                        Button {
+                                            id: fixedColorButton
+                                            text: "Fijo"
+                                            checkable: true
+                                            autoExclusive: true
+                                            Component.onCompleted: checked = appearance.defaultColorMode === "fixed"
+                                            onCheckedChanged: if (checked) setAppearance("defaultColorMode", "fixed")
+                                        }
+                                    }
+
+                                    Row {
+                                        spacing: 6
+                                        Rectangle {
+                                            width: 18; height: 18; radius: 4
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            color: appearance.defaultFixedColor
+                                            border.width: 1
+                                            border.color: pal.mid
+                                            opacity: fixedColorButton.checked ? 1.0 : 0.4
+                                        }
+                                        Label {
+                                            text: appearance.defaultFixedColor
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            font.family: "monospace"
+                                            opacity: fixedColorButton.checked ? 1.0 : 0.4
+                                        }
+                                        Button {
+                                            text: "Elegir…"
+                                            enabled: fixedColorButton.checked
+                                            onClicked: colorPopup.open()
+                                            Accessible.name: "Elegir color fijo para stickers nuevos"
+                                        }
+                                    }
                                 }
                             }
 
                             Rectangle {
-                                width: 18; height: 18; radius: 4
-                                color: appearance.defaultFixedColor
-                                border.width: 1
-                                border.color: pal.mid
-                                opacity: fixedColorButton.checked ? 1.0 : 0.4
-                            }
-                            Label {
-                                text: appearance.defaultFixedColor
-                                font.family: "monospace"
-                                opacity: fixedColorButton.checked ? 1.0 : 0.4
-                            }
-                            Button {
-                                text: "Elegir…"
-                                enabled: fixedColorButton.checked
-                                onClicked: colorPopup.open()
-                                Accessible.name: "Elegir color fijo para stickers nuevos"
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.bottom: parent.bottom
+                                anchors.leftMargin: 12
+                                height: 1
+                                color: pal.mid
                             }
                         }
 
@@ -210,7 +273,7 @@ Window {
                                 x: 12
                                 y: 8
                                 width: parent.width - 24
-                                spacing: 1
+                                spacing: 6
                                 Label {
                                     text: "Fuentes preferidas"
                                     font.bold: true

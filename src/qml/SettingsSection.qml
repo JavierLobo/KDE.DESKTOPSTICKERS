@@ -38,7 +38,11 @@ ColumnLayout {
         Layout.topMargin: 4
         implicitHeight: rowsColumn.implicitHeight
         radius: 8
-        color: "transparent"
+        // Subtle card depth against the window background (mockup's
+        // surface-1/surface-2 contrast) -- was fully transparent, which
+        // made every section read as flat, borderless text on the same
+        // background as the window itself.
+        color: pal.base
         border.width: 1
         border.color: pal.mid
         clip: true
