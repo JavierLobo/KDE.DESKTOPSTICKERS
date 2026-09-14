@@ -341,10 +341,29 @@ Window {
 
                         onAccepted: focus = false
                         onActiveFocusChanged: {
-                            if (!activeFocus && rowItem.renaming) {
-                                appRoot.renameSticker(rowItem.modelData.id, text)
-                                panelWindow.renamingId = ""
-                            }
+                            if (activeFocus || !rowItem.renaming) return
+                            // renameSticker() calls Main.qml's
+                            // refreshNoteList(), which reassigns noteList
+                            // and, through filteredList's binding, this
+                            // ListView's own `model` -- a plain-array model
+                            // gets fully torn down and rebuilt on that, so
+                            // calling it synchronously from THIS delegate's
+                            // own handler destroys rowItem/renameField
+                            // mid-execution, leaving the row stuck showing
+                            // the edit field forever (confirmed: this is
+                            // exactly what was happening). Turning off
+                            // renaming first is safe -- it only affects
+                            // this delegate's own visible/renaming
+                            // bindings, not the model -- and deferring the
+                            // model-touching call with Qt.callLater() lets
+                            // this handler finish and the delegate settle
+                            // before that rebuild happens.
+                            var pendingId = rowItem.modelData.id
+                            var pendingText = text
+                            panelWindow.renamingId = ""
+                            Qt.callLater(function() {
+                                appRoot.renameSticker(pendingId, pendingText)
+                            })
                         }
                     }
 
