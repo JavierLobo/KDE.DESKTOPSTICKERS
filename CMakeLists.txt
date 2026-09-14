@@ -59,6 +59,16 @@ qt_add_qml_module(desktop-stickers
         src/qml/SettingsSection.qml
         src/qml/MarkdownToolbar.qml
         src/qml/I18n.qml
+    RESOURCES
+        # Plain JSON data, not QML/JS -- bundled at the SAME resource path
+        # QML_FILES entries get (this module's RESOURCE_PREFIX + the given
+        # relative path, e.g. qrc:/qt/qml/StickersApp/src/i18n/es.json),
+        # which is what I18n.qml's `i18nDir` property assumes. Every file
+        # matching *.json here IS a language, discovered at runtime via
+        # FileStorage.listFileBaseNames() -- adding one means listing it
+        # here (so it's actually compiled in) and nowhere else.
+        src/i18n/es.json
+        src/i18n/en.json
     SOURCES
         src/filestorage.h
         src/filestorage.cpp
@@ -87,8 +97,6 @@ qt_target_qml_sources(desktop-stickers
         src/code/storage.js
         src/qml/SettingsManager.js
         src/code/settingsStorage.js
-        src/i18n/Dictionary_ES.js
-        src/i18n/Dictionary_EN.js
     NO_CACHEGEN
 )
 

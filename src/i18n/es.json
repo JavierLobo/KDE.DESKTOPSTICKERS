@@ -1,10 +1,4 @@
-.pragma library
-
-// Spanish -- the app's original/native language, and the fallback used
-// when a key is missing from any other dictionary. Keys follow
-// "<Component>.<element>[.<variant>]", matching the roadmap's own example
-// convention (Sticker.Title.label, Settings.language.label).
-var strings = {
+{
     "Language.name": "Español",
     "Language.flag": "🇪🇸",
 

@@ -1,8 +1,7 @@
 pragma Singleton
 import QtQuick
 import "SettingsManager.js" as Settings
-import "../i18n/Dictionary_ES.js" as ES
-import "../i18n/Dictionary_EN.js" as EN
+import Stickers.Storage as App
 
 // Translation lookup singleton. A real QML type (not a .pragma library
 // module, like SettingsManager.js/StickerManager.js) specifically so that
@@ -42,32 +41,64 @@ import "../i18n/Dictionary_EN.js" as EN
 // rejection either (that specific rejection is a `.pragma library` JS
 // `.import`-statement restriction; a plain QML `import` of your own
 // containing module is fine).
+//
+// Dictionaries are plain .json files (src/i18n/<code>.json), not .pragma
+// library modules like the first version of this file used -- a
+// .pragma library needs a static, compile-time `.import "Dictionary_XX.js"`
+// per language, so adding one meant touching this file (and CMakeLists.txt)
+// every time. JSON files are just *data*, readable at runtime through the
+// same FileStorage.readFile() already used for settings.json/stickers.json,
+// so availableLanguages can enumerate whatever's actually in that directory
+// (FileStorage.listFileBaseNames(), new alongside this rewrite) and load
+// each one by its own file name -- adding a language becomes "drop a new
+// <code>.json file in src/i18n/, list it in CMakeLists.txt's RESOURCES so
+// it's actually bundled in", no other file needs to change.
 QtObject {
     id: root
 
-    property string languageCode: Settings.get().language.code
+    readonly property string i18nDir: ":/qt/qml/StickersApp/src/i18n"
 
-    readonly property var availableLanguages: [
-        { code: "es", strings: ES.strings },
-        { code: "en", strings: EN.strings }
-    ]
-
-    function dictFor(code) {
-        for (var i = 0; i < availableLanguages.length; i++) {
-            if (availableLanguages[i].code === code) return availableLanguages[i].strings
+    function loadDictionary(code) {
+        const raw = App.FileStorage.readFile(i18nDir + "/" + code + ".json")
+        try {
+            return JSON.parse(raw)
+        } catch (e) {
+            console.error("I18n: failed to parse dictionary for \"" + code + "\":", e)
+            return {}
         }
-        return ES.strings
     }
 
-    // Plain lookup. Falls back to Spanish (the complete, "source of truth"
-    // dictionary every key is guaranteed to exist in) if the active
-    // language's dictionary is missing this key, then to the raw key
-    // itself if it's missing everywhere -- visibly broken rather than a
-    // silent crash, and easy to grep for.
+    // Evaluated once (Q_INVOKABLE calls establish no ongoing binding
+    // dependency, same reasoning as the header comment above) -- correct,
+    // since the set of bundled dictionaries is fixed for the process's
+    // whole lifetime, only ever changing between builds.
+    readonly property var availableLanguages: {
+        const codes = App.FileStorage.listFileBaseNames(i18nDir, "*.json").sort()
+        const langs = []
+        for (let i = 0; i < codes.length; i++) {
+            langs.push({ code: codes[i], strings: loadDictionary(codes[i]) })
+        }
+        return langs
+    }
+
+    property string languageCode: Settings.get().language.code
+
+    function dictFor(code) {
+        for (let i = 0; i < availableLanguages.length; i++) {
+            if (availableLanguages[i].code === code) return availableLanguages[i].strings
+        }
+        return availableLanguages.length > 0 ? availableLanguages[0].strings : {}
+    }
+
+    // Plain lookup. Falls back to Spanish -- the app's original, most
+    // complete dictionary -- if the active language's is missing this key,
+    // then to the raw key itself if it's missing everywhere too: visibly
+    // broken rather than a silent crash, and easy to grep for.
     function t(key) {
-        var dict = dictFor(languageCode)
+        const dict = dictFor(languageCode)
         if (dict[key] !== undefined) return dict[key]
-        if (ES.strings[key] !== undefined) return ES.strings[key]
+        const esDict = dictFor("es")
+        if (esDict[key] !== undefined) return esDict[key]
         return key
     }
 
@@ -75,9 +106,9 @@ QtObject {
     // -- for strings built from a template plus dynamic data (a sticker's
     // name, a count), which plain t() alone can't parameterize.
     function tf(key, args) {
-        var template = t(key)
+        const template = t(key)
         return template.replace(/\{(\d+)\}/g, function(match, index) {
-            var value = args[Number(index)]
+            const value = args[Number(index)]
             return value !== undefined ? value : match
         })
     }

@@ -65,4 +65,12 @@ public:
     // getStickersDir()'s comment); this avoids repeating that mistake for
     // Settings' backup export/import folder pickers.
     Q_INVOKABLE QString toLocalFile(const QUrl &url) const;
+
+    // Base names (no extension) of every file matching nameFilter (e.g.
+    // "*.json") directly inside dirPath -- works for both real filesystem
+    // directories and compiled-in Qt resource paths (":/qt/qml/...", the
+    // same ":/" form QFile/QDir already transparently accept), which is
+    // exactly what lets I18n.qml (see its own comment) discover language
+    // dictionaries that were only ever added as new files, no code change.
+    Q_INVOKABLE QStringList listFileBaseNames(const QString &dirPath, const QString &nameFilter) const;
 };

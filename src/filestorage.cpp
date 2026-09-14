@@ -69,3 +69,15 @@ QString FileStorage::toLocalFile(const QUrl &url) const
 {
     return url.toLocalFile();
 }
+
+QStringList FileStorage::listFileBaseNames(const QString &dirPath, const QString &nameFilter) const
+{
+    QStringList baseNames;
+    const QDir dir(dirPath);
+    const QStringList entries = dir.entryList(QStringList() << nameFilter, QDir::Files, QDir::Name);
+    baseNames.reserve(entries.size());
+    for (const QString &fileName : entries) {
+        baseNames.append(QFileInfo(fileName).completeBaseName());
+    }
+    return baseNames;
+}

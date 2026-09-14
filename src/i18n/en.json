@@ -1,10 +1,4 @@
-.pragma library
-
-// English. Any key missing here falls back to Dictionary_ES.js (see
-// I18n.qml) -- this file doesn't need to be complete at every point in
-// development, just kept honest: every key added here should be a real
-// translation, not a placeholder.
-var strings = {
+{
     "Language.name": "English",
     "Language.flag": "🇬🇧",
 
