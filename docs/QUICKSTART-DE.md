@@ -13,13 +13,14 @@
 ## Installation
 
 ```bash
-cd <repo-pfad>  # ins Verzeichnis wechseln, in das du das Repository geklont hast
+cd <repo-path>  # go to the directory where you cloned the repository
 chmod +x scripts/install.sh
 ./scripts/install.sh
 ```
 
-Kompiliert die Qt6-Binärdatei (`build/desktop-stickers`), installiert sie
-nach `~/.local/bin/desktop-stickers` und registriert den Autostart in
+Dies kompiliert die Qt6-Binärdatei (`build/desktop-stickers`),
+installiert sie nach `~/.local/bin/desktop-stickers` und registriert
+den Autostart in
 `~/.config/autostart/io.github.javierlobo.desktopstickers.desktop`.
 
 ## Erster Start
@@ -31,11 +32,18 @@ sofort auszuprobieren, ohne dich abzumelden:
 ~/.local/bin/desktop-stickers &
 ```
 
-Du solltest ein Symbol im Systembereich ("Desktop Stickers") sehen, und
-falls bereits Sticker in `~/.stickers/stickers.json` gespeichert sind,
-erscheinen deren Fenster an ihrer letzten tatsächlichen Position
-(gespeichert über eine KWin-Regel pro Sticker — siehe
-`QA_CHECKLIST.md`).
+Du solltest ein Symbol im Systembereich sehen ("Desktop Stickers"),
+und falls bereits Sticker gespeichert sind, erscheinen deren Fenster an
+ihrer letzten tatsächlichen Position (gespeichert über eine KWin-Regel
+pro Sticker — siehe `QA_CHECKLIST.md`). Die Daten liegen unter
+`$XDG_DATA_HOME/desktop-stickers/stickers.json` (typischerweise
+`~/.local/share/desktop-stickers/`), nicht mehr in einem losen Ordner
+in deinem Home-Verzeichnis.
+
+Die Sprache der Oberfläche richtet sich danach, was in den
+Einstellungen gespeichert ist (standardmäßig Spanisch). Um sie zu
+ändern: Rechtsklick auf das Tray-Symbol → **Optionen → Einstellungen →
+Sprachen**.
 
 ## Deinen ersten Sticker erstellen
 
@@ -44,59 +52,93 @@ erscheinen deren Fenster an ihrer letzten tatsächlichen Position
 
 ## Bearbeiten
 
-Klick in den Sticker, um ihn in Markdown zu bearbeiten. Klick außerhalb,
-um zur gerenderten Vorschau zurückzukehren.
+Klicke in einen Sticker, um ihn in Markdown zu bearbeiten — die
+Formatierungsleiste (fett, Überschriften, Listen, Tabellen, Links ...)
+erscheint über dem Textbereich. Klicke außerhalb, um zur gerenderten
+Vorschau zurückzukehren.
 
 ## Pin (alle Arbeitsflächen) und Größe ändern
 
 - Schaltfläche 📍/📌 im Kopfbereich: schaltet um, ob der Sticker auf
   allen virtuellen Arbeitsflächen sichtbar ist (📌) oder nur auf seiner
-  eigenen (📍). Neue Sticker starten standardmäßig ohne Pin.
+  eigenen (📍). Neue Sticker starten standardmäßig ohne Pin (in den
+  Einstellungen konfigurierbar).
 - Von der unteren rechten Ecke aus ziehen, um die Größe zu ändern.
+
+## Einstellungsfenster
+
+Rechtsklick auf das Tray-Symbol → **Optionen → Einstellungen** öffnet
+das Fenster mit vier Bereichen:
+
+- **Erscheinungsbild**: Standardfarbe für neue Sticker (zufällig,
+  System-Akzentfarbe oder fest), Schriftart-Präferenzliste und
+  Schriftgröße
+- **Verhalten**: Standard-Sichtbarkeit der Markdown-Leiste,
+  Löschbestätigung, Aktion bei Linksklick auf das Tray-Symbol
+- **System**: Autostart ein/aus, Datenpfad (mit einer "Ordner
+  öffnen"-Schaltfläche), Backup exportieren/importieren
+- **Sprachen**: Sprachauswahl für die Oberfläche
+
+Der Rest des **Optionen**-Untermenüs enthält Hilfe (Dokumentation auf
+GitHub), Spenden (den Entwickler unterstützen), Lizenz anzeigen und
+Info.
+
+## Sticker-Panel
+
+Linksklick auf das Tray-Symbol (oder "Panel de Stickers" im Menü)
+öffnet die vollständige Liste: Suche nach Text, Sortierung nach
+zuletzt geändert/alphabetisch/Farbe, Klick zum Öffnen einer Notiz, ein
+Kontextmenü (öffnen, umbenennen, duplizieren) sowie Mehrfachauswahl,
+um mehrere auf einmal zu löschen.
 
 ## Testdaten
 
-⚠️ Dieses Skript **überschreibt** `~/.stickers/stickers.json` — falls du
-bereits Sticker erstellt hast, gehen sie verloren. Nur bei einer
-Neuinstallation verwenden, oder wenn es dir nichts ausmacht, die
-aktuellen Daten zu verlieren.
+⚠️ Dieses Skript **überschreibt** deine `stickers.json` — falls du
+bereits Sticker erstellt hast, gehen sie verloren. Verwende es nur bei
+einer Neuinstallation oder wenn es dir nichts ausmacht, die aktuellen
+Daten zu verlieren.
 
 ```bash
 chmod +x scripts/test-sticker.sh
 ./scripts/test-sticker.sh
 ```
 
-Erstellt 3 Beispiel-Sticker in `~/.stickers/stickers.json`.
+Erstellt 3 Beispiel-Sticker.
 
 ## Vollständige Überprüfung
 
-Siehe `QA_CHECKLIST.md` für die manuelle Prüfliste aller Funktionen.
+Die manuelle Prüfliste für alle Funktionen findest du in
+`QA_CHECKLIST.md`.
 
 ## Fehlerbehebung
 
 **Die Binärdatei lässt sich nicht kompilieren:**
 - Prüfe, ob Qt6 (`Core`, `Gui`, `Qml`, `Quick`, `Widgets`, `DBus`) installiert ist
-- Sieh dir die Ausgabe von `cmake -B build -S .` für das fehlende Paket an
+- Sieh dir die Ausgabe von `cmake -B build -S .` an, um das fehlende Paket zu finden
 
 **Ein Sticker erscheint nicht auf allen Arbeitsflächen:**
 - "Alle Arbeitsflächen" ist ein Opt-in **pro Sticker** über die
-  Pin-Schaltfläche (📍/📌) im Kopfbereich, keine app-weite Regel — prüfe
-  zuerst, ob bei diesem Sticker der Pin aktiv ist (📌).
-- Falls der Pin aktiv ist, der Sticker dir aber weiterhin nicht zwischen
-  Arbeitsflächen folgt, prüfe die spezifische KWin-Regel dieses
-  Stickers:
+  Pin-Schaltfläche (📍/📌) im Kopfbereich, keine app-weite Regel —
+  prüfe zuerst, ob bei diesem Sticker der Pin aktiv ist (📌).
+- Falls der Pin aktiv ist, der Sticker dir aber weiterhin nicht
+  zwischen den Arbeitsflächen folgt, prüfe die spezifische KWin-Regel
+  dieses Stickers:
   `kreadconfig6 --file kwinrulesrc --group desktopstickers-sticker-<id> --key desktopsrule`
-  sollte `2` (Force) zurückgeben. Falls `1` oder leer zurückkommt, wurde
-  der Pin nicht geschrieben — klicke erneut auf 📌.
-- Prüfe auch, ob die Gruppe gelistet ist:
+  sollte `2` (Force) zurückgeben. Falls `1` oder ein leerer Wert
+  zurückkommt, wurde der Pin nie geschrieben — klicke erneut auf 📌.
+- Prüfe außerdem, ob die Gruppe gelistet ist:
   `kreadconfig6 --file kwinrulesrc --group General --key rules` sollte
   `desktopstickers-sticker-<id>` enthalten.
-- Falls die Werte korrekt sind, aber nicht live wirken, erzwinge ein
-  Neuladen: `qdbus6 org.kde.KWin /KWin org.kde.KWin.reconfigure`
-- Vollständige Details zum Mechanismus (eine KWin-Regel pro Sticker,
-  gemeinsam genutzt von Pin und Position) in
-  `superpowers/specs/2026-08-18-sticker-pin-position-resize-design.md`,
-  Abschnitt "Arquitectura: de regla global a reglas por-ventana"
+- Falls die Werte korrekt sind, sich aber nicht live auswirken,
+  erzwinge ein Neuladen:
+  `qdbus6 org.kde.KWin /KWin org.kde.KWin.reconfigure`
+
+**Eine neu von mir zu `src/i18n/` hinzugefügte Sprache wird nicht angezeigt:**
+- Sie benötigt exakt dieselben Schlüssel wie `src/i18n/es.json`
+  (einschließlich `Language.name` und `Language.flag`).
+- Du musst neu kompilieren (`cmake --build build`) — die Liste der
+  Sprachdateien wird nur beim Konfigurieren/Kompilieren neu erkannt,
+  nicht wenn die bereits installierte App startet.
 
 **Logs:**
 ```bash
@@ -104,5 +146,6 @@ journalctl --user -f
 ```
 (die App ist ein eigenständiger Prozess, nicht Teil von plasmashell,
 daher landen ihre Meldungen im Log der Benutzersitzung;
-`~/.local/bin/desktop-stickers` direkt aus einem Terminal auszuführen, um
-die Live-Konsolenausgabe zu sehen, bleibt die zuverlässigste Option)
+`~/.local/bin/desktop-stickers` direkt aus einem Terminal auszuführen,
+um die Live-Konsolenausgabe zu sehen, bleibt die zuverlässigste Option)
+</content>
