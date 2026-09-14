@@ -27,6 +27,20 @@ Window {
     // to live one level up and drive both ScrollViews' visible bindings.
     property bool editing: false
     onEditingChanged: if (editing) editArea.forceActiveFocus()
+    // Shared by editArea's onActiveFocusChanged and the overflow-menu
+    // watcher below -- only actually commits if editArea still doesn't
+    // have focus at the moment this runs (both callers defer/wait exactly
+    // so a toolbar action's own target.forceActiveFocus() gets a chance to
+    // run first).
+    function commitEditIfFocusLost() {
+        if (!editing || editArea.activeFocus) return
+        stickerText = editArea.text
+        Manager.updateText(stickerId, editArea.text)
+        if (appRoot) {
+            appRoot.refreshNoteList()
+        }
+        editing = false
+    }
     // Per-window session toggle, seeded from the Settings default but not
     // itself persisted -- matches how "editing" mode itself isn't
     // persisted either. The roadmap's own "Botón de mostrar/ocultar barra
@@ -352,6 +366,20 @@ Window {
                         Layout.fillWidth: true
                         visible: mainWindow.toolbarVisible
                         target: editArea
+
+                        // The moment the overflow Menu itself closes --
+                        // whether because the user picked an item (which
+                        // already restored focus via target.
+                        // forceActiveFocus()) or dismissed it without
+                        // picking anything (focus stays wherever it landed)
+                        // -- is exactly when editArea.onActiveFocusChanged's
+                        // own deferred check (skipped while this menu was
+                        // open) needs to run instead.
+                        onOverflowMenuOpenChanged: {
+                            if (!overflowMenuOpen) {
+                                Qt.callLater(mainWindow.commitEditIfFocusLost)
+                            }
+                        }
                     }
 
                     ScrollView {
@@ -372,28 +400,19 @@ Window {
                             onActiveFocusChanged: {
                                 if (activeFocus || !mainWindow.editing) return
                                 // The toolbar's own buttons no longer steal
-                                // focus (focusPolicy: Qt.NoFocus), but its
+                                // focus (focusPolicy: Qt.NoFocus). Its
                                 // overflow Menu (compact mode's "▾") is a
-                                // Popup that legitimately takes focus while
-                                // open -- that would otherwise trigger this
-                                // same "focus left, must be done editing"
-                                // logic on every single toolbar action.
-                                // Every MarkdownToolbar action already ends
-                                // with target.forceActiveFocus() once it's
-                                // done touching the text, so deferring this
-                                // check one tick lets that happen first;
-                                // only commit save+close if focus genuinely
-                                // never came back.
-                                Qt.callLater(function() {
-                                    if (mainWindow.editing && !editArea.activeFocus) {
-                                        stickerText = editArea.text
-                                        Manager.updateText(stickerId, editArea.text)
-                                        if (mainWindow.appRoot) {
-                                            mainWindow.appRoot.refreshNoteList()
-                                        }
-                                        mainWindow.editing = false
-                                    }
-                                })
+                                // Popup that DOES legitimately take focus
+                                // while open, and stays open for as long as
+                                // the user takes to pick something -- a
+                                // single deferred tick here would fire
+                                // while the menu is still open, closing
+                                // editing before the user ever clicks an
+                                // item. Skip entirely while it's open; the
+                                // Connections block below re-checks once it
+                                // actually closes.
+                                if (markdownToolbar.overflowMenuOpen) return
+                                Qt.callLater(mainWindow.commitEditIfFocusLost)
                             }
                         }
                     }

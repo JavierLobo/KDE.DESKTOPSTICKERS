@@ -19,6 +19,11 @@ Item {
     id: root
 
     property TextArea target: null
+    // The overflow Menu (compact mode's "▾") is a Popup and legitimately
+    // takes focus away from `target` while it's open -- exposed so the
+    // caller (StickerWindow.qml) can tell "focus left because this menu is
+    // still open, waiting for a pick" apart from "focus left for real".
+    readonly property alias overflowMenuOpen: overflowMenu.opened
     // Below this width the full button row doesn't fit a typical sticker
     // (17 buttons + separators need ~550px; the app's own minimum sticker
     // width is 210px) -- the roadmap explicitly describes this as the
