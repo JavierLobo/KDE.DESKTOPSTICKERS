@@ -36,6 +36,27 @@ Item {
             createStickerWindow(loaded[i])
         }
         refreshNoteList()
+        // See the comment above trayMenu's closing brace for why this has
+        // to be wired explicitly instead of just nesting optionsMenu
+        // declaratively inside trayMenu. Position is deterministic given
+        // the static tray menu structure: newSticker(1) + separator(1) +
+        // notes(maxTrayNotes) + separator(1) + stickerPanel(1) +
+        // separator(1) = index of the second (pre-quit) separator, i.e.
+        // exactly where Options belongs -- between the two adjacent
+        // separators.
+        trayMenu.insertMenu(5 + maxTrayNotes, optionsMenu)
+        // Must run AFTER the insertMenu() call above -- see the comment on
+        // optionsMenu's declaration for why these items are wired in here
+        // instead of nested declaratively inside it.
+        optionsMenu.addItem(helpMenuItem)
+        optionsMenu.addItem(optionsSep1)
+        optionsMenu.addItem(donateMenuItem)
+        optionsMenu.addItem(optionsSep2)
+        optionsMenu.addItem(viewLicenseMenuItem)
+        optionsMenu.addItem(optionsSep3)
+        optionsMenu.addItem(settingsMenuItem)
+        optionsMenu.addItem(optionsSep4)
+        optionsMenu.addItem(aboutMenuItem)
     }
 
     function createStickerWindow(sticker) {
@@ -392,43 +413,86 @@ Item {
                 onTriggered: root.openStickerPanel()
             }
             Platform.MenuSeparator {}
-            // A Platform.Menu nested directly inside another Platform.Menu's
-            // item list becomes a submenu automatically (its `title` is the
-            // label shown on the parent item) -- Qt.labs.platform's
-            // MenuItem.menu/subMenu properties are read-only, so this
-            // nesting is the only way to build one, not a MenuItem property.
-            Platform.Menu {
-                title: I18n.t("Main.trayMenu.options")
-                Platform.MenuItem {
-                    text: I18n.t("Main.trayMenu.help")
-                    onTriggered: Qt.openUrlExternally("https://github.com/JavierLobo/KDE.DESKTOPSTICKERS#readme")
-                }
-                Platform.MenuSeparator {}
-                Platform.MenuItem {
-                    text: I18n.t("Main.trayMenu.donate")
-                    onTriggered: Qt.openUrlExternally("https://github.com/sponsors/JavierLobo")
-                }
-                Platform.MenuSeparator {}
-                Platform.MenuItem {
-                    text: I18n.t("Main.trayMenu.viewLicense")
-                    onTriggered: root.openLicense()
-                }
-                Platform.MenuSeparator {}
-                Platform.MenuItem {
-                    text: I18n.t("Main.trayMenu.settings")
-                    onTriggered: root.openSettingsWindow()
-                }
-                Platform.MenuSeparator {}
-                Platform.MenuItem {
-                    text: I18n.t("Main.trayMenu.about")
-                    onTriggered: root.openAboutDialog()
-                }
-            }
             Platform.MenuSeparator {}
             Platform.MenuItem {
                 text: I18n.t("Main.trayMenu.quit")
                 onTriggered: Qt.quit()
             }
+            // A Platform.Menu nested directly as a QML child of another
+            // Platform.Menu LOOKS like it should become a submenu (its
+            // `title` becoming the label on the parent item, matching Qt's
+            // own docs/examples) -- but confirmed via the exported DBusMenu
+            // layout that it doesn't: dbusmenu's GetLayout showed the entry
+            // with a plain "label" and 0 children, no "children-display":
+            // "submenu" marker at all, i.e. it rendered as an inert,
+            // childless leaf on this KDE/dbusmenu backend, not a submenu.
+            // insertMenu() (called from root's Component.onCompleted below,
+            // not this menu's own -- optionsMenu is a later-declared
+            // sibling of this SystemTrayIcon, and per-object completion
+            // order between siblings isn't something to rely on; root's
+            // onCompleted is guaranteed to fire last, after every
+            // descendant including both trayMenu and optionsMenu) is the
+            // mechanism that's actually guaranteed to work -- the same
+            // explicit-wiring pattern this file already relies on for the
+            // Instantiator above, for the same underlying reason:
+            // declarative nesting under a Qt.labs.platform Menu's default
+            // `data` property doesn't reliably reflect into the native/
+            // exported menu here.
         }
+    }
+
+    // Declared outside trayMenu's own item list on purpose -- see the
+    // Component.onCompleted comment above for why nesting it directly
+    // inside trayMenu does not work on this backend.
+    //
+    // Its own items are declared here as standalone named objects, NOT
+    // nested inside this Menu's braces either -- confirmed by a second
+    // round of DBusMenu introspection: even after trayMenu.insertMenu()
+    // correctly attached optionsMenu as a real submenu (its exported item
+    // finally carried "children-display": "submenu"), optionsMenu's own
+    // nested MenuItem children still exported as 0 children, empty. Nested
+    // declarative children only reliably reach a Menu's native item list
+    // when that Menu already has a live platform menu handle at the time
+    // they're classified -- true for trayMenu (the SystemTrayIcon's own
+    // `menu:`, live from the start) but not for optionsMenu (detached
+    // until the insertMenu() call above runs, well after its own
+    // componentComplete already tried and silently dropped them). Adding
+    // each item via addItem() from root's onCompleted, AFTER insertMenu()
+    // has attached optionsMenu, sidesteps that ordering issue entirely --
+    // the same reasoning, and the same explicit-wiring fix, as trayMenu's
+    // own items above.
+    Platform.Menu {
+        id: optionsMenu
+        title: I18n.t("Main.trayMenu.options")
+    }
+
+    Platform.MenuItem {
+        id: helpMenuItem
+        text: I18n.t("Main.trayMenu.help")
+        onTriggered: Qt.openUrlExternally("https://github.com/JavierLobo/KDE.DESKTOPSTICKERS#readme")
+    }
+    Platform.MenuSeparator { id: optionsSep1 }
+    Platform.MenuItem {
+        id: donateMenuItem
+        text: I18n.t("Main.trayMenu.donate")
+        onTriggered: Qt.openUrlExternally("https://github.com/sponsors/JavierLobo")
+    }
+    Platform.MenuSeparator { id: optionsSep2 }
+    Platform.MenuItem {
+        id: viewLicenseMenuItem
+        text: I18n.t("Main.trayMenu.viewLicense")
+        onTriggered: root.openLicense()
+    }
+    Platform.MenuSeparator { id: optionsSep3 }
+    Platform.MenuItem {
+        id: settingsMenuItem
+        text: I18n.t("Main.trayMenu.settings")
+        onTriggered: root.openSettingsWindow()
+    }
+    Platform.MenuSeparator { id: optionsSep4 }
+    Platform.MenuItem {
+        id: aboutMenuItem
+        text: I18n.t("Main.trayMenu.about")
+        onTriggered: root.openAboutDialog()
     }
 }
