@@ -28,6 +28,22 @@ QString SystemIntegration::resolveFontFamily(const QStringList &preferredFamilie
     return fallback;
 }
 
+QStringList SystemIntegration::installedFontFamilies() const
+{
+    return QFontDatabase::families();
+}
+
+bool SystemIntegration::isFontFamilyInstalled(const QString &family) const
+{
+    const QStringList installed = QFontDatabase::families();
+    for (const QString &f : installed) {
+        if (f.compare(family, Qt::CaseInsensitive) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
 QString SystemIntegration::autostartFilePath() const
 {
     // GenericConfigLocation resolves $XDG_CONFIG_HOME (falling back to

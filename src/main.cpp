@@ -21,6 +21,7 @@ int main(int argc, char *argv[])
     // plain QGuiApplication. Confirmed via journalctl during Task 5.
     QApplication app(argc, argv);
     app.setApplicationName("desktop-stickers");
+    app.setApplicationVersion(QStringLiteral(APP_VERSION_STRING));
     app.setOrganizationName("io.github.javierlobo.desktopstickers");
     // The Wayland app-id / X11 WM_CLASS, used by the KWin window rule
     // (installed separately, see Step 6 and Task 8) to identify which

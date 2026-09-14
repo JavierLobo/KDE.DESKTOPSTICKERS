@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QUrl>
 
 // Minimal C++ bridge exposing plain file-system primitives to QML/JavaScript.
 //
@@ -50,4 +51,13 @@ public:
     // bogus relative path (see git history / review notes for the "file:"
     // directory this created in the repo root).
     Q_INVOKABLE QString stickersDir() const;
+
+    // Converts a file:// QUrl (e.g. from Qt.labs.platform's FolderDialog)
+    // to a plain local path. QUrl::toLocalFile() handles the "file://" vs
+    // "file:/" and percent-encoding differences correctly -- storage.js
+    // used to hand-strip a hardcoded "file://" prefix for a similar case
+    // and silently produced a bogus path on the single-slash variant (see
+    // getStickersDir()'s comment); this avoids repeating that mistake for
+    // Settings' backup export/import folder pickers.
+    Q_INVOKABLE QString toLocalFile(const QUrl &url) const;
 };

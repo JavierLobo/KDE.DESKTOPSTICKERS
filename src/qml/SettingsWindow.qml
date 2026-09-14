@@ -2,14 +2,22 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
+import Qt.labs.platform as Platform
 import "SettingsManager.js" as Settings
+import "StickerManager.js" as Manager
 import Stickers.System as System
 import Stickers.Storage as App
 
 Window {
     id: settingsWindow
     width: 480
-    height: 620
+    minimumWidth: 420
+    // Sized to content instead of a fixed height -- capped to 85% of the
+    // screen so a long font-preference list still scrolls (via the
+    // ScrollView below) rather than growing the window off-screen.
+    height: Math.min(mainColumn.implicitHeight + footerRow.implicitHeight + 96,
+                      (Screen.height || 1000) * 0.85)
+    minimumHeight: 320
     title: "Configuración"
 
     property var appRoot: null
@@ -17,12 +25,16 @@ Window {
     // Local, editable copies of the settings this window reads/writes --
     // Settings.get() returns the live SettingsManager.js object by
     // reference, but QML property bindings need an actual property to bind
-    // controls to and to trigger re-renders (e.g. the font preference
-    // Repeater) when a value changes via a button handler rather than a
-    // direct user edit.
+    // controls to and to trigger re-renders when a value changes via a
+    // button handler rather than a direct user edit.
     property var appearance: Settings.get().appearance
     property var behavior: Settings.get().behavior
     property var desktops: Settings.get().desktops
+
+    SystemPalette { id: pal }
+    // Live binding to the system accent color, same approach as Main.qml's
+    // sysPalette -- used for the "Acento del sistema" preview swatch.
+    SystemPalette { id: accentPal; colorGroup: SystemPalette.Active }
 
     function setAppearance(key, value) {
         appearance[key] = value
@@ -42,238 +54,587 @@ Window {
         desktopsChanged()
     }
 
+    function previewColor() {
+        if (appearance.defaultColorMode === "fixed") return appearance.defaultFixedColor
+        if (appearance.defaultColorMode === "accent") return accentPal.highlight
+        return Manager.RANDOM_COLORS[0]
+    }
+
+    // -- Font preference list: backed by a ListModel purely for the
+    // draggable/reorderable ListView UI below; persistence stays a plain
+    // string array (appearance.fontFamilyPreferences), synced both ways.
+    ListModel { id: fontPrefsModel }
+
+    function syncFontPrefsModel() {
+        fontPrefsModel.clear()
+        var prefs = appearance.fontFamilyPreferences
+        for (var i = 0; i < prefs.length; i++) {
+            fontPrefsModel.append({ family: prefs[i] })
+        }
+    }
+
+    function persistFontPrefsFromModel() {
+        var prefs = []
+        for (var i = 0; i < fontPrefsModel.count; i++) {
+            prefs.push(fontPrefsModel.get(i).family)
+        }
+        setAppearance("fontFamilyPreferences", prefs)
+    }
+
+    onAppearanceChanged: syncFontPrefsModel()
+    Component.onCompleted: syncFontPrefsModel()
+
+    property var allFontFamilies: System.SystemIntegration.installedFontFamilies()
+    property var filteredFontFamilies: allFontFamilies
+
+    function filterFonts(query) {
+        if (!query) {
+            filteredFontFamilies = allFontFamilies
+            return
+        }
+        var q = query.toLowerCase()
+        filteredFontFamilies = allFontFamilies.filter(function(f) {
+            return f.toLowerCase().indexOf(q) !== -1
+        })
+    }
+
+    function addFontFromCombo() {
+        var name = addFontCombo.editText.trim()
+        if (!name) return
+        var prefs = appearance.fontFamilyPreferences.slice()
+        prefs.push(name)
+        setAppearance("fontFamilyPreferences", prefs)
+        addFontCombo.editText = ""
+        filterFonts("")
+    }
+
+    function resetSettings() {
+        var defaults = Settings.resetToDefaults()
+        appearance = defaults.appearance
+        behavior = defaults.behavior
+        desktops = defaults.desktops
+        System.SystemIntegration.setAutostartEnabled(defaults.system.autostartEnabled)
+        autostartCheck.checked = System.SystemIntegration.isAutostartEnabled()
+    }
+
+    // Standard dependency-free QML clipboard-copy trick: an offscreen
+    // TextEdit, select-all + copy. Qt.labs.platform has no Clipboard type.
+    TextEdit {
+        id: clipboardHelper
+        visible: false
+    }
+
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
 
-        TabBar {
-            id: tabBar
-            Layout.fillWidth: true
-
-            TabButton { text: "Apariencia" }
-            TabButton { text: "Comportamiento" }
-            TabButton { text: "Sistema" }
-        }
-
-        StackLayout {
-            currentIndex: tabBar.currentIndex
+        Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
+            Layout.margins: 16
 
-            // -- Apariencia --------------------------------------------------
             ScrollView {
+                anchors.fill: parent
                 clip: true
 
                 ColumnLayout {
-                    width: settingsWindow.width - 24
-                    spacing: 8
+                    id: mainColumn
+                    width: parent.width
+                    spacing: 24
 
-                    Label { text: "Color de los stickers nuevos" }
+                    // ---------------------------------------------------- Apariencia
+                    SettingsSection {
+                        title: "Apariencia"
 
-                    // checked is set ONCE at creation (not a live binding):
-                    // auto-exclusive RadioButtons own `checked` imperatively
-                    // among themselves, and a live "checked: appearance.x
-                    // === ..." binding on every sibling fights that
-                    // ownership -- each toggle re-asserts its own binding
-                    // right after the group clears it, which QML reports as
-                    // a binding loop. Settings.appearance only ever changes
-                    // through this same UI while the window is open, so a
-                    // one-time initial value is correct.
-                    RadioButton {
-                        text: "Aleatorio"
-                        Component.onCompleted: checked = appearance.defaultColorMode === "random"
-                        onCheckedChanged: if (checked) setAppearance("defaultColorMode", "random")
-                    }
-                    RadioButton {
-                        text: "Acento del sistema"
-                        Component.onCompleted: checked = appearance.defaultColorMode === "accent"
-                        onCheckedChanged: if (checked) setAppearance("defaultColorMode", "accent")
-                    }
-                    RadioButton {
-                        id: fixedColorRadio
-                        text: "Color fijo"
-                        Component.onCompleted: checked = appearance.defaultColorMode === "fixed"
-                        onCheckedChanged: if (checked) setAppearance("defaultColorMode", "fixed")
-                    }
+                        SettingsRow {
+                            label: "Color de los stickers nuevos"
 
-                    ColorPalette {
-                        visible: fixedColorRadio.checked
-                        Layout.leftMargin: 24
-                        onColorSelected: function(selectedColor) {
-                            setAppearance("defaultFixedColor", selectedColor.toString())
+                            RowLayout {
+                                spacing: 0
+                                Button {
+                                    text: "Aleatorio"
+                                    checkable: true
+                                    autoExclusive: true
+                                    Component.onCompleted: checked = appearance.defaultColorMode === "random"
+                                    onCheckedChanged: if (checked) setAppearance("defaultColorMode", "random")
+                                }
+                                Button {
+                                    text: "Acento"
+                                    checkable: true
+                                    autoExclusive: true
+                                    Component.onCompleted: checked = appearance.defaultColorMode === "accent"
+                                    onCheckedChanged: if (checked) setAppearance("defaultColorMode", "accent")
+                                }
+                                Button {
+                                    id: fixedColorButton
+                                    text: "Fijo"
+                                    checkable: true
+                                    autoExclusive: true
+                                    Component.onCompleted: checked = appearance.defaultColorMode === "fixed"
+                                    onCheckedChanged: if (checked) setAppearance("defaultColorMode", "fixed")
+                                }
+                            }
+
+                            Rectangle {
+                                width: 18; height: 18; radius: 4
+                                color: appearance.defaultFixedColor
+                                border.width: 1
+                                border.color: pal.mid
+                                opacity: fixedColorButton.checked ? 1.0 : 0.4
+                            }
+                            Label {
+                                text: appearance.defaultFixedColor
+                                font.family: "monospace"
+                                opacity: fixedColorButton.checked ? 1.0 : 0.4
+                            }
+                            Button {
+                                text: "Elegir…"
+                                enabled: fixedColorButton.checked
+                                onClicked: colorPopup.open()
+                                Accessible.name: "Elegir color fijo para stickers nuevos"
+                            }
+                        }
+
+                        Item {
+                            // Sub-heading for the typography group -- kept
+                            // as its own labeled block (not a SettingsRow,
+                            // it isn't a single-line label+control row)
+                            // inside the same bordered container as the
+                            // color row above.
+                            Layout.fillWidth: true
+                            Layout.topMargin: 8
+                            implicitHeight: fontGroupHeader.implicitHeight + 12
+
+                            ColumnLayout {
+                                id: fontGroupHeader
+                                x: 12
+                                y: 8
+                                width: parent.width - 24
+                                spacing: 1
+                                Label {
+                                    text: "Fuentes preferidas"
+                                    font.bold: true
+                                    font.pixelSize: 13
+                                }
+                                Label {
+                                    text: "Por orden; se usa la primera instalada en este equipo."
+                                    font.pixelSize: 11
+                                    opacity: 0.65
+                                    wrapMode: Text.Wrap
+                                    Layout.fillWidth: true
+                                }
+                            }
+                        }
+
+                        ListView {
+                            id: fontListView
+                            Layout.fillWidth: true
+                            Layout.leftMargin: 4
+                            Layout.rightMargin: 4
+                            implicitHeight: contentHeight
+                            interactive: false
+                            model: fontPrefsModel
+                            spacing: 0
+
+                            delegate: FocusScope {
+                                id: fontRowScope
+                                required property string family
+                                required property int index
+                                width: fontListView.width
+                                height: 36
+                                activeFocusOnTab: true
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    color: dragHandler.active ? pal.alternateBase : "transparent"
+                                }
+
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 8
+                                    anchors.rightMargin: 8
+                                    spacing: 6
+
+                                    Label {
+                                        text: "⠿"
+                                        font.pixelSize: 16
+                                        opacity: 0.5
+                                        Accessible.name: "Arrastra para reordenar " + fontRowScope.family
+
+                                        DragHandler {
+                                            id: dragHandler
+                                            target: null
+                                            onTranslationChanged: {
+                                                if (!active) return
+                                                var newY = fontRowScope.y + translation.y
+                                                var targetIndex = Math.round(newY / fontRowScope.height)
+                                                targetIndex = Math.max(0, Math.min(fontListView.count - 1, targetIndex))
+                                                if (targetIndex !== fontRowScope.index) {
+                                                    fontPrefsModel.move(fontRowScope.index, targetIndex, 1)
+                                                    persistFontPrefsFromModel()
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    Label {
+                                        text: fontRowScope.family
+                                        Layout.fillWidth: true
+                                        elide: Text.ElideRight
+                                    }
+
+                                    Label {
+                                        visible: !System.SystemIntegration.isFontFamilyInstalled(fontRowScope.family)
+                                        text: "⚠"
+                                        opacity: 0.8
+                                        Accessible.name: "\"" + fontRowScope.family + "\" no está instalada en este equipo"
+
+                                        ToolTip.visible: warnHover.hovered
+                                        ToolTip.text: "\"" + fontRowScope.family + "\" no está instalada en este equipo."
+                                        HoverHandler { id: warnHover }
+                                    }
+
+                                    Button {
+                                        text: "↑"
+                                        visible: fontRowScope.activeFocus
+                                        implicitWidth: 26; implicitHeight: 26
+                                        enabled: fontRowScope.index > 0
+                                        onClicked: {
+                                            fontPrefsModel.move(fontRowScope.index, fontRowScope.index - 1, 1)
+                                            persistFontPrefsFromModel()
+                                        }
+                                        Accessible.name: "Subir " + fontRowScope.family + " en la lista"
+                                    }
+                                    Button {
+                                        text: "↓"
+                                        visible: fontRowScope.activeFocus
+                                        implicitWidth: 26; implicitHeight: 26
+                                        enabled: fontRowScope.index < fontListView.count - 1
+                                        onClicked: {
+                                            fontPrefsModel.move(fontRowScope.index, fontRowScope.index + 1, 1)
+                                            persistFontPrefsFromModel()
+                                        }
+                                        Accessible.name: "Bajar " + fontRowScope.family + " en la lista"
+                                    }
+                                    Button {
+                                        icon.name: "list-remove"
+                                        text: "✕"
+                                        display: AbstractButton.IconOnly
+                                        flat: true
+                                        implicitWidth: 28; implicitHeight: 28
+                                        onClicked: {
+                                            fontPrefsModel.remove(fontRowScope.index)
+                                            persistFontPrefsFromModel()
+                                        }
+                                        Accessible.name: "Quitar " + fontRowScope.family + " de la lista"
+                                    }
+                                }
+                            }
+                        }
+
+                        Item {
+                            Layout.fillWidth: true
+                            implicitHeight: addFontRow.implicitHeight + 16
+
+                            RowLayout {
+                                id: addFontRow
+                                x: 12
+                                y: 8
+                                width: parent.width - 24
+                                spacing: 8
+
+                                ComboBox {
+                                    id: addFontCombo
+                                    Layout.fillWidth: true
+                                    editable: true
+                                    model: filteredFontFamilies
+                                    Accessible.name: "Buscar y añadir una familia de fuente"
+                                    onEditTextChanged: filterFonts(editText)
+                                    Keys.onReturnPressed: addFontFromCombo()
+                                }
+                                Button {
+                                    text: "Añadir"
+                                    enabled: addFontCombo.editText.trim().length > 0
+                                    onClicked: addFontFromCombo()
+                                }
+                            }
+                        }
+
+                        SettingsRow {
+                            label: "Tamaño de letra"
+                            separator: false
+                            SpinBox {
+                                from: 6
+                                to: 72
+                                value: appearance.fontSize
+                                onValueModified: setAppearance("fontSize", value)
+                            }
                         }
                     }
 
-                    Item { Layout.preferredHeight: 8 }
+                    // Live preview -- outside the bordered rows container,
+                    // still part of the Apariencia section visually.
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        Layout.topMargin: -8
+                        spacing: 6
 
-                    Label { text: "Fuentes preferidas (por orden; se usa la primera instalada)" }
+                        Label {
+                            text: "Vista previa"
+                            font.pixelSize: 11
+                            opacity: 0.65
+                        }
 
-                    Repeater {
-                        id: fontPrefsRepeater
-                        model: appearance.fontFamilyPreferences
-
-                        delegate: RowLayout {
-                            Layout.fillWidth: true
-                            required property string modelData
-                            required property int index
+                        Rectangle {
+                            Layout.alignment: Qt.AlignHCenter
+                            width: 180
+                            height: 80
+                            radius: 8
+                            color: previewColor()
 
                             Text {
-                                text: (index + 1) + "."
-                                Layout.preferredWidth: 18
-                            }
-                            TextField {
-                                Layout.fillWidth: true
-                                text: modelData
-                                onEditingFinished: {
-                                    var prefs = appearance.fontFamilyPreferences.slice()
-                                    prefs[index] = text
-                                    setAppearance("fontFamilyPreferences", prefs)
-                                }
-                            }
-                            Button {
-                                text: "↑"
-                                enabled: index > 0
-                                onClicked: {
-                                    var prefs = appearance.fontFamilyPreferences.slice()
-                                    var tmp = prefs[index - 1]
-                                    prefs[index - 1] = prefs[index]
-                                    prefs[index] = tmp
-                                    setAppearance("fontFamilyPreferences", prefs)
-                                }
-                            }
-                            Button {
-                                text: "↓"
-                                enabled: index < appearance.fontFamilyPreferences.length - 1
-                                onClicked: {
-                                    var prefs = appearance.fontFamilyPreferences.slice()
-                                    var tmp = prefs[index + 1]
-                                    prefs[index + 1] = prefs[index]
-                                    prefs[index] = tmp
-                                    setAppearance("fontFamilyPreferences", prefs)
-                                }
-                            }
-                            Button {
-                                text: "✕"
-                                onClicked: {
-                                    var prefs = appearance.fontFamilyPreferences.slice()
-                                    prefs.splice(index, 1)
-                                    setAppearance("fontFamilyPreferences", prefs)
-                                }
+                                anchors.fill: parent
+                                anchors.margins: 10
+                                text: "Vista previa"
+                                wrapMode: Text.Wrap
+                                color: "#222"
+                                font.family: System.SystemIntegration.resolveFontFamily(appearance.fontFamilyPreferences, "Sans Serif")
+                                font.pixelSize: appearance.fontSize
                             }
                         }
                     }
 
-                    RowLayout {
+                    // ------------------------------------------------- Comportamiento
+                    ColumnLayout {
                         Layout.fillWidth: true
+                        spacing: 10
 
-                        TextField {
-                            id: newFontField
-                            Layout.fillWidth: true
-                            placeholderText: "Nueva familia de fuente…"
+                        SettingsSection {
+                            title: "Comportamiento"
+
+                            SettingsRow {
+                                label: "Barra de Markdown visible al abrir un sticker"
+                                subtitle: "Solo afecta a los stickers que abras a partir de ahora."
+                                Switch {
+                                    checked: behavior.markdownToolbarVisibleByDefault
+                                    onToggled: setBehavior("markdownToolbarVisibleByDefault", checked)
+                                }
+                            }
+                            SettingsRow {
+                                label: "Confirmar antes de eliminar un sticker"
+                                Switch {
+                                    checked: behavior.askBeforeDeleting
+                                    onToggled: setBehavior("askBeforeDeleting", checked)
+                                }
+                            }
+                            SettingsRow {
+                                label: "Fijar los stickers nuevos en todos los escritorios"
+                                subtitle: "Si se desactiva, cada sticker vive en el escritorio donde se creó."
+                                separator: false
+                                Switch {
+                                    checked: desktops.pinNewStickersByDefault
+                                    onToggled: setDesktops("pinNewStickersByDefault", checked)
+                                }
+                            }
                         }
-                        Button {
-                            text: "Añadir"
-                            enabled: newFontField.text.trim().length > 0
-                            onClicked: {
-                                var prefs = appearance.fontFamilyPreferences.slice()
-                                prefs.push(newFontField.text.trim())
-                                setAppearance("fontFamilyPreferences", prefs)
-                                newFontField.text = ""
+
+                        // Visually separate: clicking the tray icon is a
+                        // different kind of setting from the toggles above.
+                        Rectangle {
+                            Layout.fillWidth: true
+                            implicitHeight: trayRow.implicitHeight
+                            radius: 8
+                            color: "transparent"
+                            border.width: 1
+                            border.color: pal.mid
+
+                            SettingsRow {
+                                id: trayRow
+                                width: parent.width
+                                label: "Clic izquierdo en el icono de la bandeja"
+                                separator: false
+
+                                ComboBox {
+                                    id: trayClickCombo
+                                    Layout.preferredWidth: 190
+                                    model: ["Abrir el panel", "Crear nota nueva"]
+                                    Component.onCompleted: currentIndex = behavior.trayLeftClickAction === "newSticker" ? 1 : 0
+                                    onActivated: setBehavior("trayLeftClickAction", currentIndex === 1 ? "newSticker" : "openPanel")
+                                }
                             }
                         }
                     }
 
-                    RowLayout {
-                        Label { text: "Tamaño de letra por defecto" }
-                        SpinBox {
-                            from: 6
-                            to: 72
-                            value: appearance.fontSize
-                            onValueModified: setAppearance("fontSize", value)
+                    // ------------------------------------------------------- Sistema
+                    SettingsSection {
+                        title: "Sistema"
+
+                        SettingsRow {
+                            label: "Iniciar con la sesión"
+                            subtitle: "Crea una entrada en ~/.config/autostart."
+                            Switch {
+                                id: autostartCheck
+                                // The autostart file on disk is the source
+                                // of truth (it can change outside this app),
+                                // not settings.json's cached copy, so the
+                                // initial state reads straight from
+                                // SystemIntegration.
+                                checked: System.SystemIntegration.isAutostartEnabled()
+                                onToggled: {
+                                    var ok = System.SystemIntegration.setAutostartEnabled(checked)
+                                    if (ok) {
+                                        Settings.update("system", "autostartEnabled", checked)
+                                    } else {
+                                        checked = System.SystemIntegration.isAutostartEnabled()
+                                    }
+                                }
+                            }
                         }
-                    }
-                }
-            }
 
-            // -- Comportamiento -----------------------------------------------
-            ScrollView {
-                clip: true
+                        SettingsRow {
+                            label: "Carpeta de datos"
 
-                ColumnLayout {
-                    width: settingsWindow.width - 24
-                    spacing: 8
+                            Label {
+                                text: App.FileStorage.stickersDir()
+                                font.family: "monospace"
+                                elide: Text.ElideMiddle
+                                Layout.preferredWidth: 150
 
-                    CheckBox {
-                        text: "Mostrar la barra de herramientas Markdown por defecto"
-                        checked: behavior.markdownToolbarVisibleByDefault
-                        onToggled: setBehavior("markdownToolbarVisibleByDefault", checked)
-                    }
-                    CheckBox {
-                        text: "Preguntar antes de eliminar un sticker"
-                        checked: behavior.askBeforeDeleting
-                        onToggled: setBehavior("askBeforeDeleting", checked)
-                    }
-                    CheckBox {
-                        text: "Fijar los stickers nuevos en todos los escritorios"
-                        checked: desktops.pinNewStickersByDefault
-                        onToggled: setDesktops("pinNewStickersByDefault", checked)
-                    }
+                                ToolTip.visible: dataPathHover.hovered
+                                ToolTip.text: App.FileStorage.stickersDir()
+                                HoverHandler { id: dataPathHover }
+                            }
+                            Button {
+                                icon.name: "edit-copy"
+                                text: "⧉"
+                                display: AbstractButton.IconOnly
+                                flat: true
+                                implicitWidth: 30; implicitHeight: 30
+                                onClicked: {
+                                    clipboardHelper.text = App.FileStorage.stickersDir()
+                                    clipboardHelper.selectAll()
+                                    clipboardHelper.copy()
+                                }
+                                Accessible.name: "Copiar la ruta de la carpeta de datos"
+                            }
+                            Button {
+                                text: "Abrir"
+                                onClicked: Qt.openUrlExternally("file://" + App.FileStorage.stickersDir())
+                                Accessible.name: "Abrir la carpeta de datos en el gestor de archivos"
+                            }
+                        }
 
-                    Label { text: "Click izquierdo en el icono de la bandeja" }
-                    RadioButton {
-                        text: "Abrir Panel de Stickers"
-                        Component.onCompleted: checked = behavior.trayLeftClickAction === "openPanel"
-                        onCheckedChanged: if (checked) setBehavior("trayLeftClickAction", "openPanel")
-                    }
-                    RadioButton {
-                        text: "Crear nota nueva"
-                        Component.onCompleted: checked = behavior.trayLeftClickAction === "newSticker"
-                        onCheckedChanged: if (checked) setBehavior("trayLeftClickAction", "newSticker")
-                    }
-                }
-            }
+                        SettingsRow {
+                            label: "Copia de seguridad"
+                            separator: false
 
-            // -- Sistema --------------------------------------------------------
-            ScrollView {
-                clip: true
-
-                ColumnLayout {
-                    width: settingsWindow.width - 24
-                    spacing: 8
-
-                    CheckBox {
-                        id: autostartCheck
-                        text: "Iniciar Desktop Stickers con la sesión"
-                        // The autostart file on disk is the source of truth
-                        // (it can change outside this app -- e.g. a user
-                        // deleting it by hand), not settings.json's cached
-                        // copy, so the initial state reads straight from
-                        // SystemIntegration rather than from `behavior`.
-                        checked: System.SystemIntegration.isAutostartEnabled()
-                        onToggled: {
-                            var ok = System.SystemIntegration.setAutostartEnabled(checked)
-                            if (ok) {
-                                Settings.update("system", "autostartEnabled", checked)
-                            } else {
-                                checked = System.SystemIntegration.isAutostartEnabled()
+                            Button {
+                                text: "Exportar…"
+                                onClicked: exportFolderDialog.open()
+                                Accessible.name: "Exportar copia de seguridad de stickers y ajustes"
+                            }
+                            Button {
+                                text: "Importar…"
+                                onClicked: importFolderDialog.open()
+                                Accessible.name: "Importar copia de seguridad de stickers y ajustes"
                             }
                         }
                     }
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Label {
-                            text: "Datos: " + App.FileStorage.stickersDir()
-                            elide: Text.ElideMiddle
-                            Layout.fillWidth: true
-                        }
-                        Button {
-                            text: "Abrir carpeta"
-                            onClicked: Qt.openUrlExternally("file://" + App.FileStorage.stickersDir())
-                        }
-                    }
                 }
             }
+        }
+
+        Rectangle {
+            Layout.fillWidth: true
+            height: 1
+            color: pal.mid
+        }
+
+        RowLayout {
+            id: footerRow
+            Layout.fillWidth: true
+            Layout.margins: 12
+
+            Label {
+                text: "Desktop Stickers " + Qt.application.version
+                opacity: 0.6
+                font.pixelSize: 12
+            }
+            Item { Layout.fillWidth: true }
+            Button {
+                text: "Restablecer configuración"
+                flat: true
+                palette.buttonText: "#e74c3c"
+                onClicked: resetConfirmDialog.open()
+                Accessible.name: "Restablecer toda la configuración a sus valores predeterminados"
+            }
+        }
+    }
+
+    Popup {
+        id: colorPopup
+        x: (settingsWindow.width - width) / 2
+        y: 80
+        padding: 8
+
+        ColorPalette {
+            onColorSelected: function(selectedColor) {
+                setAppearance("defaultFixedColor", selectedColor.toString())
+                colorPopup.close()
+            }
+        }
+    }
+
+    Platform.MessageDialog {
+        id: resetConfirmDialog
+        text: "¿Restablecer toda la configuración a sus valores predeterminados? Esta acción no se puede deshacer."
+        buttons: Platform.MessageDialog.Yes | Platform.MessageDialog.No
+        onYesClicked: resetSettings()
+    }
+
+    Platform.MessageDialog {
+        id: resultDialog
+    }
+
+    Platform.FolderDialog {
+        id: exportFolderDialog
+        title: "Elige una carpeta para la copia de seguridad"
+        onAccepted: {
+            var destDir = App.FileStorage.toLocalFile(folder)
+            var srcDir = App.FileStorage.stickersDir()
+            var ok = true
+            ok = App.FileStorage.writeFile(destDir + "/stickers.json", App.FileStorage.readFile(srcDir + "/stickers.json")) && ok
+            ok = App.FileStorage.writeFile(destDir + "/settings.json", App.FileStorage.readFile(srcDir + "/settings.json")) && ok
+            resultDialog.text = ok ? "Copia de seguridad guardada en " + destDir + "."
+                                    : "No se pudo completar la copia de seguridad."
+            resultDialog.open()
+        }
+    }
+
+    Platform.FolderDialog {
+        id: importFolderDialog
+        title: "Elige la carpeta de la copia de seguridad a importar"
+        onAccepted: {
+            importConfirmDialog.pendingDir = App.FileStorage.toLocalFile(folder)
+            importConfirmDialog.open()
+        }
+    }
+
+    Platform.MessageDialog {
+        id: importConfirmDialog
+        property string pendingDir: ""
+        text: "Esto sobrescribirá tus stickers y ajustes actuales con los de la copia seleccionada. Deberás reiniciar Desktop Stickers para ver los cambios. ¿Continuar?"
+        buttons: Platform.MessageDialog.Yes | Platform.MessageDialog.No
+        onYesClicked: {
+            var destDir = App.FileStorage.stickersDir()
+            var srcStickers = App.FileStorage.readFile(pendingDir + "/stickers.json")
+            var srcSettings = App.FileStorage.readFile(pendingDir + "/settings.json")
+            var ok = true
+            if (srcStickers.length > 0) ok = App.FileStorage.writeFile(destDir + "/stickers.json", srcStickers) && ok
+            if (srcSettings.length > 0) ok = App.FileStorage.writeFile(destDir + "/settings.json", srcSettings) && ok
+            resultDialog.text = ok ? "Copia importada. Reinicia Desktop Stickers para ver los cambios."
+                                    : "No se pudo completar la importación."
+            resultDialog.open()
         }
     }
 }

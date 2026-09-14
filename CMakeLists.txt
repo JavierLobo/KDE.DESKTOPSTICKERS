@@ -43,6 +43,8 @@ qt_add_qml_module(desktop-stickers
         src/qml/ColorPalette.qml
         src/qml/StickerPanel.qml
         src/qml/SettingsWindow.qml
+        src/qml/SettingsRow.qml
+        src/qml/SettingsSection.qml
     SOURCES
         src/filestorage.h
         src/filestorage.cpp
@@ -77,6 +79,13 @@ qt_target_qml_sources(desktop-stickers
 target_include_directories(desktop-stickers
     PRIVATE
         src
+)
+
+# Exposed to QML as Qt.application.version (set via
+# app.setApplicationVersion() in main.cpp) for the Settings window's footer.
+target_compile_definitions(desktop-stickers
+    PRIVATE
+        APP_VERSION_STRING="${PROJECT_VERSION}"
 )
 
 target_link_libraries(desktop-stickers

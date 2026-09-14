@@ -32,6 +32,17 @@ public:
     // installed.
     Q_INVOKABLE QString resolveFontFamily(const QStringList &preferredFamilies, const QString &fallback) const;
 
+    // All font families installed on the system, for the Settings panel's
+    // searchable font picker. Filtering by the user's typed text happens in
+    // QML against this list (a few hundred entries at most -- cheap to
+    // filter per keystroke without needing a C++-side query).
+    Q_INVOKABLE QStringList installedFontFamilies() const;
+
+    // Case-insensitive membership check against the same installed-font
+    // list, used to flag a user-entered family that isn't actually on this
+    // system.
+    Q_INVOKABLE bool isFontFamilyInstalled(const QString &family) const;
+
     // Whether the app's autostart .desktop entry currently exists under
     // $XDG_CONFIG_HOME/autostart (or ~/.config/autostart as the default).
     Q_INVOKABLE bool isAutostartEnabled() const;

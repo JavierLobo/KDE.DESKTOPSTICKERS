@@ -14,3 +14,9 @@ function update(category, key, value) {
     settings[category][key] = value
     return Storage.saveSettings(settings)
 }
+
+function resetToDefaults() {
+    settings = Storage.defaultSettings()
+    Storage.saveSettings(settings)
+    return settings
+}

@@ -52,3 +52,8 @@ QString FileStorage::stickersDir() const
     const QString home = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
     return home + QStringLiteral("/.stickers");
 }
+
+QString FileStorage::toLocalFile(const QUrl &url) const
+{
+    return url.toLocalFile();
+}
