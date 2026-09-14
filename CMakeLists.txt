@@ -21,6 +21,18 @@ qt_add_executable(desktop-stickers
     src/main.cpp
 )
 
+# `pragma Singleton` in I18n.qml itself is only a declaration of intent --
+# Qt's CMake QML tooling does not scan file contents for it, it needs this
+# source-file property to actually register the type as a qmldir
+# `singleton` entry (confirmed: without this, I18n.qml still built and ran,
+# but every "I18n.tr(...)" call failed at runtime with "Property 'tr' of
+# object I18n is not a function", because plain-component registration
+# doesn't give QML a live instance to call methods on the way a singleton
+# does). Must be set before qt_add_qml_module() processes the file list.
+set_source_files_properties(src/qml/I18n.qml PROPERTIES
+    QT_QML_SINGLETON_TYPE true
+)
+
 qt_add_qml_module(desktop-stickers
     URI StickersApp
     VERSION 1.0
@@ -46,6 +58,7 @@ qt_add_qml_module(desktop-stickers
         src/qml/SettingsRow.qml
         src/qml/SettingsSection.qml
         src/qml/MarkdownToolbar.qml
+        src/qml/I18n.qml
     SOURCES
         src/filestorage.h
         src/filestorage.cpp
@@ -74,6 +87,8 @@ qt_target_qml_sources(desktop-stickers
         src/code/storage.js
         src/qml/SettingsManager.js
         src/code/settingsStorage.js
+        src/i18n/Dictionary_ES.js
+        src/i18n/Dictionary_EN.js
     NO_CACHEGEN
 )
 

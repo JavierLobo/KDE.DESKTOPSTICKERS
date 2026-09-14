@@ -43,6 +43,9 @@ function defaultSettings() {
         },
         system: {
             autostartEnabled: true
+        },
+        language: {
+            code: "es" // "es" | "en" -- see src/i18n/
         }
     }
 }

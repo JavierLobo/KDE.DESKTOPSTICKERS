@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
 import Qt.labs.platform as Platform
+import StickersApp
 import "SettingsManager.js" as Settings
 import "StickerManager.js" as Manager
 import Stickers.System as System
@@ -613,6 +614,34 @@ Window {
                                 text: "Importar…"
                                 onClicked: importFolderDialog.open()
                                 Accessible.name: "Importar copia de seguridad de stickers y ajustes"
+                            }
+                        }
+                    }
+
+                    // -------------------------------------------------------- Idiomas
+                    SettingsSection {
+                        title: I18n.t("Settings.language.title")
+
+                        SettingsRow {
+                            label: I18n.t("Settings.language.label")
+                            separator: false
+
+                            ComboBox {
+                                id: languageCombo
+                                Layout.preferredWidth: 180
+                                model: I18n.availableLanguages.map(function(l) {
+                                    return { code: l.code, text: l.strings["Language.flag"] + "  " + l.strings["Language.name"] }
+                                })
+                                textRole: "text"
+                                Component.onCompleted: {
+                                    for (var i = 0; i < model.length; i++) {
+                                        if (model[i].code === I18n.languageCode) {
+                                            currentIndex = i
+                                            break
+                                        }
+                                    }
+                                }
+                                onActivated: I18n.setLanguage(model[currentIndex].code)
                             }
                         }
                     }

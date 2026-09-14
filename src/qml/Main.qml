@@ -1,5 +1,6 @@
 import QtQuick
 import Qt.labs.platform as Platform
+import StickersApp
 import "StickerManager.js" as Manager
 import "SettingsManager.js" as Settings
 import Stickers.KWin as KWin
@@ -248,8 +249,8 @@ Item {
         }
         if (Settings.get().behavior.askBeforeDeleting) {
             var text = ids.length === 1
-                ? "¿Eliminar \"" + singleLabel + "\"? Esta acción no se puede deshacer."
-                : "¿Eliminar " + ids.length + " stickers? Esta acción no se puede deshacer."
+                ? I18n.tf("Main.deleteConfirm.single", [singleLabel])
+                : I18n.tf("Main.deleteConfirm.multiple", [ids.length])
             // A fresh Platform.MessageDialog per request, destroyed right
             // after it's answered -- reusing one persistent instance across
             // separate delete confirmations left its native standard
@@ -265,8 +266,8 @@ Item {
         }
         lastDeletedSnapshot = performDelete(ids)
         undoMessage = ids.length === 1
-            ? ("\"" + singleLabel + "\" eliminado.")
-            : (ids.length + " stickers eliminados.")
+            ? I18n.tf("Main.deleteToast.single", [singleLabel])
+            : I18n.tf("Main.deleteToast.multiple", [ids.length])
         undoVisible = true
         undoTimer.restart()
     }
@@ -317,7 +318,7 @@ Item {
         id: trayIcon
         visible: true
         icon.name: "document-properties"
-        tooltip: "Desktop Stickers"
+        tooltip: I18n.t("Main.tray.tooltip")
 
         // Only Trigger (single left-click) is handled here -- Context
         // (right-click) already opens `menu:` below automatically and must
@@ -334,7 +335,7 @@ Item {
         menu: Platform.Menu {
             id: trayMenu
             Platform.MenuItem {
-                text: "Nuevo sticker"
+                text: I18n.t("Main.trayMenu.newSticker")
                 onTriggered: root.createNewSticker(100, 100)
             }
             Platform.MenuSeparator { visible: root.noteList.length > 0 }
@@ -360,17 +361,17 @@ Item {
             }
             Platform.MenuSeparator { visible: root.noteList.length > 0 }
             Platform.MenuItem {
-                text: "Panel de Stickers"
+                text: I18n.t("Main.trayMenu.stickerPanel")
                 onTriggered: root.openStickerPanel()
             }
             Platform.MenuSeparator {}
             Platform.MenuItem {
-                text: "Configuración…"
+                text: I18n.t("Main.trayMenu.settings")
                 onTriggered: root.openSettingsWindow()
             }
             Platform.MenuSeparator {}
             Platform.MenuItem {
-                text: "Salir"
+                text: I18n.t("Main.trayMenu.quit")
                 onTriggered: Qt.quit()
             }
         }
