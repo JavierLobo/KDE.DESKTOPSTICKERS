@@ -35,6 +35,40 @@ Column {
         }
     }
 
+    // Front matter (--- ... --- at the very start of the source, see
+    // extractFrontMatter()) is shown as a small metadata box instead of
+    // leaking as literal "---\nkey: value\n---" text.
+    Column {
+        width: root.width
+        visible: root.doc.frontMatter !== null
+        spacing: 2
+
+        Repeater {
+            model: root.doc.frontMatter ? root.doc.frontMatter.split(/\r?\n/) : []
+            delegate: Row {
+                readonly property var parts: /^([A-Za-z0-9_-]+):\s*(.*)$/.exec(modelData)
+                spacing: 6
+                Text {
+                    text: parts ? parts[1] + ":" : ""
+                    font.bold: true
+                    font.pixelSize: 12
+                    color: "#666"
+                }
+                Text {
+                    text: parts ? parts[2] : modelData
+                    font.pixelSize: 12
+                    color: "#666"
+                }
+            }
+        }
+
+        Rectangle {
+            width: parent.width
+            height: 1
+            color: "#33000000"
+        }
+    }
+
     MdBlockList {
         id: blockList
         width: root.width
