@@ -31,6 +31,10 @@ Item {
     }
 
     Component.onCompleted: {
+        // No-op after the very first launch (see the function's own
+        // comment) -- must run before loadStickers() so a fresh install's
+        // welcome sticker is already on disk by the time it loads.
+        Manager.seedDefaultStickerIfFirstRun()
         var loaded = Manager.loadStickers()
         for (var i = 0; i < loaded.length; i++) {
             createStickerWindow(loaded[i])

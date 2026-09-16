@@ -105,6 +105,10 @@ qt_add_qml_module(desktop-stickers
         # Qt.openUrlExternally() needs a file: URL an external app can read,
         # not a qrc: one.
         LICENSE
+        # Bundled so a truly fresh install (no stickers.json yet) can seed
+        # a "welcome" sticker showcasing what the app's Markdown preview can
+        # do -- see StickerManager.js's seedDefaultStickerIfFirstRun().
+        ejemplo-markdown-completo.md
     SOURCES
         src/filestorage.h
         src/filestorage.cpp

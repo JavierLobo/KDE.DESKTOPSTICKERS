@@ -241,6 +241,13 @@ Window {
                 required property int index
                 width: listView.width
                 height: 52
+                // Belt-and-suspenders against a row's own content ever
+                // painting into the row below it (reported: a long
+                // snippet -- e.g. from a multi-KB sticker -- visually
+                // overlapped neighboring rows and obscured their icons).
+                // The ListView's own `clip: true` only bounds the whole
+                // list, not each fixed-height delegate individually.
+                clip: true
 
                 readonly property bool renaming: panelWindow.renamingId === modelData.id
                 readonly property bool selected: panelWindow.isSelected(modelData.id)
@@ -315,12 +322,16 @@ Window {
                             font.italic: !rowItem.modelData.hasTitle
                             opacity: rowItem.modelData.hasTitle ? 1.0 : 0.6
                             elide: Text.ElideRight
+                            wrapMode: Text.NoWrap
+                            maximumLineCount: 1
                             Layout.fillWidth: true
                         }
                         Label {
                             // clockTick is read only to establish the
                             // re-evaluation dependency -- its value itself
                             // is unused.
+                            wrapMode: Text.NoWrap
+                            maximumLineCount: 1
                             text: {
                                 panelWindow.clockTick
                                 var date = Manager.formatRelativeDate(rowItem.modelData.modified)
