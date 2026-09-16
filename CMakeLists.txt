@@ -90,6 +90,7 @@ qt_add_qml_module(desktop-stickers
         src/qml/markdown/MdCallout.qml
         src/qml/markdown/MdDeflist.qml
         src/qml/markdown/MdHtmlBlock.qml
+        src/qml/markdown/MdFootnotes.qml
     RESOURCES
         # Plain JSON data, not QML/JS -- bundled at the SAME resource path
         # QML_FILES entries get (this module's RESOURCE_PREFIX + the given

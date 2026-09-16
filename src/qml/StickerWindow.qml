@@ -370,6 +370,15 @@ Window {
                         width: previewScroll.availableWidth
                         text: stickerText
                         onEditRequested: mainWindow.editing = true
+                        onScrollRequested: (y) => {
+                            // ScrollView (Qt Quick Controls 2) auto-wraps a non-Flickable child
+                            // in an internal Flickable exposed as `contentItem` -- this is the
+                            // documented way to scroll it programmatically. If this doesn't
+                            // move the view in your Qt version, use
+                            // `previewScroll.ScrollBar.vertical.position = y / preview.height`
+                            // instead.
+                            previewScroll.contentItem.contentY = y
+                        }
                     }
                 }
 
