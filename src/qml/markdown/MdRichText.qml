@@ -14,7 +14,8 @@ Text {
     wrapMode: Text.Wrap
     text: root.richText
     color: "#222"
-    font.pixelSize: 13
+    font.families: ["Inter", "Segoe UI", "Roboto", "Sans Serif"]
+    font.pixelSize: 14
 
     MouseArea {
         anchors.fill: parent

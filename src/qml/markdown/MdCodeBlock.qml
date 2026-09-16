@@ -77,8 +77,8 @@ Rectangle {
             width: parent.width
             textFormat: Text.RichText
             wrapMode: Text.Wrap
-            font.family: "monospace"
-            font.pixelSize: 12
+            font.families: ["JetBrains Mono", "Consolas", "Monospace"]
+            font.pixelSize: 13 // ~0.9x MdRichText's 14px prose size, per the spec's code-sizing rule
             text: root.node ? root.highlightedHtml() : ""
         }
     }
