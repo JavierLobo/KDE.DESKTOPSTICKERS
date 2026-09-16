@@ -6,7 +6,6 @@ import "../../code/syntaxHighlight.js" as SyntaxHighlight
 // lang === "mermaid") degrade to this same unhighlighted monospace box with
 // a small label, since neither can be laid out as a real formula/diagram
 // without an embedded web engine (see the design doc's rejected approaches).
-// The label itself is added in Task 9; this task renders it as empty.
 Rectangle {
     id: root
     property var node: null
@@ -15,6 +14,12 @@ Rectangle {
 
     readonly property string codeContent: node ? node.content : ""
     readonly property string codeLang: node && node.type === "code" ? node.lang : ""
+    readonly property string degradeLabel: {
+        if (!node) return ""
+        if (node.type === "math_block") return "🧮 Fórmula LaTeX (vista previa no disponible)"
+        if (node.type === "code" && node.lang === "mermaid") return "📊 Diagrama Mermaid (vista previa no disponible)"
+        return ""
+    }
 
     readonly property var tokenColors: ({
         keyword: "#8250df",
@@ -47,19 +52,35 @@ Rectangle {
     }
 
     width: parent ? parent.width : 0
-    height: codeText.implicitHeight + 16
+    height: (degradeLabel ? label.implicitHeight + 4 : 0) + codeText.implicitHeight + 16
     color: "#33000000"
     radius: 4
 
-    Text {
-        id: codeText
-        anchors.fill: parent
+    Column {
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
         anchors.margins: 8
-        textFormat: Text.RichText
-        wrapMode: Text.Wrap
-        font.family: "monospace"
-        font.pixelSize: 12
-        text: root.node ? root.highlightedHtml() : ""
+        spacing: 4
+
+        Text {
+            id: label
+            visible: root.degradeLabel !== ""
+            text: root.degradeLabel
+            font.pixelSize: 11
+            font.italic: true
+            color: "#555"
+        }
+
+        Text {
+            id: codeText
+            width: parent.width
+            textFormat: Text.RichText
+            wrapMode: Text.Wrap
+            font.family: "monospace"
+            font.pixelSize: 12
+            text: root.node ? root.highlightedHtml() : ""
+        }
     }
 
     MouseArea {
