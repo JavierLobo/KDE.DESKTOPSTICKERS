@@ -10,6 +10,8 @@ Rectangle {
     id: root
     property var node: null
     signal editRequested()
+    // DEPRECATED: never emitted -- code blocks carry no links. Candidate
+    // for removal in a future cleanup.
     signal anchorRequested(string slug)
 
     readonly property string codeContent: node ? node.content : ""
