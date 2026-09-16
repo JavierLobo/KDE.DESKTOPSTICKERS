@@ -796,9 +796,13 @@ function parseList(lines, start, ctx) {
   var i = start;
 
   while (i < n) {
-    var m = ordered ? ORDERED_RE.exec(lines[i]) : BULLET_RE.exec(lines[i]);
+    var peek = i;
+    while (peek < n && isBlank(lines[peek])) peek++;
+    if (peek >= n) break;
+    var m = ordered ? ORDERED_RE.exec(lines[peek]) : BULLET_RE.exec(lines[peek]);
     if (!m) break;
     if (!ordered && m[2] !== markerChar) break;
+    i = peek; // consume the blank line(s) that separated this item from the previous one (a "loose list")
 
     var indent = m[1].length;
     var markerText = ordered ? m[2] + m[3] : m[2];

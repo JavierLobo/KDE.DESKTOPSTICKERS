@@ -161,3 +161,31 @@ run("reference-style, implicit-reference, and relative links all resolve", () =>
 run("front matter is null for this document (it only appears inside a demo code fence)", () => {
   assert.strictEqual(doc.frontMatter, null);
 });
+
+run("loose list (blank line between items) stays one list node with multiple items", () => {
+  function findLists(blocks, out) {
+    blocks.forEach((b) => {
+      if (b.type === "list") out.push(b);
+      if (b.blocks) findLists(b.blocks, out);
+      if (b.items) b.items.forEach((it) => it.blocks && findLists(it.blocks, out));
+    });
+  }
+  const lists = [];
+  findLists(doc.blocks, lists);
+  // Section 4.6's list has 2 items, and the first item has multiple blocks (paragraph + continuation)
+  const looseList = lists.find(
+    (l) =>
+      l.items.length === 2 &&
+      JSON.stringify(l.items[0]).includes("Primer elemento con varios párrafos") &&
+      JSON.stringify(l.items[0]).includes("Este segundo párrafo")
+  );
+  assert.ok(looseList, "section 4.6's loose list not found");
+  assert.strictEqual(looseList.items.length, 2, "loose list should have 2 items, not be split into separate list nodes");
+});
+
+run("synthetic 3-item loose bullet list stays one list node", () => {
+  const doc2 = MarkdownParser.parse("- one\n\n- two\n\n- three\n");
+  assert.strictEqual(doc2.blocks.length, 1, "expected exactly one list block, got " + doc2.blocks.length);
+  assert.strictEqual(doc2.blocks[0].type, "list");
+  assert.strictEqual(doc2.blocks[0].items.length, 3);
+});
