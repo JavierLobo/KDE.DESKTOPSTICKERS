@@ -99,13 +99,13 @@ Window {
         })
     }
 
-    function addFontFromCombo() {
-        var name = addFontCombo.editText.trim()
+    function addFontFromField() {
+        var name = fontSearchField.text.trim()
         if (!name) return
         var prefs = appearance.fontFamilyPreferences.slice()
         prefs.push(name)
         setAppearance("fontFamilyPreferences", prefs)
-        addFontCombo.editText = ""
+        fontSearchField.text = ""
         filterFonts("")
     }
 
@@ -400,6 +400,27 @@ Window {
                             Layout.fillWidth: true
                             implicitHeight: addFontRow.implicitHeight + 16
 
+                            // A TextField + dropdown-arrow button that opens a
+                            // Popup listing installed fonts, deliberately NOT
+                            // an editable ComboBox. An editable ComboBox's
+                            // built-in autocomplete pins `currentIndex` to a
+                            // plain numeric position in its model; every time
+                            // filterFonts() below swaps in a differently-sized
+                            // filteredFontFamilies array, that same numeric
+                            // index gets reinterpreted against the NEW array
+                            // and mirrored back into the visible text.
+                            // Confirmed empirically (typing "Ari" would land
+                            // on "Adwaita Mono" -- alphabetically first in the
+                            // full list -- after a filter/clear cycle, and the
+                            // text could never be cleared) that this is a
+                            // structural mismatch between "autocomplete" and
+                            // "filter as you type into a resizable list", not
+                            // a one-line fix. A TextField has no such
+                            // coupling: its `text` is exactly what was typed
+                            // or explicitly assigned, nothing else. The arrow
+                            // button opens the same Popup with an empty
+                            // filter, so it doubles as a plain browsable list
+                            // of every installed font.
                             RowLayout {
                                 id: addFontRow
                                 x: 12
@@ -407,28 +428,59 @@ Window {
                                 width: parent.width - 24
                                 spacing: 8
 
-                                ComboBox {
-                                    id: addFontCombo
+                                TextField {
+                                    id: fontSearchField
                                     Layout.fillWidth: true
-                                    editable: true
-                                    model: filteredFontFamilies
+                                    placeholderText: I18n.t("Settings.appearance.searchFont")
                                     Accessible.name: I18n.t("Settings.appearance.searchFont")
-                                    // Qt.callLater, not a direct call: reassigning
-                                    // filteredFontFamilies (this ComboBox's own
-                                    // model) synchronously from within its own
-                                    // editTextChanged handler is exactly the
-                                    // pattern QML's binding-loop detector flags --
-                                    // the model swap can itself nudge editText,
-                                    // re-entering this handler in the same tick.
-                                    // Deferring to the next event-loop turn breaks
-                                    // that synchronous cycle.
-                                    onEditTextChanged: Qt.callLater(filterFonts, editText)
-                                    Keys.onReturnPressed: addFontFromCombo()
+                                    onTextChanged: {
+                                        filterFonts(text)
+                                        fontSuggestionsPopup.open()
+                                    }
+                                    Keys.onReturnPressed: addFontFromField()
+                                    Keys.onEscapePressed: fontSuggestionsPopup.close()
+                                }
+                                Button {
+                                    id: fontDropdownButton
+                                    text: "▾"
+                                    implicitWidth: 32
+                                    Accessible.name: I18n.t("Settings.appearance.searchFont")
+                                    onClicked: {
+                                        if (fontSuggestionsPopup.visible) {
+                                            fontSuggestionsPopup.close()
+                                        } else {
+                                            filterFonts(fontSearchField.text)
+                                            fontSuggestionsPopup.open()
+                                        }
+                                    }
                                 }
                                 Button {
                                     text: I18n.t("Settings.appearance.addFont")
-                                    enabled: addFontCombo.editText.trim().length > 0
-                                    onClicked: addFontFromCombo()
+                                    enabled: fontSearchField.text.trim().length > 0
+                                    onClicked: addFontFromField()
+                                }
+                            }
+
+                            Popup {
+                                id: fontSuggestionsPopup
+                                y: addFontRow.y + addFontRow.height + 2
+                                x: addFontRow.x
+                                width: addFontRow.width
+                                height: Math.min(220, fontSuggestionsList.contentHeight)
+                                padding: 0
+
+                                contentItem: ListView {
+                                    id: fontSuggestionsList
+                                    clip: true
+                                    model: filteredFontFamilies
+                                    delegate: ItemDelegate {
+                                        width: fontSuggestionsList.width
+                                        text: modelData
+                                        onClicked: {
+                                            fontSearchField.text = modelData
+                                            fontSuggestionsPopup.close()
+                                        }
+                                    }
                                 }
                             }
                         }
