@@ -362,6 +362,14 @@ Window {
                 ScrollView {
                     id: previewScroll
                     anchors.fill: parent
+                    // Separation between the sticker's own border and the
+                    // rendered text -- the native renderer's leaf (MdRichText)
+                    // carries no padding of its own (unlike the old
+                    // Text.MarkdownText-based preview, which got this for
+                    // free from a per-Text `padding: 10`), so it has to be
+                    // applied once here instead, at the scrollable area's edge.
+                    anchors.leftMargin: 5
+                    anchors.bottomMargin: 3
                     visible: !mainWindow.editing
                     clip: true
 
