@@ -189,3 +189,28 @@ run("synthetic 3-item loose bullet list stays one list node", () => {
   assert.strictEqual(doc2.blocks[0].type, "list");
   assert.strictEqual(doc2.blocks[0].items.length, 3);
 });
+
+// --- Added by the final-review fix wave (finding I5) ----------------------
+// stripComments() and extractLinkReferences() run before block-level fence
+// parsing, so they used to mangle content that merely LOOKS like syntax but
+// is really a code sample inside a fence.
+
+run("HTML comment inside a fenced code block is not stripped", () => {
+  const parsed = MarkdownParser.parse("```html\n<!-- comentario -->\n```\n");
+  const codeBlock = parsed.blocks.find((b) => b.type === "code");
+  assert.ok(codeBlock, "expected a fenced code block");
+  assert.ok(
+    codeBlock.content.includes("<!-- comentario -->"),
+    "comment was stripped from inside the fence: " + JSON.stringify(codeBlock.content)
+  );
+});
+
+run("link reference definition inside a fenced code block is not extracted", () => {
+  const parsed = MarkdownParser.parse("```markdown\n[ref]: https://x.com\n```\n");
+  const codeBlock = parsed.blocks.find((b) => b.type === "code");
+  assert.ok(codeBlock, "expected a fenced code block");
+  assert.ok(
+    codeBlock.content.includes("[ref]: https://x.com"),
+    "reference definition was consumed from inside the fence: " + JSON.stringify(codeBlock.content)
+  );
+});

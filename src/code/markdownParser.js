@@ -17,8 +17,62 @@ function isBlank(line) {
   return /^\s*$/.test(line);
 }
 
+// Marks every line that belongs to a fenced code block (the opening and
+// closing fence lines included) so the two pre-passes below -- comment
+// stripping and link-reference extraction -- can leave code samples alone.
+// Both of those run before parseBlocks() ever looks at a fence, so without
+// this a ```html sample containing <!-- ... --> lost its comment and a
+// ```markdown sample containing [ref]: https://x.com had that line silently
+// consumed as a real reference definition. Mirrors parseBlocks()'s own
+// fence open/close logic; indented (4-space) code blocks are out of scope.
+function fencedLineFlags(lines) {
+  var flags = new Array(lines.length);
+  for (var i = 0; i < lines.length; i++) flags[i] = false;
+  var i2 = 0;
+  while (i2 < lines.length) {
+    var fenceMatch = FENCE_RE.exec(lines[i2]);
+    if (!fenceMatch) {
+      i2++;
+      continue;
+    }
+    var fenceChar = fenceMatch[2][0];
+    var fenceLen = fenceMatch[2].length;
+    var closeRe = new RegExp("^ {0,3}(\\" + fenceChar + "{" + fenceLen + ",})\\s*$");
+    flags[i2] = true;
+    i2++;
+    while (i2 < lines.length) {
+      flags[i2] = true;
+      var isClose = closeRe.test(lines[i2]);
+      i2++;
+      if (isClose) break;
+    }
+  }
+  return flags;
+}
+
+// Strips <!-- ... --> outside fenced code blocks only. Operates on runs of
+// consecutive non-fenced lines so a multi-line comment still collapses the
+// way a whole-source regex did, while fenced lines pass through verbatim.
 function stripComments(src) {
-  return src.replace(/<!--[\s\S]*?-->/g, "");
+  var lines = src.split(/\r\n|\r|\n/);
+  var flags = fencedLineFlags(lines);
+  var out = [];
+  var buffer = [];
+  function flushBuffer() {
+    if (buffer.length === 0) return;
+    out.push(buffer.join("\n").replace(/<!--[\s\S]*?-->/g, ""));
+    buffer = [];
+  }
+  for (var i = 0; i < lines.length; i++) {
+    if (flags[i]) {
+      flushBuffer();
+      out.push(lines[i]);
+    } else {
+      buffer.push(lines[i]);
+    }
+  }
+  flushBuffer();
+  return out.join("\n");
 }
 
 // Recognized inline HTML tags -- passed through verbatim into the compiled
@@ -52,7 +106,13 @@ function slugify(text, used) {
   var slug = text
     .toLowerCase()
     .trim()
-    .replace(/[^\p{L}\p{N}\p{M}\- ]+/gu, "")
+    // Strip an explicit ASCII-punctuation set rather than allow-listing by
+    // Unicode category. `\p{L}`-style property escapes silently no-op under
+    // Qt's V4 JS engine (the whole class matches nothing, so "7. Tablas"
+    // slugified to "7.-tablas" and no #7-tablas anchor link ever resolved at
+    // runtime) even though Node/V8 handles them fine. Accented Latin
+    // characters survive here because they simply are not in this set.
+    .replace(/[!"#$%&'()*+,.\/:;<=>?@\[\]^`{|}~]/g, "")
     .replace(/\s+/g, "-");
   if (used[slug] === undefined) {
     used[slug] = 0;
@@ -121,11 +181,20 @@ function parseInline(text, ctx) {
     }
 
     // Inline math: $...$ (not $$, no newline inside, skip escaped \$).
-    if (c === "$" && text[i - 1] !== "\\" && text[i + 1] !== "$") {
+    if (
+      c === "$" &&
+      text[i - 1] !== "\\" &&
+      text[i + 1] !== "$" &&
+      text[i + 1] !== undefined &&
+      !/\s/.test(text[i + 1])
+    ) {
       var mEnd = -1;
       for (var k = i + 1; k < n; k++) {
         if (text[k] === "\n") break;
-        if (text[k] === "$" && text[k - 1] !== "\\") {
+        // The closing `$` must not be preceded by whitespace (the opening one
+        // is already checked for a following `$`). Without this, prose like
+        // "Cuesta $20 y luego $35 mas." parsed "$20 y luego $" as math.
+        if (text[k] === "$" && text[k - 1] !== "\\" && !/\s/.test(text[k - 1])) {
           mEnd = k;
           break;
         }
@@ -316,6 +385,16 @@ function matchEmphasis(text, pos, ctx) {
     if (closeIdx === -1) continue;
     var inner = rest.slice(marker.length, closeIdx);
     if (inner === "") continue;
+    // CommonMark treats `_` more strictly than `*`: an underscore run only
+    // opens/closes emphasis at a word boundary, so identifiers like
+    // archivo_de_prueba and URLs like http://x.com/a_b_c stay literal. `*`
+    // has no such rule and is left alone.
+    if (marker.charAt(0) === "_") {
+      var before = pos > 0 ? text.charAt(pos - 1) : "";
+      var after = text.charAt(pos + closeIdx + marker.length) || "";
+      var alnum = /[0-9A-Za-z]/;
+      if ((before !== "" && alnum.test(before)) || (after !== "" && alnum.test(after))) continue;
+    }
     var type = combos[c].type;
     var run;
     if (type === "strong-em") {
@@ -863,8 +942,11 @@ function extractLinkReferences(lines) {
   var refs = {};
   var kept = [];
   var refDefRe = /^ {0,3}\[([^\]]+)\]:\s*(\S+)(?:\s+"([^"]*)")?\s*$/;
+  // Lines inside a fenced code block are never reference definitions -- see
+  // fencedLineFlags(). A ```markdown sample is content, not syntax.
+  var fenced = fencedLineFlags(lines);
   for (var i = 0; i < lines.length; i++) {
-    var m = refDefRe.exec(lines[i]);
+    var m = fenced[i] ? null : refDefRe.exec(lines[i]);
     if (m && !/^\^/.test(m[1])) {
       refs[m[1].toLowerCase()] = { href: m[2], title: m[3] || null };
     } else {
