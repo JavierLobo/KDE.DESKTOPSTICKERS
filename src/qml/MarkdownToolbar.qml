@@ -82,6 +82,8 @@ Item {
 
     SystemPalette { id: pal }
 
+    // DEPRECATED: never called anywhere in the codebase. Candidate for
+    // removal in a future cleanup.
     function hasFocusTarget() {
         return target !== null
     }

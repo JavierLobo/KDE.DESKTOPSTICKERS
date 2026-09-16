@@ -362,6 +362,14 @@ Window {
                 ScrollView {
                     id: previewScroll
                     anchors.fill: parent
+                    // Separation between the sticker's own border and the
+                    // rendered text -- the native renderer's leaf (MdRichText)
+                    // carries no padding of its own (unlike the old
+                    // Text.MarkdownText-based preview, which got this for
+                    // free from a per-Text `padding: 10`), so it has to be
+                    // applied once here instead, at the scrollable area's edge.
+                    anchors.leftMargin: 5
+                    anchors.bottomMargin: 3
                     visible: !mainWindow.editing
                     clip: true
 
@@ -370,6 +378,15 @@ Window {
                         width: previewScroll.availableWidth
                         text: stickerText
                         onEditRequested: mainWindow.editing = true
+                        onScrollRequested: (y) => {
+                            // ScrollView (Qt Quick Controls 2) auto-wraps a non-Flickable child
+                            // in an internal Flickable exposed as `contentItem` -- this is the
+                            // documented way to scroll it programmatically. If this doesn't
+                            // move the view in your Qt version, use
+                            // `previewScroll.ScrollBar.vertical.position = y / preview.height`
+                            // instead.
+                            previewScroll.contentItem.contentY = y
+                        }
                     }
                 }
 

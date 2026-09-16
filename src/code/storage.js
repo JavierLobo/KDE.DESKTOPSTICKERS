@@ -29,6 +29,23 @@ function ensureDir() {
     App.FileStorage.ensureDir(dir)
 }
 
+// Distinguishes "never run before" (no stickers.json at all) from "user
+// deleted every sticker" (file exists, "stickers": [] inside it) --
+// loadAllStickers() alone can't tell these apart, since it returns []
+// either way. Used by StickerManager.js's seedDefaultStickerIfFirstRun()
+// so the welcome sticker is offered exactly once, not resurrected every
+// time someone empties their board on purpose.
+function stickersFileExists() {
+    return App.FileStorage.exists(getStickersDir() + "/stickers.json")
+}
+
+// ejemplo-markdown-completo.md is bundled as a Qt resource (CMakeLists.txt
+// RESOURCES, same pattern as LICENSE) so the welcome sticker's showcase
+// content ships with the binary regardless of install method.
+function readDemoStickerContent() {
+    return App.FileStorage.readFile(":/qt/qml/StickersApp/ejemplo-markdown-completo.md")
+}
+
 function loadAllStickers() {
     ensureDir()
     let indexPath = getStickersDir() + "/stickers.json"

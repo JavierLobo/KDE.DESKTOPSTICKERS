@@ -64,10 +64,18 @@ function hasTitle(sticker) {
 // A single-line preview of the sticker's content for the Stickers Panel's
 // second row line. If the title (see hasTitle/displayName above) came
 // from the content's own first non-empty line, that line is skipped here
-// so the snippet doesn't just repeat the title verbatim. Actual visual
-// truncation with an ellipsis is left to the QML Text/Label's own `elide`
+// so the snippet doesn't just repeat the title verbatim. Final visual
+// truncation with an ellipsis is still the QML Text/Label's own `elide`
 // -- it truncates correctly against the real available width, which a
-// fixed character count here could not.
+// fixed character count here could not -- but the string built here is
+// itself capped (both in source lines scanned and final length): with
+// only short notes in mind this used to join the ENTIRE rest of the
+// document into one string and trust `elide` to hide the excess, which
+// silently stopped being "a snippet" once the welcome sticker (the full
+// ejemplo-markdown-completo.md, several KB) existed -- a several-KB string
+// rebuilt on every row for every panel refresh, and (per the Panel's own
+// bug report) long enough to visually overflow its fixed-height row
+// instead of eliding cleanly.
 function contentSnippet(sticker) {
     if (!sticker.text) {
         return ""
@@ -84,10 +92,15 @@ function contentSnippet(sticker) {
                 continue
             }
             rest.push(lines[i])
+            // A handful of lines is already far more than any single row
+            // could ever show -- stop early instead of scanning/joining a
+            // whole multi-KB document just to throw most of it away below.
+            if (rest.length >= 5) break
         }
         text = rest.join(" ")
     }
-    return text.replace(/\s+/g, " ").trim()
+    var collapsed = text.replace(/\s+/g, " ").trim()
+    return collapsed.length > 200 ? collapsed.substring(0, 200) : collapsed
 }
 
 var MONTH_ABBREVIATIONS_ES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
@@ -130,6 +143,35 @@ function formatRelativeDate(isoString) {
 function loadStickers() {
     stickers = Storage.loadAllStickers()
     return stickers
+}
+
+// Called once from Main.qml's Component.onCompleted, before loadStickers().
+// On a genuinely fresh install (no stickers.json on disk yet -- see
+// Storage.stickersFileExists()) this creates one welcome sticker loaded
+// with ejemplo-markdown-completo.md's content, so a first-time user
+// immediately sees a real showcase of what the Markdown preview can do
+// instead of an empty desktop. A no-op on every later launch, including
+// after the user deletes every sticker on purpose (the file still exists
+// then, just with an empty "stickers" array).
+function seedDefaultStickerIfFirstRun() {
+    if (Storage.stickersFileExists()) return
+
+    var appearance = Settings.get().appearance
+    var sticker = {
+        id: Storage.newStickerId(),
+        name: "",
+        text: Storage.readDemoStickerContent(),
+        color: "#FFD700",
+        x: 100,
+        y: 100,
+        width: 420,
+        height: 500,
+        pinned: false,
+        fontFamily: System.SystemIntegration.resolveFontFamily(appearance.fontFamilyPreferences, "Sans Serif"),
+        fontSize: appearance.fontSize
+    }
+    stickers.push(sticker)
+    Storage.saveSticker(sticker)
 }
 
 function updatePosition(id, x, y) {

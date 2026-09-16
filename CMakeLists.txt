@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.16)
 # hand-bumped default. Plain local builds (install.sh included) don't pass
 # this, so they just get the fallback below.
 if(NOT DEFINED APP_VERSION)
-    set(APP_VERSION "1.1.0")
+    set(APP_VERSION "1.1.1")
 endif()
 project(desktop-stickers VERSION ${APP_VERSION} LANGUAGES CXX)
 
@@ -78,6 +78,19 @@ qt_add_qml_module(desktop-stickers
         src/qml/MarkdownToolbar.qml
         src/qml/I18n.qml
         src/qml/AboutDialog.qml
+        src/qml/markdown/MdRichText.qml
+        src/qml/markdown/MdBlockList.qml
+        src/qml/markdown/MdHeading.qml
+        src/qml/markdown/MdParagraph.qml
+        src/qml/markdown/MdHr.qml
+        src/qml/markdown/MdCodeBlock.qml
+        src/qml/markdown/MdTable.qml
+        src/qml/markdown/MdList.qml
+        src/qml/markdown/MdBlockquote.qml
+        src/qml/markdown/MdCallout.qml
+        src/qml/markdown/MdDeflist.qml
+        src/qml/markdown/MdHtmlBlock.qml
+        src/qml/markdown/MdFootnotes.qml
     RESOURCES
         # Plain JSON data, not QML/JS -- bundled at the SAME resource path
         # QML_FILES entries get (this module's RESOURCE_PREFIX + the given
@@ -92,6 +105,10 @@ qt_add_qml_module(desktop-stickers
         # Qt.openUrlExternally() needs a file: URL an external app can read,
         # not a qrc: one.
         LICENSE
+        # Bundled so a truly fresh install (no stickers.json yet) can seed
+        # a "welcome" sticker showcasing what the app's Markdown preview can
+        # do -- see StickerManager.js's seedDefaultStickerIfFirstRun().
+        ejemplo-markdown-completo.md
     SOURCES
         src/filestorage.h
         src/filestorage.cpp
@@ -120,6 +137,8 @@ qt_target_qml_sources(desktop-stickers
         src/code/storage.js
         src/qml/SettingsManager.js
         src/code/settingsStorage.js
+        src/code/markdownParser.js
+        src/code/syntaxHighlight.js
     NO_CACHEGEN
 )
 
