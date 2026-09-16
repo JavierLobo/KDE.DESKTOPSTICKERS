@@ -21,7 +21,8 @@ function fixObjectPrototypes(obj) {
     }
     return arr;
   }
-  if (obj instanceof Date || obj instanceof RegExp || obj instanceof Error) {
+  const tag = Object.prototype.toString.call(obj);
+  if (tag === "[object Date]" || tag === "[object RegExp]" || tag === "[object Error]") {
     return obj;
   }
   // For plain objects, recreate with the main context's Object.prototype

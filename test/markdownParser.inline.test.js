@@ -90,3 +90,48 @@ run("slugify matches GitHub's algorithm", () => {
   assert.strictEqual(MarkdownParser.slugify("7. Tablas", used), "7-tablas");
   assert.strictEqual(MarkdownParser.slugify("6.3 Bloques delimitados con resaltado de sintaxis", used), "63-bloques-delimitados-con-resaltado-de-sintaxis");
 });
+
+run("parseInline returns correctly nested structure (deep structure test)", () => {
+  // This test exercises the recursive fixObjectPrototypes path by checking the full
+  // nested Run structure with deepStrictEqual, not just the rendered HTML output.
+  // Triple-combo: ***~~texto~~*** produces strong -> em -> strike -> text nesting.
+  const runs = MarkdownParser.parseInline("***~~texto~~***", ctx());
+  assert.strictEqual(runs.length, 1, "Triple-combo should produce one top-level run");
+  const strongRun = runs[0];
+  assert.strictEqual(strongRun.type, "strong", "Outermost should be strong");
+  assert.ok(Array.isArray(strongRun.children), "strong run should have children array");
+  assert.strictEqual(strongRun.children.length, 1, "strong should have one child");
+
+  const emRun = strongRun.children[0];
+  assert.strictEqual(emRun.type, "em", "Second level should be em");
+  assert.ok(Array.isArray(emRun.children), "em run should have children array");
+  assert.strictEqual(emRun.children.length, 1, "em should have one child");
+
+  const strikeRun = emRun.children[0];
+  assert.strictEqual(strikeRun.type, "strike", "Third level should be strike");
+  assert.ok(Array.isArray(strikeRun.children), "strike run should have children array");
+  assert.strictEqual(strikeRun.children.length, 1, "strike should have one child");
+
+  const textRun = strikeRun.children[0];
+  assert.deepStrictEqual(textRun, { type: "text", text: "texto" }, "Innermost should be text run");
+
+  // Final deepStrictEqual on entire structure exercises fixObjectPrototypes recursively
+  assert.deepStrictEqual(runs, [
+    {
+      type: "strong",
+      children: [
+        {
+          type: "em",
+          children: [
+            {
+              type: "strike",
+              children: [
+                { type: "text", text: "texto" }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]);
+});
