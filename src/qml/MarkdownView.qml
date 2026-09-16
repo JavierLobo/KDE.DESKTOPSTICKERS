@@ -1,4 +1,5 @@
 import QtQuick
+import StickersApp
 import "../code/markdownParser.js" as MarkdownParser
 
 // Rewritten on top of a hand-rolled parser (src/code/markdownParser.js) and

@@ -43,7 +43,11 @@ Item {
                 MdRichText {
                     id: summaryText
                     width: parent.width - 20
-                    richText: root.node ? "<b>" + MarkdownParser.renderInline(root.node.summaryInline) + "</b>" : ""
+                    // Guarded on isDetails, not just on `node`: a <div> node is
+                    // truthy but carries `inline`, not `summaryInline`, so the
+                    // unguarded form called renderInline(undefined) and threw
+                    // "Cannot call method 'map' of undefined" for every <div>.
+                    richText: root.isDetails ? "<b>" + MarkdownParser.renderInline(root.node.summaryInline) + "</b>" : ""
                     onEditRequested: root.editRequested()
                 }
             }
@@ -66,7 +70,13 @@ Item {
     MdRichText {
         id: divText
         visible: !root.isDetails
-        anchors.fill: parent
+        // left/right/top, never `fill`: root.height depends on
+        // divText.implicitHeight, so filling the parent would make the height
+        // depend on itself ("Binding loop detected"). Same pattern as
+        // MdCodeBlock.qml's Column.
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
         anchors.margins: 8
         horizontalAlignment: root.node && root.node.attrs && root.node.attrs.align === "center" ? Text.AlignHCenter : Text.AlignLeft
         richText: !root.isDetails && root.node ? MarkdownParser.renderInline(root.node.inline) : ""

@@ -77,7 +77,10 @@ Rectangle {
             width: parent.width
             textFormat: Text.RichText
             wrapMode: Text.Wrap
-            font.families: ["JetBrains Mono", "Consolas", "Monospace"]
+            // Single family, not a chain -- QML's `font` grouped property has
+            // no `families` member; see the same note in MdRichText.qml.
+            // fontconfig resolves "Monospace" to the system default mono font.
+            font.family: "Monospace"
             font.pixelSize: 13 // ~0.9x MdRichText's 14px prose size, per the spec's code-sizing rule
             text: root.node ? root.highlightedHtml() : ""
         }
