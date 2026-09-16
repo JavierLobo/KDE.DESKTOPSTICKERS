@@ -120,6 +120,7 @@ qt_target_qml_sources(desktop-stickers
         src/code/storage.js
         src/qml/SettingsManager.js
         src/code/settingsStorage.js
+        src/code/markdownParser.js
     NO_CACHEGEN
 )
 
