@@ -1,9 +1,14 @@
 import QtQuick
 
-// Plain blockquote for now (Task 5 adds an MdCallout branch when
-// node.calloutType is set). Already written as a Loader that binds
-// `node: root.node` on its content, not an imperative onLoaded assignment,
-// so Task 5's added branch stays correctly reactive.
+// Plain blockquote, or an MdCallout when node.calloutType is set (GitHub
+// "> [!NOTE]"-style, detected during parsing -- see markdownParser.js).
+//
+// The inner components bind `node: root.node` (a live property binding),
+// NOT an imperative `onLoaded: item.node = ...` -- Loader.onLoaded only
+// fires when the component actually (re)loads, so for whichever branch
+// loads first with node still null, an onLoaded-time assignment would never
+// re-run once `node` is set moments later unless that also happens to
+// trigger a reload. A direct binding stays live regardless.
 Loader {
     id: root
     property var node: null
@@ -11,7 +16,16 @@ Loader {
     signal anchorRequested(string slug)
 
     width: parent ? parent.width : 0
-    sourceComponent: plainComp
+    sourceComponent: node && node.calloutType ? calloutComp : plainComp
+
+    Component {
+        id: calloutComp
+        MdCallout {
+            node: root.node
+            onEditRequested: root.editRequested()
+            onAnchorRequested: (slug) => root.anchorRequested(slug)
+        }
+    }
 
     Component {
         id: plainComp

@@ -87,6 +87,7 @@ qt_add_qml_module(desktop-stickers
         src/qml/markdown/MdTable.qml
         src/qml/markdown/MdList.qml
         src/qml/markdown/MdBlockquote.qml
+        src/qml/markdown/MdCallout.qml
         src/qml/markdown/MdDeflist.qml
         src/qml/markdown/MdHtmlBlock.qml
     RESOURCES
