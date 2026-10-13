@@ -57,7 +57,11 @@ Window {
     // call and the delete dialog's explicit call; calling unregisterWindow
     // twice for the same id is harmless (it's just `delete openWindows[id]`,
     // idempotent).
-    onClosing: if (appRoot) appRoot.unregisterWindow(stickerId)
+    //
+    // stickerWindowClosed() also persists visible=false for this sticker, so
+    // it stays closed on the next launch (see Main.qml for why that write
+    // is deferred).
+    onClosing: if (appRoot) appRoot.stickerWindowClosed(stickerId)
     // Window (unlike Item) has no QML-visible "parent" property, so
     // mainWindow.parent.createNewSticker(...) -- the brief's literal "+"
     // button handler -- evaluates mainWindow.parent as undefined and
@@ -74,7 +78,11 @@ Window {
     x: posX
     y: posY
     visible: true
-    flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
+    // No Qt.WindowStaysOnTopHint: stickers are meant to stack like any other
+    // window. Wayland clients can't request "keep above" at all, so the hint
+    // was silently ignored there -- but under Plasma X11 KWin honored it and
+    // every sticker floated over every other application.
+    flags: Qt.FramelessWindowHint
     color: "transparent"
     // Unique per window so KWin window rules can address one specific
     // sticker (matched by wmclass + title together) instead of every
@@ -431,8 +439,34 @@ Window {
                             font.family: mainWindow.stickerFontFamily
                             font.pixelSize: mainWindow.stickerFontSize
 
+                            // Tab/Shift+Tab indent/outdent by 4 spaces instead of
+                            // inserting a literal "\t" -- 4 spaces is what the
+                            // Markdown parser needs to nest a sub-list under a
+                            // "* " or "1. " item.
+                            Keys.onTabPressed: (event) => mainWindow.indentSelection(false)
+                            Keys.onBacktabPressed: (event) => mainWindow.indentSelection(true)
+
+                            // Our own context menu instead of relying on
+                            // TextArea's built-in one (Qt >= 6.9 only): that
+                            // one is a Popup that takes focus, which the
+                            // focus-loss commit below read as "done editing"
+                            // and closed edit mode before Cut/Copy/Paste could
+                            // be picked. Accepting the right press here also
+                            // keeps the built-in menu from opening, and leaves
+                            // the current selection untouched.
+                            MouseArea {
+                                anchors.fill: parent
+                                acceptedButtons: Qt.RightButton
+                                cursorShape: Qt.IBeamCursor
+                                onPressed: (mouse) => editContextMenu.popup()
+                            }
+
                             onActiveFocusChanged: {
                                 if (activeFocus || !mainWindow.editing) return
+                                // Same reason as the overflow menu below: the
+                                // context menu legitimately holds focus while
+                                // open; its onClosed hands focus back.
+                                if (editContextMenu.visible) return
                                 // The toolbar's own buttons no longer steal
                                 // focus (focusPolicy: Qt.NoFocus). Its
                                 // overflow Menu (compact mode's "▾") is a
@@ -452,6 +486,75 @@ Window {
                     }
                 }
             }
+        }
+    }
+
+    // Indents (or, with outdent, un-indents) every line touched by the
+    // selection -- or just the cursor's line -- by 4 spaces. Edits through
+    // remove()/insert() like MarkdownToolbar does, so undo keeps working.
+    function indentSelection(outdent) {
+        var full = editArea.text
+        var start = editArea.selectionStart
+        var end = editArea.selectionEnd
+        if (!outdent && start === end) {
+            editArea.insert(start, "    ")
+            return
+        }
+        var lineStart = full.lastIndexOf("\n", start - 1) + 1
+        var lineEnd = full.indexOf("\n", end > start ? end - 1 : end)
+        if (lineEnd === -1) lineEnd = full.length
+        var lines = full.substring(lineStart, lineEnd).split("\n")
+        var firstDelta = 0
+        var newLines = lines.map(function(l, i) {
+            var out = outdent ? l.replace(/^ {1,4}/, "") : "    " + l
+            if (i === 0) firstDelta = out.length - l.length
+            return out
+        })
+        var newBlock = newLines.join("\n")
+        editArea.remove(lineStart, lineEnd)
+        editArea.insert(lineStart, newBlock)
+        if (start === end) {
+            editArea.cursorPosition = Math.max(lineStart, start + firstDelta)
+        } else {
+            editArea.select(lineStart, lineStart + newBlock.length)
+        }
+    }
+
+    Menu {
+        id: editContextMenu
+        onClosed: if (mainWindow.editing) editArea.forceActiveFocus()
+
+        MenuItem {
+            text: I18n.t("StickerWindow.edit.undo")
+            enabled: editArea.canUndo
+            onTriggered: editArea.undo()
+        }
+        MenuItem {
+            text: I18n.t("StickerWindow.edit.redo")
+            enabled: editArea.canRedo
+            onTriggered: editArea.redo()
+        }
+        MenuSeparator {}
+        MenuItem {
+            text: I18n.t("StickerWindow.edit.cut")
+            enabled: editArea.selectedText.length > 0
+            onTriggered: editArea.cut()
+        }
+        MenuItem {
+            text: I18n.t("StickerWindow.edit.copy")
+            enabled: editArea.selectedText.length > 0
+            onTriggered: editArea.copy()
+        }
+        MenuItem {
+            text: I18n.t("StickerWindow.edit.paste")
+            enabled: editArea.canPaste
+            onTriggered: editArea.paste()
+        }
+        MenuSeparator {}
+        MenuItem {
+            text: I18n.t("StickerWindow.edit.selectAll")
+            enabled: editArea.length > 0
+            onTriggered: editArea.selectAll()
         }
     }
 

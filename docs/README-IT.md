@@ -23,12 +23,12 @@ decorazioni, con posizione e dimensione persistenti, e visibilità su
 tutti i desktop virtuali come opzione per singolo sticker (pin).
 
 <p align="center">
-  <img src="../img/screenshot-desktop.png" alt="Sticker fluttuanti sul desktop di KDE Plasma" width="720">
+  <img src="../img/screenshot-desktop-1.2.0.png" alt="Sticker fluttuanti sul desktop di KDE Plasma" width="720">
 </p>
 
 ## Requisiti
 
-- Plasma 6.x (verificato con 6.7.4) e KWin, sessione Wayland
+- Plasma 6.x (verificato con 6.7.4) e KWin, sessione Wayland o X11
 - Qt 6.4+ (`Core`, `Gui`, `Qml`, `Quick`, `Widgets`, `DBus`)
 - CMake, Bash
 
@@ -56,6 +56,9 @@ problemi) e `QA_CHECKLIST.md` per la checklist di verifica manuale.
   (`desktopstickers-sticker-<id>`)
 - Ridimensiona dall'angolo in basso a destra, con la dimensione salvata
   e ripristinata come la posizione
+- Gli sticker si impilano come qualsiasi altra finestra: finiscono
+  sotto l'applicazione che ha il focus, sia su Wayland sia su X11 (non
+  restano "sempre in primo piano")
 - Pin per sticker (pulsante 📍/📌): opt-in individuale per rendere
   quello sticker visibile su tutti i desktop virtuali
   contemporaneamente, tramite la stessa regola finestra di KWin dello
@@ -67,7 +70,8 @@ problemi) e `QA_CHECKLIST.md` per la checklist di verifica manuale.
   alternanza automatica: click per modificare, perdita del focus per
   tornare all'anteprima renderizzata
 - **Barra degli strumenti di formattazione Markdown** durante la
-  modifica: grassetto, corsivo, barrato, titoli H1-H3, elenco puntato,
+  modifica: grassetto, corsivo, sottolineato (`<u>…</u>`, Ctrl+U),
+  barrato, titoli H1-H3, elenco puntato,
   elenco numerato, elenco di attività, link, immagine, codice inline,
   citazione, blocco di codice, riga orizzontale e tabella (con
   selettore di righe/colonne) — ogni pulsante alterna la selezione e ha
@@ -79,6 +83,16 @@ problemi) e `QA_CHECKLIST.md` per la checklist di verifica manuale.
 - Nell'anteprima i link sono cliccabili (si aprono con il gestore URL
   di sistema) e i blocchi di codice vengono mostrati in un riquadro con
   sfondo differenziato
+- Testo selezionabile nell'anteprima: trascinando lo si seleziona
+  (anche nei blocchi di codice) e Ctrl+C lo copia; un semplice click
+  continua ad aprire la modifica
+- Elenchi annidati leggibili: i sotto-punti si mostrano con un trattino
+  (`-`) e un rientro di 4 spazi, e gli elenchi numerati annidati
+  proseguono la numerazione del genitore (`1.` → `1.1` → `1.2.1`)
+- In modifica, il click destro apre un menu proprio (Annulla, Ripeti,
+  Taglia, Copia, Incolla, Seleziona tutto) senza uscire dalla modifica, e
+  Tab/Shift+Tab aumentano o riducono di 4 spazi il rientro delle righe
+  selezionate (ciò che serve al Markdown per annidare un sotto-elenco)
 - Contenuto con scroll: una nota lunga non fuoriesce mai dallo sticker,
   e l'area di modifica scorre automaticamente per mantenere visibile
   il cursore durante la digitazione
@@ -102,10 +116,17 @@ problemi) e `QA_CHECKLIST.md` per la checklist di verifica manuale.
 - L'icona nel vassoio di sistema elenca le 10 note modificate più di
   recente (senza paginazione) — ogni riga apre o riporta in primo
   piano quella nota
+- **Nascondi sticker / Mostra sticker** nel menu del vassoio (subito
+  sotto "Nuovo sticker"): nasconde in un colpo tutti gli sticker visibili
+  e li mostra di nuovo nello stesso punto. È temporaneo: non conta come
+  chiuderli, quindi al riavvio dell'app ricompaiono
 - Il pulsante "✕" dello sticker chiude solo la sua finestra — la nota
   continua a esistere e può essere riaperta dal menu del vassoio o dal
   Pannello. Eliminare una nota è un'azione separata, sempre con
   un'opzione di annullamento
+- Ogni sticker ricorda se era aperto o chiuso: uno chiuso (con "✕",
+  Alt+F4 o il menu finestra di KWin) resta chiuso al riavvio dell'app.
+  Uscire dal vassoio o chiudere la sessione non conta come chiuderli
 - **Pannello delle Impostazioni** (click destro sull'icona nel vassoio
   → Opzioni → Impostazioni): aspetto (colore/caratteri), comportamento
   (visibilità predefinita della barra Markdown, conferma di
@@ -115,7 +136,8 @@ problemi) e `QA_CHECKLIST.md` per la checklist di verifica manuale.
 - **Interfaccia multilingua**: selettore della lingua nelle
   Impostazioni, con il nome di ogni lingua scritto nella lingua stessa
   (ad es. "Español", non "Spagnolo") accanto alla propria bandiera.
-  Distribuita con spagnolo, inglese, francese e russo — ogni lingua è
+  Distribuita con spagnolo, inglese, francese, russo, italiano,
+  tedesco, cinese e giapponese — ogni lingua è
   un file JSON autonomo sotto `src/i18n/`, rilevato automaticamente
   sia in fase di build sia in fase di esecuzione
 - **Sottomenu "Opzioni"** nel menu del vassoio: Aiuto (documentazione
@@ -158,6 +180,7 @@ Gli sticker vengono salvati in
       "width": 300,
       "height": 250,
       "pinned": false,
+      "visible": true,
       "fontFamily": "Liberation Serif",
       "fontSize": 10,
       "created": "2026-08-17T10:30:00Z",
@@ -166,6 +189,10 @@ Gli sticker vengono salvati in
   ]
 }
 ```
+
+`visible` indica se la finestra dello sticker si apre all'avvio dell'app
+(un record senza quel campo, delle versioni precedenti alla v1.2.0, conta
+come visibile).
 
 Le preferenze dell'app sono salvate separatamente, in
 `$XDG_CONFIG_HOME/desktop-stickers/settings.json` (tipicamente

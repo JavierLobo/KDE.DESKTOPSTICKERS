@@ -24,12 +24,12 @@ sowie optionaler, pro Sticker einzeln aktivierbarer Sichtbarkeit auf
 allen virtuellen Arbeitsflächen (Pin).
 
 <p align="center">
-  <img src="../img/screenshot-desktop.png" alt="Schwebende Sticker auf dem KDE-Plasma-Desktop" width="720">
+  <img src="../img/screenshot-desktop-1.2.0.png" alt="Schwebende Sticker auf dem KDE-Plasma-Desktop" width="720">
 </p>
 
 ## Voraussetzungen
 
-- Plasma 6.x (getestet mit 6.7.4) und KWin, Wayland-Sitzung
+- Plasma 6.x (getestet mit 6.7.4) und KWin, Wayland- oder X11-Sitzung
 - Qt 6.4+ (`Core`, `Gui`, `Qml`, `Quick`, `Widgets`, `DBus`)
 - CMake, Bash
 
@@ -58,6 +58,9 @@ Prüfliste in `QA_CHECKLIST.md`.
   Sticker (`desktopstickers-sticker-<id>`)
 - Größe von der unteren rechten Ecke aus ändern, wobei die Größe auf
   dieselbe Weise wie die Position gespeichert und wiederhergestellt wird
+- Sticker stapeln sich wie jedes andere Fenster: Sie landen hinter der
+  Anwendung mit dem Fokus, unter Wayland wie unter X11 (sie bleiben
+  nicht "immer im Vordergrund")
 - Pin pro Sticker (Schaltfläche 📍/📌): einzeln aktivierbar, damit
   dieser Sticker gleichzeitig auf allen virtuellen Arbeitsflächen
   sichtbar ist, über dieselbe KWin-Fensterregel des Stickers; ohne Pin
@@ -70,7 +73,7 @@ Prüfliste in `QA_CHECKLIST.md`.
   automatischem Wechsel: Klicken zum Bearbeiten, Fokusverlust für die
   Rückkehr zur gerenderten Vorschau
 - **Markdown-Formatierungsleiste** während der Bearbeitung: Fett,
-  Kursiv, Durchgestrichen, Überschriften H1-H3, Aufzählungsliste,
+  Kursiv, Unterstrichen (`<u>…</u>`, Strg+U), Durchgestrichen, Überschriften H1-H3, Aufzählungsliste,
   nummerierte Liste, Aufgabenliste, Link, Bild, Inline-Code, Zitat,
   Codeblock, horizontale Linie und Tabelle (mit Zeilen-/Spaltenauswahl)
   — jede Schaltfläche wirkt auf die aktuelle Auswahl und hat ihr eigenes
@@ -82,6 +85,17 @@ Prüfliste in `QA_CHECKLIST.md`.
 - In der Vorschau sind Links anklickbar (öffnen über den URL-Handler
   des Systems), und eingezäunte Codeblöcke werden in einem Kasten mit
   abgesetztem Hintergrund dargestellt
+- Markierbarer Vorschautext: Ziehen markiert ihn (auch in Codeblöcken)
+  und Strg+C kopiert ihn; ein einfacher Klick öffnet weiterhin die
+  Bearbeitung
+- Lesbare verschachtelte Listen: Unterpunkte erscheinen mit Strich (`-`)
+  und 4 Leerzeichen Einzug, verschachtelte nummerierte Listen setzen die
+  Nummerierung des Elternelements fort (`1.` → `1.1` → `1.2.1`)
+- Beim Bearbeiten öffnet ein Rechtsklick ein eigenes Menü (Rückgängig,
+  Wiederholen, Ausschneiden, Kopieren, Einfügen, Alles auswählen), ohne
+  die Bearbeitung zu verlassen, und Tab/Umschalt+Tab rücken die
+  markierten Zeilen um 4 Leerzeichen ein bzw. aus (was Markdown zum
+  Verschachteln einer Unterliste braucht)
 - Scrollbarer Inhalt: eine lange Notiz läuft nie über den Sticker
   hinaus, und der Bearbeitungsbereich scrollt beim Tippen automatisch
   mit, damit der Cursor sichtbar bleibt
@@ -105,10 +119,18 @@ Prüfliste in `QA_CHECKLIST.md`.
 - Das Symbol im Systembereich listet die 10 zuletzt geänderten Notizen
   auf (ohne Seitennummerierung) — jede Zeile öffnet die Notiz oder holt
   sie in den Vordergrund
+- **Sticker ausblenden / Sticker einblenden** im Tray-Menü (direkt unter
+  "Neuer Sticker"): blendet alle sichtbaren Sticker auf einmal aus und
+  holt sie an derselben Stelle zurück. Das ist vorübergehend — es gilt
+  nicht als Schließen, beim Neustart der App erscheinen sie wieder
 - Die Schaltfläche "✕" eines Stickers schließt nur dessen Fenster — die
   Notiz besteht weiterhin und kann über das Tray-Menü oder das Panel
   wieder geöffnet werden. Das Löschen einer Notiz ist eine eigene
   Aktion, stets mit einer Rückgängig-Option
+- Jeder Sticker merkt sich, ob er offen oder geschlossen war: Ein
+  geschlossener (per "✕", Alt+F4 oder KWin-Fenstermenü) bleibt beim
+  Neustart der App geschlossen. Beenden über das Tray-Menü oder
+  Abmelden zählt nicht als Schließen
 - **Einstellungsfenster** (Rechtsklick auf das Tray-Symbol → Optionen
   → Einstellungen): Erscheinungsbild (Farbe/Schriftarten), Verhalten
   (Standard-Sichtbarkeit der Markdown-Leiste, Löschbestätigung, Aktion
@@ -118,7 +140,8 @@ Prüfliste in `QA_CHECKLIST.md`.
 - **Mehrsprachige Oberfläche**: Sprachauswahl in den Einstellungen,
   wobei der Name jeder Sprache in sich selbst geschrieben ist (z. B.
   "Español", nicht "Spanisch") neben ihrer Flagge. Wird mit Spanisch,
-  Englisch, Französisch und Russisch ausgeliefert — jede Sprache ist
+  Englisch, Französisch, Russisch, Italienisch, Deutsch, Chinesisch
+  und Japanisch ausgeliefert — jede Sprache ist
   eine eigenständige JSON-Datei unter `src/i18n/`, sowohl beim
   Kompilieren als auch zur Laufzeit automatisch erkannt
 - **"Optionen"-Untermenü** im Tray-Menü: Hilfe (Dokumentation auf
@@ -162,6 +185,7 @@ gespeichert (typischerweise
       "width": 300,
       "height": 250,
       "pinned": false,
+      "visible": true,
       "fontFamily": "Liberation Serif",
       "fontSize": 10,
       "created": "2026-08-17T10:30:00Z",
@@ -170,6 +194,10 @@ gespeichert (typischerweise
   ]
 }
 ```
+
+`visible` gibt an, ob das Fenster des Stickers beim App-Start geöffnet
+wird (ein Eintrag ohne dieses Feld, aus Versionen vor v1.2.0, gilt als
+sichtbar).
 
 Die App-Einstellungen werden separat gespeichert, in
 `$XDG_CONFIG_HOME/desktop-stickers/settings.json` (typischerweise

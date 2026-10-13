@@ -10,9 +10,14 @@ Item {
     id: root
 
     property var openWindows: ({})
+    // Object.keys(openWindows).length, kept as a real property so the tray's
+    // "Ocultar stickers" item can bind its enabled state to it -- a plain JS
+    // object's key count isn't something QML can track by itself.
+    property int openCount: 0
     property var noteList: []
     property var trayNotes: []
     readonly property int maxTrayNotes: 10
+    readonly property string donateUrl: "https://github.com/sponsors/JavierLobo"
 
     // Live binding to Plasma/Qt's current theme accent color, used as the
     // "accent" option for appearance.defaultColorMode -- a QML item
@@ -37,18 +42,23 @@ Item {
         Manager.seedDefaultStickerIfFirstRun()
         var loaded = Manager.loadStickers()
         for (var i = 0; i < loaded.length; i++) {
-            createStickerWindow(loaded[i])
+            // A sticker the user closed stays closed across restarts; it's
+            // still reachable from the tray's note list and the panel.
+            if (loaded[i].visible !== false) {
+                createStickerWindow(loaded[i])
+            }
         }
         refreshNoteList()
         // See the comment above trayMenu's closing brace for why this has
         // to be wired explicitly instead of just nesting optionsMenu
         // declaratively inside trayMenu. Position is deterministic given
         // the static tray menu structure: newSticker(1) + separator(1) +
-        // notes(maxTrayNotes) + separator(1) + stickerPanel(1) +
-        // separator(1) = index of the second (pre-quit) separator, i.e.
-        // exactly where Options belongs -- between the two adjacent
-        // separators.
-        trayMenu.insertMenu(5 + maxTrayNotes, optionsMenu)
+        // the static tray menu structure: newSticker(1) + hideStickers(1) +
+        // separator(1) + notes(maxTrayNotes) + separator(1) +
+        // stickerPanel(1) + separator(1) = index of the second (pre-quit)
+        // separator, i.e. exactly where Options belongs -- between the two
+        // adjacent separators.
+        trayMenu.insertMenu(6 + maxTrayNotes, optionsMenu)
         // Must run AFTER the insertMenu() call above -- see the comment on
         // optionsMenu's declaration for why these items are wired in here
         // instead of nested declaratively inside it.
@@ -61,6 +71,11 @@ Item {
         optionsMenu.addItem(settingsMenuItem)
         optionsMenu.addItem(optionsSep4)
         optionsMenu.addItem(aboutMenuItem)
+        // optionsMenu is declared `visible: false` (see trayMenu's comment
+        // for why), and on a submenu that same property also hides its entry
+        // in the parent menu. Re-show just the entry: items[] holds the
+        // MenuItem insertMenu() created for it, at the index used above.
+        trayMenu.items[6 + maxTrayNotes].visible = true
     }
 
     function createStickerWindow(sticker) {
@@ -89,6 +104,7 @@ Item {
         if (w) {
             w.show()
             registerWindow(sticker.id, w)
+            Manager.updateVisible(sticker.id, true)
         }
         return w
     }
@@ -101,10 +117,76 @@ Item {
 
     function registerWindow(id, win) {
         openWindows[id] = win
+        openCount = Object.keys(openWindows).length
     }
 
     function unregisterWindow(id) {
         delete openWindows[id]
+        openCount = Object.keys(openWindows).length
+    }
+
+    // -- Per-sticker "visible" persistence ------------------------------------
+    // StickerWindow's onClosing lands here for every user close path ("✕",
+    // Alt+F4, KWin's window menu). The write to stickers.json is deferred on
+    // purpose: QGuiApplication::quit() -- the tray's "Salir", but also a
+    // session logout asking the app to quit -- first sends a close event to
+    // every top-level window, which would otherwise mark *every* sticker as
+    // closed on the way out and leave the desktop empty on the next login.
+    // quit() leaves the event loop in that same call, so this timer never
+    // fires during a shutdown, while a real close persists ~250ms later.
+    // `quitting` additionally covers the tray's own "Salir" explicitly.
+    property bool quitting: false
+    property var pendingClosedIds: []
+
+    function stickerWindowClosed(id) {
+        unregisterWindow(id)
+        pendingClosedIds.push(id)
+        closePersistTimer.restart()
+    }
+
+    Timer {
+        id: closePersistTimer
+        interval: 250
+        onTriggered: {
+            var ids = root.pendingClosedIds
+            root.pendingClosedIds = []
+            if (root.quitting) return
+            for (var i = 0; i < ids.length; i++) {
+                // A window reopened within the delay is registered again --
+                // don't clobber its visible=true.
+                if (!root.openWindows[ids[i]]) {
+                    Manager.updateVisible(ids[i], false)
+                }
+            }
+        }
+    }
+
+    // -- "Ocultar stickers" / "Mostrar stickers" (tray menu) ------------------
+    // A temporary, session-only hide: windows are hide()-den, not closed, so
+    // no closing signal fires and each sticker's persisted "visible" stays
+    // as it was -- they all come back on the next launch, or on "Mostrar".
+    property bool stickersHidden: false
+    property var hiddenIds: []
+
+    function toggleStickersHidden() {
+        if (stickersHidden) {
+            for (var i = 0; i < hiddenIds.length; i++) {
+                var win = openWindows[hiddenIds[i]]
+                if (win && !win.visible) win.show()
+            }
+            hiddenIds = []
+            stickersHidden = false
+            return
+        }
+        var ids = []
+        for (var id in openWindows) {
+            if (openWindows[id].visible) {
+                openWindows[id].hide()
+                ids.push(id)
+            }
+        }
+        hiddenIds = ids
+        stickersHidden = true
     }
 
     function openOrFocusSticker(id) {
@@ -341,6 +423,11 @@ Item {
     }
 
     function openAboutDialog() {
+        // Only when it's not already open -- re-centering a visible window
+        // would yank it away from wherever the user moved it.
+        if (!aboutDialog.visible) {
+            aboutDialog.centerOnScreen()
+        }
         aboutDialog.show()
         aboutDialog.raise()
         aboutDialog.requestActivate()
@@ -349,6 +436,7 @@ Item {
     AboutDialog {
         id: aboutDialog
         visible: false
+        donateUrl: root.donateUrl
     }
 
     // LICENSE is bundled as a Qt resource (CMakeLists.txt RESOURCES) so it's
@@ -386,9 +474,28 @@ Item {
 
         menu: Platform.Menu {
             id: trayMenu
+            // Not "hide the tray menu": on Plasma the platform theme
+            // (plasma-integration's SystemTrayMenu) backs each tray menu with
+            // a real QMenu, and its setVisible() is a literal
+            // QMenu::setVisible() -- which Qt.labs.platform calls with this
+            // property on every sync. Left at the default `true`, X11 showed
+            // this menu and optionsMenu as two stray popups at the screen's
+            // top-left corner on every launch (Wayland just failed to map
+            // them: the "Failed to create grabbing popup" warnings). The real
+            // right-click menu doesn't use this flag -- Plasma draws it from
+            // the DBusMenu export.
+            visible: false
             Platform.MenuItem {
                 text: I18n.t("Main.trayMenu.newSticker")
                 onTriggered: root.createNewSticker(100, 100)
+            }
+            // Text/enabled changes only -- never inserted/removed -- for the
+            // same "no structural tray-menu change" reason as the notes
+            // Instantiator below.
+            Platform.MenuItem {
+                text: root.stickersHidden ? I18n.t("Main.trayMenu.showStickers") : I18n.t("Main.trayMenu.hideStickers")
+                enabled: root.stickersHidden || root.openCount > 0
+                onTriggered: root.toggleStickersHidden()
             }
             Platform.MenuSeparator { visible: root.noteList.length > 0 }
             // model is the constant maxTrayNotes, not trayNotes -- the
@@ -408,7 +515,7 @@ Item {
                     text: hasNote ? root.trayNotes[slotIndex].label : ""
                     onTriggered: if (hasNote) root.openOrFocusSticker(root.trayNotes[slotIndex].id)
                 }
-                onObjectAdded: (index, object) => trayMenu.insertItem(index + 2, object)
+                onObjectAdded: (index, object) => trayMenu.insertItem(index + 3, object)
                 onObjectRemoved: (index, object) => trayMenu.removeItem(object)
             }
             Platform.MenuSeparator { visible: root.noteList.length > 0 }
@@ -420,7 +527,10 @@ Item {
             Platform.MenuSeparator {}
             Platform.MenuItem {
                 text: I18n.t("Main.trayMenu.quit")
-                onTriggered: Qt.quit()
+                onTriggered: {
+                    root.quitting = true
+                    Qt.quit()
+                }
             }
             // A Platform.Menu nested directly as a QML child of another
             // Platform.Menu LOOKS like it should become a submenu (its
@@ -468,6 +578,9 @@ Item {
     Platform.Menu {
         id: optionsMenu
         title: I18n.t("Main.trayMenu.options")
+        // Same stray-popup reason as trayMenu's `visible: false`; its entry
+        // in trayMenu is made visible again from root's Component.onCompleted.
+        visible: false
     }
 
     Platform.MenuItem {
@@ -479,7 +592,7 @@ Item {
     Platform.MenuItem {
         id: donateMenuItem
         text: I18n.t("Main.trayMenu.donate")
-        onTriggered: Qt.openUrlExternally("https://github.com/sponsors/JavierLobo")
+        onTriggered: Qt.openUrlExternally(root.donateUrl)
     }
     Platform.MenuSeparator { id: optionsSep2 }
     Platform.MenuItem {

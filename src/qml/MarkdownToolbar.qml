@@ -90,28 +90,33 @@ Item {
 
     // -- Inline marker toggle (bold/italic/strikethrough/inline code) -------
 
-    function toggleInline(marker) {
+    // closeMarker defaults to marker; differs only for tag pairs like
+    // underline's "<u>"/"</u>" (Markdown has no underline syntax of its own,
+    // and <u> is one of the inline tags markdownParser.js passes through).
+    function toggleInline(marker, closeMarker) {
         if (!target) return
+        var open = marker
+        var close = closeMarker !== undefined ? closeMarker : marker
         var start = target.selectionStart
         var end = target.selectionEnd
         var full = target.text
         if (start === end) {
-            target.insert(start, marker + marker)
-            target.cursorPosition = start + marker.length
+            target.insert(start, open + close)
+            target.cursorPosition = start + open.length
             target.forceActiveFocus()
             return
         }
         var selected = full.substring(start, end)
-        var beforeCtx = full.substring(Math.max(0, start - marker.length), start)
-        var afterCtx = full.substring(end, Math.min(full.length, end + marker.length))
-        if (beforeCtx === marker && afterCtx === marker) {
-            target.remove(end, end + marker.length)
-            target.remove(start - marker.length, start)
-            target.select(start - marker.length, end - marker.length)
+        var beforeCtx = full.substring(Math.max(0, start - open.length), start)
+        var afterCtx = full.substring(end, Math.min(full.length, end + close.length))
+        if (beforeCtx === open && afterCtx === close) {
+            target.remove(end, end + close.length)
+            target.remove(start - open.length, start)
+            target.select(start - open.length, end - open.length)
         } else {
             target.remove(start, end)
-            target.insert(start, marker + selected + marker)
-            target.select(start, end + marker.length * 2)
+            target.insert(start, open + selected + close)
+            target.select(start, end + open.length + close.length)
         }
         target.forceActiveFocus()
     }
@@ -291,6 +296,7 @@ Item {
 
     Shortcut { sequence: "Ctrl+B"; enabled: root.visible; onActivated: root.toggleInline("**") }
     Shortcut { sequence: "Ctrl+I"; enabled: root.visible; onActivated: root.toggleInline("*") }
+    Shortcut { sequence: "Ctrl+U"; enabled: root.visible; onActivated: root.toggleInline("<u>", "</u>") }
     Shortcut { sequence: "Ctrl+Shift+X"; enabled: root.visible; onActivated: root.toggleInline("~~") }
     Shortcut { sequence: "Ctrl+Shift+C"; enabled: root.visible; onActivated: root.toggleInline("`") }
     Shortcut { sequence: "Ctrl+K"; enabled: root.visible; onActivated: root.insertLink() }
@@ -318,6 +324,7 @@ Item {
     readonly property var actions: [
         { id: "bold", label: "B", bold: true, tip: I18n.t("MarkdownToolbar.bold") + " (Ctrl+B)", run: function() { toggleInline("**") } },
         { id: "italic", label: "I", italic: true, tip: I18n.t("MarkdownToolbar.italic") + " (Ctrl+I)", run: function() { toggleInline("*") } },
+        { id: "underline", label: "U", underline: true, tip: I18n.t("MarkdownToolbar.underline") + " (Ctrl+U)", run: function() { toggleInline("<u>", "</u>") } },
         { id: "sep1", separator: true },
         { id: "link", label: "🔗", tip: I18n.t("MarkdownToolbar.link") + " (Ctrl+K)", run: function() { insertLink() } },
         { id: "code", label: "</>", tip: I18n.t("MarkdownToolbar.code") + " (Ctrl+Shift+C)", run: function() { toggleInline("`") } },
@@ -403,6 +410,7 @@ Item {
             implicitHeight: 26
             font.bold: buttonData ? !!buttonData.bold : false
             font.italic: buttonData ? !!buttonData.italic : false
+            font.underline: buttonData ? !!buttonData.underline : false
             font.strikeout: buttonData ? !!buttonData.strike : false
             enabled: root.target !== null
             // See the "▾" button's own comment above -- same reason.

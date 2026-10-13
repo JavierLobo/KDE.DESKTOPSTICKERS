@@ -23,12 +23,12 @@ posición y tamaño persistentes, y visibilidad en todos los escritorios
 virtuales como opción por-sticker (pin).
 
 <p align="center">
-  <img src="../img/screenshot-desktop.png" alt="Stickers flotantes sobre el escritorio de KDE Plasma" width="720">
+  <img src="../img/screenshot-desktop-1.2.0.png" alt="Stickers flotantes sobre el escritorio de KDE Plasma" width="720">
 </p>
 
 ## Requisitos
 
-- Plasma 6.x (verificado con 6.7.4) y KWin, sesión Wayland
+- Plasma 6.x (verificado con 6.7.4) y KWin, sesión Wayland o X11
 - Qt 6.4+ (`Core`, `Gui`, `Qml`, `Quick`, `Widgets`, `DBus`)
 - CMake, Bash
 
@@ -55,6 +55,9 @@ para el checklist manual de verificación.
   KWin por sticker (`desktopstickers-sticker-<id>`)
 - Redimensionar desde la esquina inferior derecha, con el tamaño persistido
   y restaurado igual que la posición
+- Los stickers se apilan como cualquier otra ventana: quedan por debajo de
+  la aplicación que tenga el foco, tanto en Wayland como en X11 (no se
+  quedan "siempre encima")
 - Pin por sticker (botón 📍/📌): opt-in individual para que ese sticker sea
   visible en todos los escritorios virtuales a la vez, vía la misma regla
   de ventana de KWin del sticker; sin pin, el sticker solo existe en el
@@ -62,19 +65,30 @@ para el checklist manual de verificación.
   Settings (Escritorios); de fábrica, todo sticker nuevo empieza sin pin
 - Edición de texto en **Markdown completo** (encabezados, tablas, código,
   citas, listas, negrita/cursiva, enlaces, checkboxes), con alternancia
-  automática: click para editar, perder el foco para volver a la vista
+  automática: clic para editar, perder el foco para volver a la vista
   previa renderizada
-- **Barra de formato Markdown** al editar: negrita, cursiva, tachado,
+- **Barra de formato Markdown** al editar: negrita, cursiva, subrayado
+  (`<u>…</u>`, Ctrl+U), tachado,
   encabezados H1-H3, viñetas, lista numerada, tareas, enlace, imagen,
   código en línea, cita, bloque de código, línea horizontal y tabla (con
   selector de filas/columnas) — cada botón actúa como *toggle* sobre la
-  selección, con atajo de teclado propio. Al achicar el sticker, los
+  selección, con atajo de teclado propio. Al estrechar el sticker, los
   botones con menos prioridad se ocultan progresivamente de derecha a
   izquierda detrás de un botón "más opciones"; se puede ocultar del todo
   desde el header del sticker o por defecto desde Settings
-- En la vista previa, los enlaces son clicables (se abren con el manejador
-  de URLs del sistema) y los bloques de código se muestran en una caja con
+- En la vista previa, los enlaces son clicables (se abren con la aplicación
+  predeterminada del sistema) y los bloques de código se muestran en una caja con
   fondo diferenciado
+- Texto seleccionable en la vista previa: arrastrar selecciona (también
+  dentro de los bloques de código) y Ctrl+C copia; un clic simple sigue
+  entrando en edición
+- Listas anidadas legibles: las subviñetas se muestran con guion (`-`) y
+  sangría de 4 espacios, y las listas numeradas anidadas continúan la
+  numeración del padre (`1.` → `1.1` → `1.2.1`)
+- En edición, clic derecho abre un menú propio (Deshacer, Rehacer, Cortar,
+  Copiar, Pegar, Seleccionar todo) sin salir del modo edición, y
+  Tab/Shift+Tab sangran o des-sangran las líneas seleccionadas 4 espacios
+  (lo que el Markdown necesita para anidar una sublista)
 - Contenido con scroll: una nota larga no desborda el sticker, y el área de
   edición se desplaza automáticamente para mantener visible el cursor
   mientras se escribe
@@ -96,9 +110,16 @@ para el checklist manual de verificación.
   opcional + undo por unos segundos
 - El icono de la bandeja del sistema lista las 10 notas modificadas más
   recientemente (sin paginación) — cada fila abre o reenfoca esa nota
+- **Ocultar stickers / Mostrar stickers** en el menú de la bandeja (justo
+  debajo de "Nuevo sticker"): esconde de golpe todos los stickers visibles
+  y los vuelve a mostrar en el mismo sitio. Es temporal: no cuenta como
+  cerrarlos, así que al reiniciar la app vuelven a aparecer
 - El botón "✕" del sticker solo cierra su ventana — la nota sigue existiendo
   y se puede reabrir desde el menú de la bandeja o el Panel. Eliminar una
   nota es una acción aparte, siempre con opción de deshacer
+- Cada sticker recuerda si estaba abierto o cerrado: uno cerrado (con "✕",
+  Alt+F4 o el menú de ventana de KWin) sigue cerrado al reiniciar la app.
+  Salir desde la bandeja o cerrar la sesión no cuenta como cerrarlos
 - **Panel de Opciones/Settings** (clic derecho en la bandeja → Opciones →
   Configuración): apariencia (color/fuentes), comportamiento (barra
   Markdown por defecto, confirmación al borrar, acción del clic izquierdo
@@ -106,13 +127,14 @@ para el checklist manual de verificación.
   carpeta", exportar/importar copia de seguridad) e idiomas
 - **Interfaz multi-idioma**: selector de idioma en Settings, con el nombre
   de cada idioma escrito en sí mismo (ej. "Español", no "Spanish") junto a
-  su bandera. Disponible en español, inglés, francés y ruso de fábrica —
+  su bandera. Disponible de fábrica en español, inglés, francés, ruso,
+  italiano, alemán, chino y japonés —
   cada idioma es un fichero JSON independiente en `src/i18n/`,
   auto-descubierto tanto al compilar como en tiempo de ejecución
 - Submenú **"Opciones"** en el menú de la bandeja: Ayuda (documentación en
   GitHub), Aportaciones (apoyar al desarrollador), Ver licencia,
   Configuración y Acerca de
-- Instancia única: si la app ya está corriendo, un segundo lanzamiento no
+- Instancia única: si la app ya se está ejecutando, un segundo lanzamiento no
   abre una copia duplicada
 - Recuperación automática si KWin se reinicia en mitad de la sesión (un
   crash, o `kwin_wayland --replace`): la persistencia de posición se
@@ -147,6 +169,7 @@ Los stickers se guardan en `$XDG_DATA_HOME/desktop-stickers/stickers.json`
       "width": 300,
       "height": 250,
       "pinned": false,
+      "visible": true,
       "fontFamily": "Liberation Serif",
       "fontSize": 10,
       "created": "2026-08-17T10:30:00Z",
@@ -156,12 +179,16 @@ Los stickers se guardan en `$XDG_DATA_HOME/desktop-stickers/stickers.json`
 }
 ```
 
+`visible` indica si la ventana del sticker se abre al arrancar la app (un
+registro sin ese campo, de versiones anteriores a v1.2.0, cuenta como
+visible).
+
 Las preferencias de la app se guardan por separado en
 `$XDG_CONFIG_HOME/desktop-stickers/settings.json` (típicamente
 `~/.config/desktop-stickers/settings.json`) — apariencia, comportamiento,
 autostart e idioma.
 
-> Si venís de una versión anterior a v1.1.0: la primera vez que corras el
+> Si vienes de una versión anterior a v1.1.0: la primera vez que ejecutes el
 > binario nuevo, tus datos se migran automáticamente y en silencio desde
 > la ruta vieja `~/.stickers/` a las dos rutas XDG de arriba. No hace
 > falta ninguna acción manual.

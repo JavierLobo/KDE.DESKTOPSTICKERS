@@ -44,16 +44,35 @@ The UI language follows whatever is saved in Settings (Spanish by
 default). To change it: tray icon right-click → **Options → Settings →
 Languages**.
 
+Stickers you closed with "✕" stay closed when the app starts again —
+reopen them from the tray menu or the Stickers Panel.
+
 ## Create your first sticker
 
 - Click the tray icon → "Nuevo sticker", or
 - Click the "+" button on any existing sticker
+
+## Hide and show
+
+Right-click the tray icon → **Hide stickers** hides every visible sticker
+at once; the same entry becomes **Show stickers** and brings them back in
+place. It's temporary: if you restart the app, they appear again.
 
 ## Editing
 
 Click inside a sticker to edit it in Markdown — the formatting toolbar
 (bold, headings, lists, tables, links...) appears above the text area.
 Click outside to return to the rendered preview.
+
+- **Select and copy in the preview:** drag over the text to select it and
+  press Ctrl+C. A plain click (without dragging) enters edit mode.
+- **Context menu:** while editing, right-click opens Undo, Redo, Cut,
+  Copy, Paste, and Select all, without leaving edit mode.
+- **Sub-lists:** Tab indents the line (or the selected lines) by 4 spaces
+  and Shift+Tab undoes it. In the preview, sub-bullets show a dash (`-`)
+  and nested numbered lists read `1.1`, `1.2.1`...
+- **Underline:** **U** button or Ctrl+U; it writes `<u>text</u>`, since
+  Markdown has no underline syntax of its own.
 
 ## Pin (all desktops) and resize
 
@@ -123,6 +142,13 @@ functionality.
   include `desktopstickers-sticker-<id>`.
 - If the values are correct but it's not applying live, force a reload:
   `qdbus6 org.kde.KWin /KWin org.kde.KWin.reconfigure`
+
+**A sticker doesn't appear when the app starts:**
+- If you closed it with "✕" (or Alt+F4), it stays closed on purpose: each
+  sticker remembers whether it was open. Open it from the tray menu or
+  the Stickers Panel and it will appear on later launches again.
+- If you used **Hide stickers**, click **Show stickers** in the same
+  menu.
 
 **A new language I added to `src/i18n/` doesn't show up:**
 - It needs exactly the same keys as `src/i18n/es.json` (including

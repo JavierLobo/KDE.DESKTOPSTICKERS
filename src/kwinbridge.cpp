@@ -12,8 +12,32 @@
 #include <QTextStream>
 #include <QTimer>
 
+// The window class every rule group matches on, as a regular expression
+// (wmclassmatch=3) because it differs per platform: on Wayland KWin sees the
+// xdg app_id, which Qt takes from setDesktopFileName()
+// ("io.github.javierlobo.desktopstickers"); on X11 it sees WM_CLASS, which Qt
+// derives from the executable name ("desktop-stickers"). Rules used to match
+// a substring of the Wayland id only, so on X11 they never applied at all --
+// pin did nothing and position rules were ignored (confirmed via KWin
+// scripting: resourceClass "desktop-stickers", onAllDesktops=false under a
+// desktopsrule=2 rule; switching that rule to this regex flipped it to true).
+static const QString kWindowClassRegex =
+    QStringLiteral("^(io\\.github\\.javierlobo\\.desktopstickers|desktop-stickers)$");
+
+static QString readRuleKey(const QString &group, const QString &key)
+{
+    QProcess readProcess;
+    readProcess.start(QStringLiteral("kreadconfig6"),
+        {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
+         QStringLiteral("--group"), group,
+         QStringLiteral("--key"), key});
+    readProcess.waitForFinished();
+    return QString::fromUtf8(readProcess.readAllStandardOutput()).trimmed();
+}
+
 KWinBridge::KWinBridge(QObject *parent) : QObject(parent)
 {
+    migrateLegacyWindowClassMatch();
     startPositionWatch();
 
     // Recovery path for a robustness gap flagged in Task 7's review:
@@ -87,6 +111,44 @@ void KWinBridge::addRuleIdToList(const QString &ruleId) const
         {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
          QStringLiteral("--group"), QStringLiteral("General"),
          QStringLiteral("--key"), QStringLiteral("rules"), updated});
+}
+
+void KWinBridge::writeWindowClassMatch(const QString &ruleId) const
+{
+    QProcess::execute(QStringLiteral("kwriteconfig6"),
+        {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
+         QStringLiteral("--group"), ruleId,
+         QStringLiteral("--key"), QStringLiteral("wmclass"), kWindowClassRegex});
+    QProcess::execute(QStringLiteral("kwriteconfig6"),
+        {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
+         QStringLiteral("--group"), ruleId,
+         QStringLiteral("--key"), QStringLiteral("wmclassmatch"), QStringLiteral("3")});
+    QProcess::execute(QStringLiteral("kwriteconfig6"),
+        {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
+         QStringLiteral("--group"), ruleId,
+         QStringLiteral("--key"), QStringLiteral("wmclasscomplete"), QStringLiteral("false")});
+}
+
+void KWinBridge::migrateLegacyWindowClassMatch() const
+{
+    const QStringList ids = readRuleKey(QStringLiteral("General"), QStringLiteral("rules"))
+        .split(QLatin1Char(','), Qt::SkipEmptyParts);
+    bool changed = false;
+    for (const QString &id : ids) {
+        if (!id.startsWith(QStringLiteral("desktopstickers-sticker-"))) {
+            continue;
+        }
+        if (readRuleKey(id, QStringLiteral("wmclass")) == kWindowClassRegex) {
+            continue;
+        }
+        writeWindowClassMatch(id);
+        changed = true;
+    }
+    // Best effort: if KWin isn't up yet (autostart race), it reads the
+    // already-rewritten file when it starts anyway.
+    if (changed) {
+        reconfigureKWin();
+    }
 }
 
 bool KWinBridge::reconfigureKWin() const
@@ -422,18 +484,7 @@ void KWinBridge::setPinned(const QString &stickerId, const QString &windowTitle,
     }
 
     addRuleIdToList(ruleId);
-    QProcess::execute(QStringLiteral("kwriteconfig6"),
-        {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
-         QStringLiteral("--group"), ruleId,
-         QStringLiteral("--key"), QStringLiteral("wmclass"), QStringLiteral("io.github.javierlobo.desktopstickers")});
-    QProcess::execute(QStringLiteral("kwriteconfig6"),
-        {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
-         QStringLiteral("--group"), ruleId,
-         QStringLiteral("--key"), QStringLiteral("wmclassmatch"), QStringLiteral("2")});
-    QProcess::execute(QStringLiteral("kwriteconfig6"),
-        {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
-         QStringLiteral("--group"), ruleId,
-         QStringLiteral("--key"), QStringLiteral("wmclasscomplete"), QStringLiteral("false")});
+    writeWindowClassMatch(ruleId);
     QProcess::execute(QStringLiteral("kwriteconfig6"),
         {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
          QStringLiteral("--group"), ruleId,
@@ -471,18 +522,7 @@ void KWinBridge::updatePositionRule(const QString &stickerId, const QString &win
     const QString ruleId = ruleGroupName(stickerId);
 
     addRuleIdToList(ruleId);
-    QProcess::execute(QStringLiteral("kwriteconfig6"),
-        {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
-         QStringLiteral("--group"), ruleId,
-         QStringLiteral("--key"), QStringLiteral("wmclass"), QStringLiteral("io.github.javierlobo.desktopstickers")});
-    QProcess::execute(QStringLiteral("kwriteconfig6"),
-        {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
-         QStringLiteral("--group"), ruleId,
-         QStringLiteral("--key"), QStringLiteral("wmclassmatch"), QStringLiteral("2")});
-    QProcess::execute(QStringLiteral("kwriteconfig6"),
-        {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
-         QStringLiteral("--group"), ruleId,
-         QStringLiteral("--key"), QStringLiteral("wmclasscomplete"), QStringLiteral("false")});
+    writeWindowClassMatch(ruleId);
     QProcess::execute(QStringLiteral("kwriteconfig6"),
         {QStringLiteral("--file"), QStringLiteral("kwinrulesrc"),
          QStringLiteral("--group"), ruleId,

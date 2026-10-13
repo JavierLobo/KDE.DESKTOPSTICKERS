@@ -7,6 +7,8 @@
 
     "Main.tray.tooltip": "Desktop Stickers",
     "Main.trayMenu.newSticker": "Новая заметка",
+    "Main.trayMenu.hideStickers": "Скрыть заметки",
+    "Main.trayMenu.showStickers": "Показать заметки",
     "Main.trayMenu.stickerPanel": "Панель заметок",
     "Main.trayMenu.options": "Опции",
     "Main.trayMenu.help": "Справка",
@@ -27,6 +29,12 @@
     "StickerWindow.header.showToolbar": "Показать панель форматирования",
     "StickerWindow.header.hideToolbar": "Скрыть панель форматирования",
     "StickerWindow.header.close": "Закрыть",
+    "StickerWindow.edit.undo": "Отменить",
+    "StickerWindow.edit.redo": "Повторить",
+    "StickerWindow.edit.cut": "Вырезать",
+    "StickerWindow.edit.copy": "Копировать",
+    "StickerWindow.edit.paste": "Вставить",
+    "StickerWindow.edit.selectAll": "Выделить всё",
 
     "StickerPanel.title": "Панель заметок",
     "StickerPanel.search.placeholder": "Поиск по заметкам",
@@ -109,6 +117,7 @@
 
     "MarkdownToolbar.bold": "Жирный",
     "MarkdownToolbar.italic": "Курсив",
+    "MarkdownToolbar.underline": "Подчёркнутый",
     "MarkdownToolbar.strike": "Зачёркнутый",
     "MarkdownToolbar.h1": "Заголовок 1",
     "MarkdownToolbar.h2": "Заголовок 2",

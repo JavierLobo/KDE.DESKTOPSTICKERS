@@ -69,6 +69,10 @@ function loadAllStickers() {
             width: s.width !== undefined ? s.width : 300,
             height: s.height !== undefined ? s.height : 250,
             pinned: s.pinned !== undefined ? s.pinned : false,
+            // Records written before v1.2.0 have no "visible" field -- every
+            // sticker was always reopened at startup back then, so missing
+            // means visible.
+            visible: s.visible !== undefined ? s.visible : true,
             fontFamily: s.fontFamily !== undefined ? s.fontFamily : "Sans Serif",
             fontSize: s.fontSize !== undefined ? s.fontSize : 10,
             created: s.created,
@@ -80,7 +84,11 @@ function loadAllStickers() {
     }
 }
 
-function saveSticker(sticker) {
+// keepModified: true for pure window-state writes (currently only
+// "visible") that must not count as an edit -- "modified" drives the tray
+// menu's recent-notes order, and merely opening/closing a note shouldn't
+// reshuffle it.
+function saveSticker(sticker, keepModified) {
     ensureDir()
 
     let stickers = loadAllStickers()
@@ -96,6 +104,7 @@ function saveSticker(sticker) {
         width: sticker.width,
         height: sticker.height,
         pinned: sticker.pinned,
+        visible: sticker.visible !== undefined ? sticker.visible : true,
         fontFamily: sticker.fontFamily,
         fontSize: sticker.fontSize,
         created: new Date().toISOString(),
@@ -104,6 +113,7 @@ function saveSticker(sticker) {
 
     if (idx >= 0) {
         record.created = stickers[idx].created
+        if (keepModified) record.modified = stickers[idx].modified
         stickers[idx] = record
     } else {
         stickers.push(record)

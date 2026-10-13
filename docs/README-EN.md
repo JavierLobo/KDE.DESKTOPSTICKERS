@@ -23,12 +23,12 @@ persistent position and size, and per-sticker opt-in visibility across
 all virtual desktops (pin).
 
 <p align="center">
-  <img src="../img/screenshot-desktop.png" alt="Floating stickers on the KDE Plasma desktop" width="720">
+  <img src="../img/screenshot-desktop-1.2.0.png" alt="Floating stickers on the KDE Plasma desktop" width="720">
 </p>
 
 ## Requirements
 
-- Plasma 6.x (verified with 6.7.4) and KWin, Wayland session
+- Plasma 6.x (verified with 6.7.4) and KWin, Wayland or X11 session
 - Qt 6.4+ (`Core`, `Gui`, `Qml`, `Quick`, `Widgets`, `DBus`)
 - CMake, Bash
 
@@ -55,6 +55,9 @@ full guide (first launch, sample data, troubleshooting) and
   (`desktopstickers-sticker-<id>`)
 - Resize from the bottom-right corner, with size persisted and restored
   the same way as position
+- Stickers stack like any other window: they go behind whichever
+  application has focus, on both Wayland and X11 (they don't stay
+  "always on top")
 - Per-sticker pin (📍/📌 button): opt in individually so that sticker is
   visible on all virtual desktops at once, via the same sticker's KWin
   window rule; without pin, the sticker only exists on the desktop where
@@ -64,7 +67,7 @@ full guide (first launch, sample data, troubleshooting) and
   lists, bold/italics, links, checkboxes), with automatic toggling:
   click to edit, lose focus to return to the rendered preview
 - **Markdown formatting toolbar** while editing: bold, italic,
-  strikethrough, H1-H3 headings, bullet list, numbered list, task list,
+  underline (`<u>…</u>`, Ctrl+U), strikethrough, H1-H3 headings, bullet list, numbered list, task list,
   link, image, inline code, quote, code block, horizontal rule, and table
   (with a row/column picker) — every button toggles the selection and has
   its own keyboard shortcut. As the sticker shrinks, lower-priority
@@ -74,6 +77,15 @@ full guide (first launch, sample data, troubleshooting) and
 - In the preview, links are clickable (open via the system's URL
   handler) and fenced code blocks render in a box with a distinct
   background
+- Selectable preview text: dragging selects it (code blocks included)
+  and Ctrl+C copies it; a plain click still enters edit mode
+- Readable nested lists: sub-bullets render with a dash (`-`) and a
+  4-space indent, and nested numbered lists continue their parent's
+  numbering (`1.` → `1.1` → `1.2.1`)
+- While editing, right-click opens the app's own menu (Undo, Redo, Cut,
+  Copy, Paste, Select all) without leaving edit mode, and Tab/Shift+Tab
+  indent or outdent the selected lines by 4 spaces (what Markdown needs
+  to nest a sub-list)
 - Scrollable content: a long note never overflows the sticker, and the
   edit area auto-scrolls to keep the cursor visible while typing
 - Background color: random, system accent (follows the live Plasma
@@ -94,9 +106,17 @@ full guide (first launch, sample data, troubleshooting) and
   plus a few-second undo
 - The system tray icon lists the 10 most recently modified notes (no
   pagination) — each row opens or refocuses that note
+- **Hide stickers / Show stickers** in the tray menu (right below "New
+  sticker"): hides every visible sticker at once and brings them back in
+  the same place. It's temporary — it doesn't count as closing them, so
+  they reappear when the app restarts
 - The sticker's "✕" button only closes its window — the note still
   exists and can be reopened from the tray menu or the Panel. Deleting a
   note is a separate action, always with an undo option
+- Each sticker remembers whether it was open or closed: one closed (with
+  "✕", Alt+F4, or KWin's window menu) stays closed when the app
+  restarts. Quitting from the tray or logging out doesn't count as
+  closing them
 - **Settings panel** (tray icon right-click → Options → Settings):
   appearance (color/fonts), behavior (default Markdown toolbar
   visibility, delete confirmation, tray left-click action), system
@@ -104,7 +124,8 @@ full guide (first launch, sample data, troubleshooting) and
   backup), and languages
 - **Multi-language interface**: language selector in Settings, each
   language's name written in itself (e.g. "Español", not "Spanish")
-  next to its flag. Ships with Spanish, English, French, and Russian —
+  next to its flag. Ships with Spanish, English, French, Russian,
+  Italian, German, Chinese, and Japanese —
   each language is a standalone JSON file under `src/i18n/`,
   auto-discovered both at build time and at runtime
 - **"Options" submenu** in the tray menu: Help (documentation on
@@ -145,6 +166,7 @@ Stickers are stored in `$XDG_DATA_HOME/desktop-stickers/stickers.json`
       "width": 300,
       "height": 250,
       "pinned": false,
+      "visible": true,
       "fontFamily": "Liberation Serif",
       "fontSize": 10,
       "created": "2026-08-17T10:30:00Z",
@@ -153,6 +175,10 @@ Stickers are stored in `$XDG_DATA_HOME/desktop-stickers/stickers.json`
   ]
 }
 ```
+
+`visible` says whether the sticker's window opens when the app starts
+(a record without that field, from versions before v1.2.0, counts as
+visible).
 
 App preferences are stored separately, in
 `$XDG_CONFIG_HOME/desktop-stickers/settings.json` (typically

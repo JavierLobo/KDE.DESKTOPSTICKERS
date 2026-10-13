@@ -45,10 +45,21 @@ La langue de l'interface suit celle enregistrée dans les Paramètres
 Pour la changer : clic droit sur l'icône de la zone de notification →
 **Options → Paramètres → Langues**.
 
+Les stickers que vous avez fermés avec « ✕ » restent fermés au prochain
+lancement — rouvrez-les depuis le menu de la zone de notification ou le
+Panneau des stickers.
+
 ## Créer votre premier sticker
 
 - Cliquez sur l'icône de la zone de notification → « Nuevo sticker », ou
 - Cliquez sur le bouton « + » d'un sticker existant
+
+## Masquer et afficher
+
+Clic droit sur l'icône de la zone de notification → **Masquer les
+stickers** masque d'un coup tous les stickers visibles ; la même entrée
+devient **Afficher les stickers** et les remet en place. C'est
+temporaire : si vous redémarrez l'application, ils réapparaissent.
 
 ## Modifier
 
@@ -56,6 +67,19 @@ Cliquez à l'intérieur d'un sticker pour l'éditer en Markdown — la barre
 de formatage (gras, titres, listes, tableaux, liens...) apparaît
 au-dessus de la zone de texte. Cliquez à l'extérieur pour revenir à
 l'aperçu rendu.
+
+- **Sélectionner et copier dans l'aperçu :** faites glisser sur le texte
+  pour le sélectionner, puis Ctrl+C. Un simple clic (sans glisser) ouvre
+  l'édition.
+- **Menu contextuel :** en édition, le clic droit ouvre Annuler,
+  Rétablir, Couper, Copier, Coller et Tout sélectionner, sans quitter
+  l'édition.
+- **Sous-listes :** Tab augmente de 4 espaces le retrait de la ligne (ou
+  des lignes sélectionnées) et Maj+Tab l'annule. Dans l'aperçu, les
+  sous-puces s'affichent avec un tiret (`-`) et les listes numérotées
+  imbriquées sous la forme `1.1`, `1.2.1`...
+- **Souligné :** bouton **U** ou Ctrl+U ; écrit `<u>texte</u>`, car le
+  Markdown n'a pas de syntaxe propre pour souligner.
 
 ## Épingle (tous les bureaux) et redimensionnement
 
@@ -132,6 +156,14 @@ fonctionnalités.
 - Si les valeurs sont correctes mais que ça ne s'applique pas en direct,
   forcez un rechargement :
   `qdbus6 org.kde.KWin /KWin org.kde.KWin.reconfigure`
+
+**Un sticker n'apparaît pas au démarrage de l'application :**
+- Si vous l'avez fermé avec « ✕ » (ou Alt+F4), il reste fermé exprès :
+  chaque sticker se souvient s'il était ouvert. Ouvrez-le depuis le menu
+  de la zone de notification ou le Panneau des stickers et il
+  réapparaîtra aussi aux lancements suivants.
+- Si vous avez utilisé **Masquer les stickers**, cliquez sur **Afficher
+  les stickers** dans le même menu.
 
 **Une nouvelle langue que j'ai ajoutée dans `src/i18n/` n'apparaît pas :**
 - Elle doit avoir exactement les mêmes clés que `src/i18n/es.json` (y

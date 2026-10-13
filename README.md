@@ -1,3 +1,4 @@
+
 <p align="center">
   <img src="img/logo-sticker.png" alt="Desktop Stickers logo" width="120">
 </p>
@@ -16,58 +17,66 @@
   <a href="docs/README-JP.md"><img alt="JP" src="https://img.shields.io/badge/lang-JP-lightgrey.svg"></a>
 </p>
 
-Sticky notes flotantes para el escritorio de KDE Plasma. Aplicación
-standalone Qt6/QML (no un plasmoid) que se instala como programa normal
-con autostart — cada sticker es una ventana independiente, sin
-decoración, con posición y tamaño persistentes.
+Markdown sticky notes for the KDE Plasma desktop (Wayland and X11). A
+standalone Qt6/QML application (not a plasmoid) that installs like a
+regular program with autostart: each sticker is an independent,
+undecorated window that stacks like any other, remembers its position,
+its size and whether it was open, and can be pinned to every virtual
+desktop.
 
 <p align="center">
-  <img src="img/screenshot-desktop.png" alt="Stickers flotantes sobre el escritorio de KDE Plasma" width="720">
+  <img src="img/screenshot-desktop-1.2.0.png" alt="Stickers on the KDE Plasma desktop" width="720">
 </p>
 
-## Requisitos
+## Requirements
 
-- Plasma 6.x y KWin, sesión Wayland
+- Plasma 6.x and KWin, Wayland or X11 session
 - Qt 6.4+ (`Core`, `Gui`, `Qml`, `Quick`, `Widgets`, `DBus`)
 - CMake, Bash
 
-## Features destacadas
+## Highlights
 
-- Ventanas independientes, arrastrables y redimensionables, con
-  posición y tamaño persistentes vía reglas de ventana de KWin
-- Pin por sticker para verlo en todos los escritorios virtuales a la vez
-- Edición en **Markdown completo** con barra de formato (negrita, cursiva,
-  encabezados, listas, tablas, enlaces, citas, bloques de código...), y
-  vista previa renderizada al perder el foco
-- Cascada de fuentes configurable (preferencia y tamaño) y color por
-  defecto (aleatorio, acento del sistema o fijo)
-- Panel de Stickers para buscar, ordenar, listar, abrir, renombrar,
-  duplicar y eliminar todas las notas sin límite
-- Panel de Opciones/Settings: apariencia, comportamiento, autostart,
-  ruta de datos y selector de idioma (con diccionarios auto-descubiertos)
-- Interfaz disponible en español, inglés, francés y ruso — añadir un
-  idioma nuevo es solo soltar un fichero JSON en `src/i18n/`
+- Independent, draggable and resizable windows, with position and size
+  persisted through KWin window rules; they stack like any other window
+  (they don't stay always on top)
+- Each sticker remembers whether it was open or closed across restarts,
+  and the tray can **hide/show** every sticker at once
+- Per-sticker pin to show it on all virtual desktops at the same time
+- **Full Markdown** editing with a formatting toolbar (bold, italic,
+  underline, headings, lists, tables, links, quotes, code blocks...), a
+  cut/copy/paste context menu, and a rendered preview when focus is lost
+  — with selectable text and nested lists numbered hierarchically
+  (`1.1`, `1.2.1`)
+- Configurable font cascade (preference and size) and default color
+  (random, system accent, or fixed)
+- Stickers Panel to search, sort, list, open, rename, duplicate, and
+  delete every note, with no limit
+- Options/Settings panel: appearance, behavior, autostart, data path, and
+  language selector (with auto-discovered dictionaries)
+- Interface available in Spanish, English, French, Russian, Italian,
+  German, Chinese, and Japanese — adding a new language is just dropping
+  a JSON file into `src/i18n/`
 
 <p align="center">
-  <img src="img/Desktop-stickers-markdown.png" alt="Ejemplo de sticker con Markdown renderizado: títulos, tablas y bloques de código" width="720">
+  <img src="img/Desktop-stickers-markdown.png" alt="Sticker with rendered Markdown: headings, tables, and code blocks" width="720">
 </p>
 
-## Descargas
+## Downloads
 
-Todas las versiones publicadas están en la página de
+Every published version is on the repository's
 [Releases](https://github.com/JavierLobo/KDE.DESKTOPSTICKERS/releases)
-del repositorio, cada una con su código fuente y notas de la versión.
+page, each with its source code and release notes.
 
-## Instalación rápida
+## Quick install
 
 ```bash
 chmod +x scripts/install.sh
 ./scripts/install.sh
 ```
 
-Guía completa (primer arranque, datos de prueba, troubleshooting):
-[docs/QUICKSTART-SP.md](docs/QUICKSTART-SP.md) ·
-[EN](docs/QUICKSTART-EN.md) ·
+Full guide (first launch, sample data, troubleshooting):
+[docs/QUICKSTART-EN.md](docs/QUICKSTART-EN.md) ·
+[ES](docs/QUICKSTART-SP.md) ·
 [IT](docs/QUICKSTART-IT.md) ·
 [DE](docs/QUICKSTART-DE.md) ·
 [FR](docs/QUICKSTART-FR.md) ·
@@ -75,43 +84,43 @@ Guía completa (primer arranque, datos de prueba, troubleshooting):
 [CN](docs/QUICKSTART-CN.md) ·
 [JP](docs/QUICKSTART-JP.md)
 
-## Paquetes
+## Packages
 
-Además del código fuente, cada [Release](https://github.com/JavierLobo/KDE.DESKTOPSTICKERS/releases)
-genera automáticamente:
+Besides the source code, every [Release](https://github.com/JavierLobo/KDE.DESKTOPSTICKERS/releases)
+automatically builds:
 
-- **Arch Linux**: `PKGBUILD` en [`packaging/arch/`](packaging/arch/)
-- **Debian**: `.deb` para **Debian trixie**. Versiones anteriores
-  (bookworm) no traen `kreadconfig6`/`kwriteconfig6`/`qdbus6`, que la app
-  necesita en tiempo de ejecución
-- **Ubuntu 24.04 (noble)**: `.deb`, pero con un paso previo obligatorio —
-  Ubuntu no trae esos mismos binarios en sus repos por defecto. Hay que
-  agregar el repositorio de [KDE neon](https://neon.kde.org/) antes de
-  instalar:
+- **Arch Linux**: `PKGBUILD` in [`packaging/arch/`](packaging/arch/)
+- **Debian**: `.deb` for **Debian trixie**. Older releases (bookworm)
+  don't ship `kreadconfig6`/`kwriteconfig6`/`qdbus6`, which the app needs
+  at runtime
+- **Ubuntu 24.04 (noble)**: `.deb`, but with a mandatory extra step —
+  Ubuntu doesn't ship those same binaries in its default repositories.
+  You need to add the [KDE neon](https://neon.kde.org/) repository before
+  installing:
   ```bash
   curl -fsSL https://archive.neon.kde.org/public.key | sudo gpg --dearmor -o /usr/share/keyrings/neon-archive-keyring.gpg
   echo "deb [signed-by=/usr/share/keyrings/neon-archive-keyring.gpg] http://archive.neon.kde.org/user noble main" | sudo tee /etc/apt/sources.list.d/neon.list
   sudo apt update
   ```
-  Nota: agregar un repo de terceros puede hacer que `apt` prefiera sus
-  paquetes por sobre los de Ubuntu para otras apps que también usan Qt6
-  (ej. `libqt6core6t64`) — si te preocupa, fijá esos paquetes con
-  `apt-mark hold` o pinning después de instalar.
+  Note: adding a third-party repository can make `apt` prefer its
+  packages over Ubuntu's for other apps that also use Qt6 (e.g.
+  `libqt6core6t64`) — if that worries you, pin those packages with
+  `apt-mark hold` or apt pinning after installing.
 
-## Reportar problemas / Contribuir
+## Reporting issues / Contributing
 
-¿Encontraste un bug o tenés una sugerencia? Abrí un issue en
+Found a bug or have a suggestion? Open an issue on
 [GitHub Issues](https://github.com/JavierLobo/KDE.DESKTOPSTICKERS/issues).
 
-## Desarrollo asistido por IA
+## AI-assisted development
 
-Este proyecto se desarrolló con asistencia de [Claude Code](https://claude.com/claude-code)
-(Anthropic), usando los modelos **Claude Sonnet 5** y **Claude Haiku 4.5**.
-Reporte de consumo de tokens y costo hipotético a tarifa de API, por
-modelo y por sesión: [docs/TOKEN_REPORT.md](docs/TOKEN_REPORT.md)
-([versión HTML para compartir](docs/TOKEN_REPORT.html)).
+This project was developed with the help of [Claude Code](https://claude.com/claude-code)
+(Anthropic), using the **Claude Sonnet 5** and **Claude Haiku 4.5** models.
+Token usage and hypothetical cost at API rates, per model and per
+session: [docs/TOKEN_REPORT.md](docs/TOKEN_REPORT.md)
+([shareable HTML version](docs/TOKEN_REPORT.html)).
 
-## Documentación completa
+## Full documentation
 
 - [Español](docs/README-SP.md)
 - [Italiano](docs/README-IT.md)

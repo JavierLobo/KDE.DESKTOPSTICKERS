@@ -44,10 +44,20 @@ La lingua dell'interfaccia segue quanto salvato nelle Impostazioni
 (spagnolo per impostazione predefinita). Per cambiarla: click destro
 sull'icona nel vassoio → **Opzioni → Impostazioni → Lingue**.
 
+Gli sticker che hai chiuso con "✕" restano chiusi al riavvio dell'app —
+riaprili dal menu del vassoio o dal Pannello degli Sticker.
+
 ## Crea il tuo primo sticker
 
 - Click sull'icona nel vassoio → "Nuevo sticker", oppure
 - Click sul pulsante "+" di qualsiasi sticker esistente
+
+## Nascondere e mostrare
+
+Click destro sull'icona nel vassoio → **Nascondi sticker** nasconde in un
+colpo tutti gli sticker visibili; la stessa voce diventa **Mostra
+sticker** e li riporta al loro posto. È temporaneo: se riavvii l'app,
+ricompaiono.
 
 ## Modifica
 
@@ -55,6 +65,18 @@ Click all'interno di uno sticker per modificarlo in Markdown — la
 barra degli strumenti di formattazione (grassetto, titoli, elenchi,
 tabelle, link...) appare sopra l'area di testo. Click all'esterno per
 tornare all'anteprima renderizzata.
+
+- **Selezionare e copiare nell'anteprima:** trascina sul testo per
+  selezionarlo e premi Ctrl+C. Un semplice click (senza trascinare) apre
+  la modifica.
+- **Menu contestuale:** in modifica, il click destro apre Annulla, Ripeti,
+  Taglia, Copia, Incolla e Seleziona tutto, senza uscire dalla modifica.
+- **Sotto-elenchi:** Tab aumenta di 4 spazi il rientro della riga (o
+  delle righe selezionate) e Shift+Tab lo annulla. Nell'anteprima i
+  sotto-punti si mostrano con un trattino (`-`) e gli elenchi numerati
+  annidati come `1.1`, `1.2.1`...
+- **Sottolineato:** pulsante **U** o Ctrl+U; scrive `<u>testo</u>`,
+  perché Markdown non ha una sintassi propria per sottolineare.
 
 ## Pin (tutti i desktop) e ridimensionamento
 
@@ -129,6 +151,13 @@ funzionalità.
   includere `desktopstickers-sticker-<id>`.
 - Se i valori sono corretti ma non si applica dal vivo, forza il
   ricaricamento: `qdbus6 org.kde.KWin /KWin org.kde.KWin.reconfigure`
+
+**Uno sticker non appare all'avvio dell'app:**
+- Se l'hai chiuso con "✕" (o Alt+F4), resta chiuso di proposito: ogni
+  sticker ricorda se era aperto. Aprilo dal menu del vassoio o dal
+  Pannello degli Sticker e ricomparirà anche agli avvii successivi.
+- Se hai usato **Nascondi sticker**, premi **Mostra sticker** nello
+  stesso menu.
 
 **Una nuova lingua che ho aggiunto in `src/i18n/` non compare:**
 - Deve avere esattamente le stesse chiavi di `src/i18n/es.json`

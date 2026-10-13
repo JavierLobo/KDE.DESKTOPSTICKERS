@@ -135,3 +135,8 @@ run("parseInline returns correctly nested structure (deep structure test)", () =
     }
   ]);
 });
+
+run("<u> underline (toolbar's v1.2.0 button) passes through", () => {
+  const html = MarkdownParser.renderInline(MarkdownParser.parseInline("<u>subrayado</u>", ctx()));
+  assert.strictEqual(html, "<u>subrayado</u>");
+});

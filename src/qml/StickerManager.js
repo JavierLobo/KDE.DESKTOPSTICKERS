@@ -167,6 +167,7 @@ function seedDefaultStickerIfFirstRun() {
         width: 420,
         height: 500,
         pinned: false,
+        visible: true,
         fontFamily: System.SystemIntegration.resolveFontFamily(appearance.fontFamilyPreferences, "Sans Serif"),
         fontSize: appearance.fontSize
     }
@@ -195,6 +196,15 @@ function updatePinned(id, pinned) {
     if (!sticker) return
     sticker.pinned = pinned
     Storage.saveSticker(sticker)
+}
+
+// Whether the sticker's window should be reopened on the next launch.
+// Doesn't bump "modified" (see Storage.saveSticker's keepModified).
+function updateVisible(id, visible) {
+    var sticker = stickers.find(function(s) { return s.id === id })
+    if (!sticker || sticker.visible === visible) return
+    sticker.visible = visible
+    Storage.saveSticker(sticker, true)
 }
 
 function updateText(id, text) {
@@ -243,6 +253,7 @@ function createSticker(originX, originY, accentColor) {
         width: 300,
         height: 250,
         pinned: Settings.get().desktops.pinNewStickersByDefault,
+        visible: true,
         fontFamily: System.SystemIntegration.resolveFontFamily(appearance.fontFamilyPreferences, "Sans Serif"),
         fontSize: appearance.fontSize
     }
@@ -267,6 +278,7 @@ function duplicateSticker(id) {
         width: original.width,
         height: original.height,
         pinned: false,
+        visible: true,
         fontFamily: original.fontFamily,
         fontSize: original.fontSize
     }

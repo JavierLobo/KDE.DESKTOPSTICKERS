@@ -956,9 +956,24 @@ function extractLinkReferences(lines) {
   return { refs: refs, lines: kept };
 }
 
+// Leading tabs become spaces up to the next 4-column tab stop (CommonMark's
+// tab width). Every indentation check in this parser counts spaces only, so
+// a sub-list indented with a real Tab character used to fall out of its
+// parent item and render as a plain paragraph.
+function expandLeadingTabs(line) {
+  return line.replace(/^[ \t]+/, function (ws) {
+    var out = "";
+    for (var i = 0; i < ws.length; i++) {
+      if (ws[i] === "\t") out += " ".repeat(4 - (out.length % 4));
+      else out += " ";
+    }
+    return out;
+  });
+}
+
 function parse(source) {
   var cleaned = stripComments(source);
-  var rawLines = cleaned.split(/\r\n|\r|\n/);
+  var rawLines = cleaned.split(/\r\n|\r|\n/).map(expandLeadingTabs);
   var extracted = extractFrontMatter(rawLines);
   var refExtraction = extractLinkReferences(extracted.rest);
   var ctx = { footnotes: {}, slugsUsed: Object.create(null), refs: refExtraction.refs };
