@@ -18,6 +18,8 @@
     --accent-soft: #dcece3;
     --sonnet: #2f6f5a;
     --haiku: #b4813f;
+    --opus5: #6b5fa8;
+    --opus55: #2f5f8f;
     --shadow: 0 1px 2px rgba(27,36,32,.06), 0 8px 24px rgba(27,36,32,.05);
     color-scheme: light dark;
   }
@@ -36,6 +38,8 @@
       --accent-soft: #1d3129;
       --sonnet: #5cba9b;
       --haiku: #d9a862;
+      --opus5: #a99be0;
+      --opus55: #79a8d8;
       --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
     }
   }
@@ -53,6 +57,8 @@
     --accent-soft: #1d3129;
     --sonnet: #5cba9b;
     --haiku: #d9a862;
+    --opus5: #a99be0;
+    --opus55: #79a8d8;
     --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
   }
 
@@ -212,7 +218,7 @@
 
   th, td {
     text-align: right;
-    padding: 11px 14px;
+    padding: 11px 9px;
     font-size: 13px;
     border-bottom: 1px solid var(--border);
     white-space: nowrap;
@@ -244,6 +250,9 @@
   .swatch { width: 9px; height: 9px; border-radius: 2px; flex: none; }
   .swatch.sonnet { background: var(--sonnet); }
   .swatch.haiku { background: var(--haiku); }
+  .swatch.opus5 { background: var(--opus5); }
+  .swatch.opus55 { background: var(--opus55); }
+  .lost td:first-child .session-sub { font-style: italic; }
 
   td.cost, .totals td.cost { color: var(--ink); font-weight: 600; }
 
@@ -324,58 +333,80 @@
     </p>
     <div class="meta-row">
       <span><b>Proyecto:</b> Desktop Stickers</span>
-      <span><b>Periodo real:</b> 17 ago – 14 sep 2026</span>
-      <span><b>Sesiones analizadas:</b> 9</span>
-      <span><b>Frontera v1.0.0/v1.1.0:</b> commit del tag v1.0.0, 7 sep 2026 10:38 CEST</span>
+      <span><b>Periodo real:</b> 17 ago – 13 oct 2026</span>
+      <span><b>Sesiones analizadas:</b> 13 (3 eliminadas, con cifras del informe anterior)</span>
+      <span><b>Fronteras:</b> commits de los tags v1.0.0, v1.1.0 y v1.1.1</span>
       <span><b>Facturación real del usuario:</b> Claude Pro, $20/mes</span>
     </div>
   </header>
-
   <section>
     <h2>Resumen</h2>
-
     <div class="subsection">
       <h3>Totales del proyecto</h3>
       <div class="stat-grid">
         <div class="stat hero">
-          <span class="label">Coste hipotético total</span>
-          <span class="value">$303.55</span>
+          <span class="label">Coste hipotético</span>
+          <span class="value">$602.17</span>
           <span class="sub">a tarifa de API, no lo facturado</span>
         </div>
         <div class="stat">
           <span class="label">Tokens totales</span>
-          <span class="value">1,136.1M</span>
+          <span class="value">2,221.1M</span>
           <span class="sub">input + output + caché</span>
         </div>
         <div class="stat">
           <span class="label">Mensajes de modelo</span>
-          <span class="value">2,807</span>
+          <span class="value">8,862</span>
           <span class="sub">respuestas con uso registrado</span>
         </div>
         <div class="stat">
           <span class="label">Modelos usados</span>
-          <span class="value">2</span>
-          <span class="sub">Sonnet 5 · Haiku 4.5</span>
+          <span class="value">4</span>
+          <span class="sub">Sonnet 5 · Opus 5 · Opus 5.5 · Haiku 4.5</span>
         </div>
       </div>
     </div>
-
     <div class="subsection">
       <h3>Totales versión 1.0.0</h3>
       <div class="stat-grid">
         <div class="stat hero">
           <span class="label">Coste hipotético</span>
-          <span class="value">$182.96</span>
+          <span class="value">$331.30</span>
           <span class="sub">a tarifa de API, no lo facturado</span>
         </div>
         <div class="stat">
           <span class="label">Tokens totales</span>
-          <span class="value">634.6M</span>
+          <span class="value">1,206.5M</span>
           <span class="sub">input + output + caché</span>
         </div>
         <div class="stat">
           <span class="label">Mensajes de modelo</span>
-          <span class="value">1,531</span>
+          <span class="value">5,903</span>
+          <span class="sub">respuestas con uso registrado</span>
+        </div>
+        <div class="stat">
+          <span class="label">Modelos usados</span>
+          <span class="value">3</span>
+          <span class="sub">Sonnet 5 · Opus 5 · Haiku 4.5</span>
+        </div>
+      </div>
+    </div>
+    <div class="subsection">
+      <h3>Totales versión 1.1.0</h3>
+      <div class="stat-grid">
+        <div class="stat hero">
+          <span class="label">Coste hipotético</span>
+          <span class="value">$119.67</span>
+          <span class="sub">a tarifa de API, no lo facturado</span>
+        </div>
+        <div class="stat">
+          <span class="label">Tokens totales</span>
+          <span class="value">497.7M</span>
+          <span class="sub">input + output + caché</span>
+        </div>
+        <div class="stat">
+          <span class="label">Mensajes de modelo</span>
+          <span class="value">1,182</span>
           <span class="sub">respuestas con uso registrado</span>
         </div>
         <div class="stat">
@@ -385,37 +416,64 @@
         </div>
       </div>
     </div>
-
     <div class="subsection">
-      <h3>Totales versión 1.1.0</h3>
+      <h3>Totales versión 1.1.1</h3>
       <div class="stat-grid">
         <div class="stat hero">
           <span class="label">Coste hipotético</span>
-          <span class="value">$120.59</span>
+          <span class="value">$84.46</span>
           <span class="sub">a tarifa de API, no lo facturado</span>
         </div>
         <div class="stat">
           <span class="label">Tokens totales</span>
-          <span class="value">501.5M</span>
+          <span class="value">307.0M</span>
           <span class="sub">input + output + caché</span>
         </div>
         <div class="stat">
           <span class="label">Mensajes de modelo</span>
-          <span class="value">1,276</span>
+          <span class="value">1,063</span>
           <span class="sub">respuestas con uso registrado</span>
         </div>
         <div class="stat">
           <span class="label">Modelos usados</span>
-          <span class="value">1</span>
-          <span class="sub">Sonnet 5</span>
+          <span class="value">3</span>
+          <span class="sub">Sonnet 5 · Opus 5 · Haiku 4.5</span>
         </div>
       </div>
     </div>
+    <div class="subsection">
+      <h3>Totales versión 1.2.0 <span class="version-badge">sin tag · en curso</span></h3>
+      <div class="stat-grid">
+        <div class="stat hero">
+          <span class="label">Coste hipotético</span>
+          <span class="value">$66.74</span>
+          <span class="sub">a tarifa de API, no lo facturado</span>
+        </div>
+        <div class="stat">
+          <span class="label">Tokens totales</span>
+          <span class="value">209.8M</span>
+          <span class="sub">input + output + caché</span>
+        </div>
+        <div class="stat">
+          <span class="label">Mensajes de modelo</span>
+          <span class="value">714</span>
+          <span class="sub">respuestas con uso registrado</span>
+        </div>
+        <div class="stat">
+          <span class="label">Modelos usados</span>
+          <span class="value">2</span>
+          <span class="sub">Sonnet 5 · Opus 5.5</span>
+        </div>
+      </div>
+    </div>
+    <p class="dek">Los mensajes de modelo no incluyen las sesiones ya eliminadas, de las que solo se conservan tokens y coste.</p>
   </section>
-
   <section>
     <h2>Coste y tokens por modelo</h2>
-
+    <p class="dek" style="margin-bottom:20px;">
+      Solo sesiones con transcripción disponible: de las sesiones ya
+      eliminadas no hay desglose por modelo ni por tipo de token.
+    </p>
     <div class="subsection">
       <h3>Totales del proyecto</h3>
       <div class="table-wrap">
@@ -434,38 +492,59 @@
         <tbody>
           <tr>
             <td><span class="model-name"><span class="swatch sonnet"></span>Claude Sonnet 5</span></td>
-            <td>2,798</td>
-            <td>7,494</td>
-            <td>2,573,234</td>
-            <td>1,119,754,119</td>
-            <td>13,431,266</td>
-            <td class="cost">$303.42</td>
+            <td>7,596</td>
+            <td>21,058</td>
+            <td>3,582,849</td>
+            <td>1,894,942,843</td>
+            <td>25,357,998</td>
+            <td class="cost">$505.26</td>
+          </tr>
+          <tr>
+            <td><span class="model-name"><span class="swatch opus5"></span>Claude Opus 5</span></td>
+            <td>478</td>
+            <td>1,507</td>
+            <td>55,253</td>
+            <td>43,774,079</td>
+            <td>1,444,408</td>
+            <td class="cost">$32.30</td>
+          </tr>
+          <tr>
+            <td><span class="model-name"><span class="swatch opus55"></span>Claude Opus 5.5</span></td>
+            <td>258</td>
+            <td>516</td>
+            <td>200,035</td>
+            <td>70,491,092</td>
+            <td>445,562</td>
+            <td class="cost">$21.67</td>
           </tr>
           <tr>
             <td><span class="model-name"><span class="swatch haiku"></span>Claude Haiku 4.5</span></td>
-            <td>9</td>
-            <td>80</td>
-            <td>6,228</td>
-            <td>324,658</td>
-            <td>32,418</td>
-            <td class="cost">$0.13</td>
+            <td>530</td>
+            <td>4,328</td>
+            <td>15,904</td>
+            <td>22,183,025</td>
+            <td>1,382,867</td>
+            <td class="cost">$4.05</td>
           </tr>
         </tbody>
         <tfoot>
           <tr>
             <td>Total</td>
-            <td>2,807</td>
-            <td>7,574</td>
-            <td>2,579,462</td>
-            <td>1,120,078,777</td>
-            <td>13,463,684</td>
-            <td class="cost">$303.55</td>
+            <td>8,862</td>
+            <td>27,409</td>
+            <td>3,854,041</td>
+            <td>2,031,391,039</td>
+            <td>28,630,835</td>
+            <td class="cost">$563.28</td>
           </tr>
         </tfoot>
       </table>
       </div>
+      <p class="dek" style="margin-top:12px;">
+        Más 157,229,017 tokens y $38.89 de sesiones ya
+        eliminadas, sin desglose (Sonnet 5).
+      </p>
     </div>
-
     <div class="subsection">
       <h3>Versión 1.0.0</h3>
       <div class="table-wrap">
@@ -484,38 +563,50 @@
         <tbody>
           <tr>
             <td><span class="model-name"><span class="swatch sonnet"></span>Claude Sonnet 5</span></td>
-            <td>1,522</td>
-            <td>4,922</td>
-            <td>1,471,131</td>
-            <td>621,851,284</td>
-            <td>10,935,076</td>
-            <td class="cost">$182.83</td>
+            <td>5,207</td>
+            <td>16,161</td>
+            <td>1,437,303</td>
+            <td>1,011,138,332</td>
+            <td>16,495,923</td>
+            <td class="cost">$273.25</td>
+          </tr>
+          <tr>
+            <td><span class="model-name"><span class="swatch opus5"></span>Claude Opus 5</span></td>
+            <td>351</td>
+            <td>1,253</td>
+            <td>43,047</td>
+            <td>31,866,989</td>
+            <td>1,116,704</td>
+            <td class="cost">$23.99</td>
           </tr>
           <tr>
             <td><span class="model-name"><span class="swatch haiku"></span>Claude Haiku 4.5</span></td>
-            <td>9</td>
-            <td>80</td>
-            <td>6,228</td>
-            <td>324,658</td>
-            <td>32,418</td>
-            <td class="cost">$0.13</td>
+            <td>345</td>
+            <td>2,808</td>
+            <td>15,520</td>
+            <td>14,376,387</td>
+            <td>677,788</td>
+            <td class="cost">$2.39</td>
           </tr>
         </tbody>
         <tfoot>
           <tr>
             <td>Total</td>
-            <td>1,531</td>
-            <td>5,002</td>
-            <td>1,477,359</td>
-            <td>622,175,942</td>
-            <td>10,967,494</td>
-            <td class="cost">$182.96</td>
+            <td>5,903</td>
+            <td>20,222</td>
+            <td>1,495,870</td>
+            <td>1,057,381,708</td>
+            <td>18,290,415</td>
+            <td class="cost">$299.63</td>
           </tr>
         </tfoot>
       </table>
       </div>
+      <p class="dek" style="margin-top:12px;">
+        Más 129,354,477 tokens y $31.67 de sesiones ya
+        eliminadas, sin desglose (Sonnet 5).
+      </p>
     </div>
-
     <div class="subsection">
       <h3>Versión 1.1.0</h3>
       <div class="table-wrap">
@@ -534,44 +625,157 @@
         <tbody>
           <tr>
             <td><span class="model-name"><span class="swatch sonnet"></span>Claude Sonnet 5</span></td>
-            <td>1,276</td>
-            <td>2,572</td>
-            <td>1,102,103</td>
-            <td>497,902,835</td>
-            <td>2,496,190</td>
-            <td class="cost">$120.59</td>
+            <td>1,165</td>
+            <td>2,350</td>
+            <td>976,403</td>
+            <td>465,896,262</td>
+            <td>2,495,719</td>
+            <td class="cost">$112.35</td>
+          </tr>
+          <tr>
+            <td><span class="model-name"><span class="swatch haiku"></span>Claude Haiku 4.5</span></td>
+            <td>17</td>
+            <td>138</td>
+            <td>54</td>
+            <td>434,871</td>
+            <td>44,570</td>
+            <td class="cost">$0.10</td>
           </tr>
         </tbody>
         <tfoot>
           <tr>
             <td>Total</td>
-            <td>1,276</td>
-            <td>2,572</td>
-            <td>1,102,103</td>
-            <td>497,902,835</td>
-            <td>2,496,190</td>
-            <td class="cost">$120.59</td>
+            <td>1,182</td>
+            <td>2,488</td>
+            <td>976,457</td>
+            <td>466,331,133</td>
+            <td>2,540,289</td>
+            <td class="cost">$112.45</td>
           </tr>
         </tfoot>
       </table>
       </div>
       <p class="dek" style="margin-top:12px;">
-        Ninguna llamada de Haiku 4.5 cae después de la frontera de
-        v1.0.0 — las 9 quedaron dentro del desarrollo de esa versión.
+        Más 27,874,540 tokens y $7.22 de sesiones ya
+        eliminadas, sin desglose (Sonnet 5).
       </p>
     </div>
+    <div class="subsection">
+      <h3>Versión 1.1.1</h3>
+      <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Modelo</th>
+            <th>Mensajes</th>
+            <th>Input</th>
+            <th>Output</th>
+            <th>Caché lectura</th>
+            <th>Caché escritura</th>
+            <th>Coste</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="model-name"><span class="swatch sonnet"></span>Claude Sonnet 5</span></td>
+            <td>768</td>
+            <td>1,536</td>
+            <td>627,710</td>
+            <td>282,937,687</td>
+            <td>3,200,044</td>
+            <td class="cost">$74.58</td>
+          </tr>
+          <tr>
+            <td><span class="model-name"><span class="swatch opus5"></span>Claude Opus 5</span></td>
+            <td>127</td>
+            <td>254</td>
+            <td>12,206</td>
+            <td>11,907,090</td>
+            <td>327,704</td>
+            <td class="cost">$8.31</td>
+          </tr>
+          <tr>
+            <td><span class="model-name"><span class="swatch haiku"></span>Claude Haiku 4.5</span></td>
+            <td>168</td>
+            <td>1,382</td>
+            <td>330</td>
+            <td>7,371,767</td>
+            <td>660,509</td>
+            <td class="cost">$1.57</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>Total</td>
+            <td>1,063</td>
+            <td>3,172</td>
+            <td>640,246</td>
+            <td>302,216,544</td>
+            <td>4,188,257</td>
+            <td class="cost">$84.46</td>
+          </tr>
+        </tfoot>
+      </table>
+      </div>
+    </div>
+    <div class="subsection">
+      <h3>Versión 1.2.0</h3>
+      <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Modelo</th>
+            <th>Mensajes</th>
+            <th>Input</th>
+            <th>Output</th>
+            <th>Caché lectura</th>
+            <th>Caché escritura</th>
+            <th>Coste</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="model-name"><span class="swatch sonnet"></span>Claude Sonnet 5</span></td>
+            <td>456</td>
+            <td>1,011</td>
+            <td>541,433</td>
+            <td>134,970,562</td>
+            <td>3,166,312</td>
+            <td class="cost">$45.08</td>
+          </tr>
+          <tr>
+            <td><span class="model-name"><span class="swatch opus55"></span>Claude Opus 5.5</span></td>
+            <td>258</td>
+            <td>516</td>
+            <td>200,035</td>
+            <td>70,491,092</td>
+            <td>445,562</td>
+            <td class="cost">$21.66</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>Total</td>
+            <td>714</td>
+            <td>1,527</td>
+            <td>741,468</td>
+            <td>205,461,654</td>
+            <td>3,611,874</td>
+            <td class="cost">$66.74</td>
+          </tr>
+        </tfoot>
+      </table>
+      </div>
+    </div>
   </section>
-
   <section>
     <h2>Coste por sesión</h2>
     <p class="dek" style="margin-bottom:20px;">
-      Varias sesiones cruzan la frontera entre versiones (siguieron
-      activas después del commit de v1.0.0), así que la misma sesión
-      puede aparecer partida entre las dos tablas — el token/coste de
-      cada mitad corresponde solo a los mensajes de ese lado de la
+      Varias sesiones cruzan la frontera entre versiones, así que la misma
+      sesión puede aparecer partida entre tablas — los tokens y el coste de
+      cada parte corresponden solo a los mensajes de ese lado de la
       frontera.
     </p>
-
     <div class="subsection">
       <h3>Sesiones versión 1.0.0</h3>
       <div class="table-wrap">
@@ -588,19 +792,19 @@
             <td class="session-label">Desarrollo principal
               <span class="session-sub">17–20 ago 2026 · f5e6aa6a…</span>
             </td>
-            <td>503,671,486</td>
-            <td class="cost">$149.84</td>
+            <td>1,075,588,381</td>
+            <td class="cost">$298.19</td>
           </tr>
           <tr>
-            <td class="session-label">Fragmento
-              <span class="session-sub">19 ago 2026 · ff3871df… — continúa en v1.1.0</span>
+            <td class="session-label">Publicación y distribución
+              <span class="session-sub">19 ago – 7 sep 2026 · ff3871df…</span>
             </td>
             <td>1,599,834</td>
             <td class="cost">$1.44</td>
           </tr>
-          <tr>
-            <td class="session-label">Fragmento
-              <span class="session-sub">20 ago – 7 sep 2026 · bb0f67b2… — continúa en v1.1.0</span>
+          <tr class="lost">
+            <td class="session-label">Fragmento (sesión ya eliminada)
+              <span class="session-sub">20 ago – 7 sep 2026 · bb0f67b2… — cifras del informe anterior</span>
             </td>
             <td>129,354,477</td>
             <td class="cost">$31.67</td>
@@ -609,14 +813,13 @@
         <tfoot>
           <tr>
             <td>Total v1.0.0</td>
-            <td>634,625,797</td>
-            <td class="cost">$182.96</td>
+            <td>1,206,542,692</td>
+            <td class="cost">$331.30</td>
           </tr>
         </tfoot>
       </table>
       </div>
     </div>
-
     <div class="subsection">
       <h3>Sesiones versión 1.1.0</h3>
       <div class="table-wrap">
@@ -630,67 +833,169 @@
         </thead>
         <tbody>
           <tr>
-            <td class="session-label">Continuación
+            <td class="session-label">Post de LinkedIn
+              <span class="session-sub">7 sep 2026 · ec74bf68…</span>
+            </td>
+            <td>302,515</td>
+            <td class="cost">$0.22</td>
+          </tr>
+          <tr>
+            <td class="session-label">Publicación y distribución
               <span class="session-sub">7–9 sep 2026 · ff3871df…</span>
             </td>
             <td>39,360,169</td>
             <td class="cost">$11.70</td>
           </tr>
           <tr>
-            <td class="session-label">Continuación
-              <span class="session-sub">7 sep 2026 · bb0f67b2…</span>
+            <td class="session-label">Desarrollo v1.1.0
+              <span class="session-sub">14 sep 2026 · 06361e69…</span>
+            </td>
+            <td>425,125,977</td>
+            <td class="cost">$98.54</td>
+          </tr>
+          <tr>
+            <td class="session-label">Traducciones con modelos locales
+              <span class="session-sub">14 sep 2026 · e8439121…</span>
+            </td>
+            <td>5,061,706</td>
+            <td class="cost">$1.99</td>
+          </tr>
+          <tr class="lost">
+            <td class="session-label">Continuación (sesión ya eliminada)
+              <span class="session-sub">7 sep 2026 · bb0f67b2… — cifras del informe anterior</span>
             </td>
             <td>21,394,341</td>
             <td class="cost">$4.59</td>
           </tr>
-          <tr>
-            <td class="session-label">Sesión del día
-              <span class="session-sub">7 sep 2026 · 9e9c7906…</span>
+          <tr class="lost">
+            <td class="session-label">Sesión del día (ya eliminada)
+              <span class="session-sub">7 sep 2026 · 9e9c7906… — cifras del informe anterior</span>
             </td>
             <td>5,748,825</td>
             <td class="cost">$1.90</td>
           </tr>
-          <tr>
-            <td class="session-label">Sesión larga
-              <span class="session-sub">7–14 sep 2026 · ec74bf68…</span>
-            </td>
-            <td>1,215,725</td>
-            <td class="cost">$0.93</td>
-          </tr>
-          <tr>
-            <td class="session-label">Sesión del día
-              <span class="session-sub">9 sep 2026 · 8fe755f9…</span>
+          <tr class="lost">
+            <td class="session-label">Sesión del día (ya eliminada)
+              <span class="session-sub">9 sep 2026 · 8fe755f9… — cifras del informe anterior</span>
             </td>
             <td>731,374</td>
             <td class="cost">$0.73</td>
-          </tr>
-          <tr>
-            <td class="session-label">Esta conversación
-              <span class="session-sub">14 sep 2026 · 6dd1714e… — sigue en curso</span>
-            </td>
-            <td>2,736,125</td>
-            <td class="cost">$1.27</td>
-          </tr>
-          <tr>
-            <td class="session-label">Desarrollo del día
-              <span class="session-sub">14 sep 2026 · 06361e69…</span>
-            </td>
-            <td>425,735,068</td>
-            <td class="cost">$97.58</td>
-          </tr>
-          <tr>
-            <td class="session-label">Sesión del día
-              <span class="session-sub">14 sep 2026 · e8439121…</span>
-            </td>
-            <td>4,582,073</td>
-            <td class="cost">$1.90</td>
           </tr>
         </tbody>
         <tfoot>
           <tr>
             <td>Total v1.1.0</td>
-            <td>501,503,700</td>
-            <td class="cost">$120.59</td>
+            <td>497,724,907</td>
+            <td class="cost">$119.67</td>
+          </tr>
+        </tfoot>
+      </table>
+      </div>
+    </div>
+    <div class="subsection">
+      <h3>Sesiones versión 1.1.1</h3>
+      <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Sesión</th>
+            <th>Tokens</th>
+            <th>Coste</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="session-label">Desarrollo v1.1.0
+              <span class="session-sub">14 sep 2026 · 06361e69…</span>
+            </td>
+            <td>2,784,998</td>
+            <td class="cost">$0.59</td>
+          </tr>
+          <tr>
+            <td class="session-label">Post de LinkedIn
+              <span class="session-sub">14 sep 2026 · ec74bf68…</span>
+            </td>
+            <td>913,210</td>
+            <td class="cost">$0.71</td>
+          </tr>
+          <tr>
+            <td class="session-label">Informe de tokens
+              <span class="session-sub">14 sep 2026 · 6dd1714e…</span>
+            </td>
+            <td>4,780,247</td>
+            <td class="cost">$1.98</td>
+          </tr>
+          <tr>
+            <td class="session-label">v1.1.1: renderizado Markdown
+              <span class="session-sub">16 sep 2026 · 0bd55827…</span>
+            </td>
+            <td>298,569,764</td>
+            <td class="cost">$81.18</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>Total v1.1.1</td>
+            <td>307,048,219</td>
+            <td class="cost">$84.46</td>
+          </tr>
+        </tfoot>
+      </table>
+      </div>
+    </div>
+    <div class="subsection">
+      <h3>Sesiones versión 1.2.0</h3>
+      <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Sesión</th>
+            <th>Tokens</th>
+            <th>Coste</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="session-label">v1.1.1: renderizado Markdown
+              <span class="session-sub">16 sep 2026 · 0bd55827…</span>
+            </td>
+            <td>5,322,299</td>
+            <td class="cost">$1.11</td>
+          </tr>
+          <tr>
+            <td class="session-label">Grabación de vídeo de la app
+              <span class="session-sub">20 sep 2026 · f221fe8e…</span>
+            </td>
+            <td>130,400,731</td>
+            <td class="cost">$42.42</td>
+          </tr>
+          <tr>
+            <td class="session-label">Post de LinkedIn
+              <span class="session-sub">21 sep 2026 · ec74bf68…</span>
+            </td>
+            <td>1,104,641</td>
+            <td class="cost">$0.72</td>
+          </tr>
+          <tr>
+            <td class="session-label">Medición de rendimiento
+              <span class="session-sub">22 sep 2026 · f438299b…</span>
+            </td>
+            <td>1,851,647</td>
+            <td class="cost">$0.82</td>
+          </tr>
+          <tr>
+            <td class="session-label">v1.2.0 (esta conversación)
+              <span class="session-sub">13 oct 2026 · ed626d13…</span>
+            </td>
+            <td>71,137,205</td>
+            <td class="cost">$21.67</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>Total v1.2.0</td>
+            <td>209,816,523</td>
+            <td class="cost">$66.74</td>
           </tr>
         </tfoot>
       </table>
@@ -714,38 +1019,49 @@
   <section>
     <h2>Metodología</h2>
     <ul class="notes">
-      <li>Datos extraídos de las 9 transcripciones locales de Claude Code
-        aún presentes en <code>~/.claude/projects/…KDE-STICKERS/</code>;
-        sesiones ya rotadas o eliminadas no están incluidas, así que este
-        es un piso, no necesariamente el 100% del consumo histórico.</li>
+      <li>Datos extraídos de las transcripciones locales de Claude Code
+        aún presentes en <code>~/.claude/projects/…KDE-STICKERS/</code>:
+        10 sesiones y las transcripciones de sus <b>subagentes</b>
+        (<code>&lt;sesión&gt;/subagents/</code>), que también son llamadas
+        reales a la API.</li>
+      <li><b>Cambio respecto al informe del 14 sep 2026:</b> aquel contaba
+        solo las transcripciones principales y dejaba fuera las de
+        subagentes, por eso las cifras de v1.0.0 y v1.1.0 son ahora
+        mayores (sobre todo la sesión <code>f5e6aa6a…</code>, cuyos 72
+        subagentes suman más tokens que la propia sesión). Las 3
+        sesiones que ya no están en disco (<code>bb0f67b2…</code>,
+        <code>9e9c7906…</code>, <code>8fe755f9…</code>) conservan las cifras
+        de aquel informe, sin desglose por modelo, así que el total sigue
+        siendo un mínimo, no el 100% del consumo histórico.</li>
       <li>Cada llamada a la API se identifica por su <code>requestId</code>
-        y se cuenta una sola vez a nivel global, aunque el mismo mensaje
-        aparezca duplicado en varios archivos de sesión (2,406 duplicados
-        detectados y descartados) por reanudaciones/forks de conversación.</li>
-      <li>La frontera de versión es el timestamp del commit del tag
-        <code>v1.0.0</code> (<code>2026-09-07T10:38:51+02:00</code> →
-        <code>08:38:51Z</code>): todo mensaje con timestamp igual o
-        anterior cuenta como v1.0.0; todo mensaje posterior cuenta como
-        v1.1.0 (no hay tag más nuevo, así que ese bucket incluye también
-        el trabajo posterior al commit de v1.1.0 hasta hoy).</li>
-      <li>Precios usados: Sonnet 5 <code>$2 / $10</code> por millón de
-        tokens input/output; Haiku 4.5 <code>$1 / $5</code>; lectura de
-        caché al <code>0.1×</code> el precio de input; escritura de
-        caché al <code>2×</code> el precio de input para TTL de 1 hora
-        (<code>1.25×</code> para TTL de 5 minutos, sin uso registrado en
-        este proyecto) — tarifas vigentes consultadas en septiembre de
-        2026.</li>
-      <li>El historial de commits del proyecto corre del 17 de agosto al
-        14 de septiembre de 2026.</li>
-      <li>La sesión "Esta conversación" (<code>6dd1714e…</code>) seguía
-        activa al generar este informe: su coste y recuento de tokens
-        crecieron después.</li>
+        y se cuenta una sola vez, aunque el mismo mensaje aparezca
+        duplicado en varios archivos de sesión por reanudaciones o
+        bifurcaciones de la conversación.</li>
+      <li>Fronteras de versión: timestamp del commit de cada tag —
+        <code>v1.0.0</code> (<code>2026-09-07T08:38:51Z</code>),
+        <code>v1.1.0</code> (<code>2026-09-14T17:10:59Z</code>) y
+        <code>v1.1.1</code> (<code>2026-09-16T20:35:20Z</code>). Cada mensaje
+        cuenta para la primera versión cuya frontera es igual o posterior a
+        su timestamp; lo posterior a <code>v1.1.1</code> cuenta como versión
+        1.2.0 (todavía sin tag), e incluye también sesiones de esa época
+        que no tocaron el código (vídeo, rendimiento, post de LinkedIn).</li>
+      <li>Precios usados, por millón de tokens input/output: Opus 5.5
+        <code>$4 / $20</code>, Opus 5 <code>$5 / $25</code>, Sonnet 5
+        <code>$2 / $10</code>, Haiku 4.5 <code>$1 / $5</code>. Lectura de
+        caché al <code>0.1×</code> el precio de input (<code>0.05×</code> en
+        Opus 5.5); escritura de caché al <code>1.25×</code> con TTL de 5
+        minutos y al <code>2×</code> con TTL de 1 hora, según el desglose por
+        TTL que trae cada mensaje — tarifas vigentes consultadas en octubre
+        de 2026.</li>
+      <li>La sesión <code>ed626d13…</code> (esta conversación) seguía activa
+        al generar este informe: su coste y recuento de tokens crecieron
+        después.</li>
     </ul>
   </section>
 
   <footer>
     <span>Desktop Stickers · informe generado por Claude Code</span>
-    <span>14 sep 2026</span>
+    <span>13 oct 2026</span>
   </footer>
 
 </div>
