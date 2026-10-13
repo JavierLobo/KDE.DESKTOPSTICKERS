@@ -7,6 +7,8 @@
 
     "Main.tray.tooltip": "Desktop Stickers",
     "Main.trayMenu.newSticker": "新しいスティッカー",
+    "Main.trayMenu.hideStickers": "スティッカーを隠す",
+    "Main.trayMenu.showStickers": "スティッカーを表示",
     "Main.trayMenu.stickerPanel": "スティッカーパネル",
     "Main.trayMenu.options": "オプション",
     "Main.trayMenu.help": "ヘルプ",
@@ -27,6 +29,12 @@
     "StickerWindow.header.showToolbar": "書式設定バーを表示",
     "StickerWindow.header.hideToolbar": "書式設定バーを隠す",
     "StickerWindow.header.close": "閉じる",
+    "StickerWindow.edit.undo": "元に戻す",
+    "StickerWindow.edit.redo": "やり直す",
+    "StickerWindow.edit.cut": "切り取り",
+    "StickerWindow.edit.copy": "コピー",
+    "StickerWindow.edit.paste": "貼り付け",
+    "StickerWindow.edit.selectAll": "すべて選択",
 
     "StickerPanel.title": "スティッカーパネル",
     "StickerPanel.search.placeholder": "スティッカーを検索",
@@ -109,6 +117,7 @@
 
     "MarkdownToolbar.bold": "太字",
     "MarkdownToolbar.italic": "斜体",
+    "MarkdownToolbar.underline": "下線",
     "MarkdownToolbar.strike": "取り消し線",
     "MarkdownToolbar.h1": "見出し 1",
     "MarkdownToolbar.h2": "見出し 2",

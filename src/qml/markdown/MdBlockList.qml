@@ -9,6 +9,12 @@ import QtQuick
 Column {
     id: root
     property var blocks: []
+    // Only meaningful when this block list is a list item's content: how
+    // many lists enclose it, and (for an ordered parent item) that item's
+    // full number path, e.g. "1.2" -- MdList uses both to draw nested
+    // markers ("-" bullets, "1.2.1"-style numbers). See MdList.qml.
+    property int listDepth: 0
+    property string listPath: ""
     signal editRequested()
     signal anchorRequested(string slug)
 
@@ -58,6 +64,12 @@ Column {
     function wireItem(item, node) {
         if (!item)
             return
+        // Before `node`, so a nested MdList builds its markers with the right
+        // depth/path from the start instead of re-rendering once they land.
+        if (node.type === "list") {
+            item.listDepth = root.listDepth
+            item.listPath = root.listPath
+        }
         item.node = node
         if (item.editRequested)
             item.editRequested.connect(root.editRequested)

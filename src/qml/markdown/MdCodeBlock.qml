@@ -74,22 +74,29 @@ Rectangle {
             color: "#555"
         }
 
-        Text {
+        // Read-only TextEdit (not Text) so code can be selected and copied --
+        // see MdRichText.qml.
+        TextEdit {
             id: codeText
             width: parent.width
-            textFormat: Text.RichText
-            wrapMode: Text.Wrap
+            readOnly: true
+            selectByMouse: true
+            textFormat: TextEdit.RichText
+            wrapMode: TextEdit.Wrap
             // Single family, not a chain -- QML's `font` grouped property has
             // no `families` member; see the same note in MdRichText.qml.
             // fontconfig resolves "Monospace" to the system default mono font.
             font.family: "Monospace"
             font.pixelSize: 13 // ~0.9x MdRichText's 14px prose size, per the spec's code-sizing rule
             text: root.node ? root.highlightedHtml() : ""
+
+            HoverHandler { cursorShape: Qt.IBeamCursor }
         }
     }
 
-    MouseArea {
-        anchors.fill: parent
-        onClicked: root.editRequested()
-    }
+    // Covers both the code text and the box's padding: pointer handlers on
+    // an ancestor still get the press after the TextEdit accepts it (Qt
+    // keeps delivering to handlers only), and a TapHandler's passive grab
+    // doesn't stop the TextEdit's drag-to-select.
+    TapHandler { onTapped: root.editRequested() }
 }

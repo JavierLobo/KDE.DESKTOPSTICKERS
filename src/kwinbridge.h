@@ -133,6 +133,16 @@ protected:
     void addRuleIdToList(const QString &ruleId) const;
     bool reconfigureKWin() const;
 
+    // Writes the wmclass/wmclassmatch/wmclasscomplete keys every rule group
+    // uses to recognise this app's windows -- a regex matching both the
+    // Wayland app_id and the X11 WM_CLASS (see kWindowClassRegex in the .cpp).
+    void writeWindowClassMatch(const QString &ruleId) const;
+
+    // One-time-per-launch upgrade of rule groups written by older versions
+    // (a Wayland-only substring match, inert under X11). Run from the
+    // constructor; a no-op once every sticker group carries the regex.
+    void migrateLegacyWindowClassMatch() const;
+
     // Live-unsets onAllDesktops on the currently-open window matching
     // windowTitle via a fire-and-forget KWin script. Needed because
     // removing the KWin rule alone does not un-pin a window that is

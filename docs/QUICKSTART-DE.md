@@ -46,10 +46,20 @@ Einstellungen gespeichert ist (standardmäßig Spanisch). Um sie zu
 ändern: Rechtsklick auf das Tray-Symbol → **Optionen → Einstellungen →
 Sprachen**.
 
+Sticker, die du mit "✕" geschlossen hast, bleiben beim nächsten Start
+geschlossen — öffne sie wieder über das Tray-Menü oder das Sticker-Panel.
+
 ## Deinen ersten Sticker erstellen
 
 - Klick auf das Tray-Symbol → "Nuevo sticker", oder
 - Klick auf die "+"-Schaltfläche eines vorhandenen Stickers
+
+## Aus- und einblenden
+
+Rechtsklick auf das Tray-Symbol → **Sticker ausblenden** blendet alle
+sichtbaren Sticker auf einmal aus; derselbe Eintrag heißt dann **Sticker
+einblenden** und holt sie an ihren Platz zurück. Das ist vorübergehend:
+Nach einem Neustart der App erscheinen sie wieder.
 
 ## Bearbeiten
 
@@ -57,6 +67,19 @@ Klicke in einen Sticker, um ihn in Markdown zu bearbeiten — die
 Formatierungsleiste (fett, Überschriften, Listen, Tabellen, Links ...)
 erscheint über dem Textbereich. Klicke außerhalb, um zur gerenderten
 Vorschau zurückzukehren.
+
+- **In der Vorschau markieren und kopieren:** über den Text ziehen, um
+  ihn zu markieren, dann Strg+C. Ein einfacher Klick (ohne Ziehen) öffnet
+  die Bearbeitung.
+- **Kontextmenü:** beim Bearbeiten öffnet ein Rechtsklick Rückgängig,
+  Wiederholen, Ausschneiden, Kopieren, Einfügen und Alles auswählen, ohne
+  die Bearbeitung zu verlassen.
+- **Unterlisten:** Tab rückt die Zeile (oder die markierten Zeilen) um 4
+  Leerzeichen ein, Umschalt+Tab macht es rückgängig. In der Vorschau
+  erscheinen Unterpunkte mit Strich (`-`) und verschachtelte nummerierte
+  Listen als `1.1`, `1.2.1`...
+- **Unterstrichen:** Schaltfläche **U** oder Strg+U; schreibt
+  `<u>Text</u>`, da Markdown keine eigene Syntax zum Unterstreichen hat.
 
 ## Pin (alle Arbeitsflächen) und Größe ändern
 
@@ -133,6 +156,14 @@ Die manuelle Prüfliste für alle Funktionen findest du in
 - Falls die Werte korrekt sind, sich aber nicht live auswirken,
   erzwinge ein Neuladen:
   `qdbus6 org.kde.KWin /KWin org.kde.KWin.reconfigure`
+
+**Ein Sticker erscheint beim Start der App nicht:**
+- Wenn du ihn mit "✕" (oder Alt+F4) geschlossen hast, bleibt er absichtlich
+  geschlossen: Jeder Sticker merkt sich, ob er offen war. Öffne ihn über
+  das Tray-Menü oder das Sticker-Panel, dann erscheint er auch bei den
+  nächsten Starts wieder.
+- Wenn du **Sticker ausblenden** benutzt hast, klicke im selben Menü auf
+  **Sticker einblenden**.
 
 **Eine neu von mir zu `src/i18n/` hinzugefügte Sprache wird nicht angezeigt:**
 - Sie benötigt exakt dieselben Schlüssel wie `src/i18n/es.json`

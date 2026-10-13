@@ -7,6 +7,8 @@
 
     "Main.tray.tooltip": "Desktop Stickers",
     "Main.trayMenu.newSticker": "Nuevo sticker",
+    "Main.trayMenu.hideStickers": "Ocultar stickers",
+    "Main.trayMenu.showStickers": "Mostrar stickers",
     "Main.trayMenu.stickerPanel": "Panel de Stickers",
     "Main.trayMenu.options": "Opciones",
     "Main.trayMenu.help": "Ayuda",
@@ -27,6 +29,12 @@
     "StickerWindow.header.showToolbar": "Mostrar barra de formato",
     "StickerWindow.header.hideToolbar": "Ocultar barra de formato",
     "StickerWindow.header.close": "Cerrar",
+    "StickerWindow.edit.undo": "Deshacer",
+    "StickerWindow.edit.redo": "Rehacer",
+    "StickerWindow.edit.cut": "Cortar",
+    "StickerWindow.edit.copy": "Copiar",
+    "StickerWindow.edit.paste": "Pegar",
+    "StickerWindow.edit.selectAll": "Seleccionar todo",
 
     "StickerPanel.title": "Panel de stickers",
     "StickerPanel.search.placeholder": "Buscar en los stickers",
@@ -109,6 +117,7 @@
 
     "MarkdownToolbar.bold": "Negrita",
     "MarkdownToolbar.italic": "Cursiva",
+    "MarkdownToolbar.underline": "Subrayado",
     "MarkdownToolbar.strike": "Tachado",
     "MarkdownToolbar.h1": "Encabezado 1",
     "MarkdownToolbar.h2": "Encabezado 2",

@@ -214,3 +214,37 @@ run("link reference definition inside a fenced code block is not extracted", () 
     "reference definition was consumed from inside the fence: " + JSON.stringify(codeBlock.content)
   );
 });
+
+// --- v1.2.0: nested lists -------------------------------------------------
+
+function nestedList(item) {
+  return item.blocks.find((b) => b.type === "list");
+}
+
+run("sub-list indented with a Tab nests under its '*' item", () => {
+  const parsed = MarkdownParser.parse("* uno\n\t- sub a\n\t- sub b\n* dos\n");
+  assert.strictEqual(parsed.blocks.length, 1);
+  const list = parsed.blocks[0];
+  assert.strictEqual(list.items.length, 2);
+  const sub = nestedList(list.items[0]);
+  assert.ok(sub, "expected a nested list inside the first item");
+  assert.strictEqual(sub.items.length, 2);
+});
+
+run("ordered list nested 4 spaces deep, three levels", () => {
+  const parsed = MarkdownParser.parse("1. A\n    1. A1\n    2. A2\n        1. A21\n2. B\n");
+  const list = parsed.blocks[0];
+  assert.strictEqual(list.ordered, true);
+  assert.strictEqual(list.items.length, 2);
+  const sub = nestedList(list.items[0]);
+  assert.ok(sub && sub.ordered, "expected a nested ordered list under item 1");
+  assert.strictEqual(sub.items.length, 2);
+  const subsub = nestedList(sub.items[1]);
+  assert.ok(subsub && subsub.ordered, "expected a third-level list under 1.2");
+  assert.strictEqual(subsub.items.length, 1);
+});
+
+run("tab inside a line is left alone (only leading tabs expand)", () => {
+  const parsed = MarkdownParser.parse("```\na\tb\n```\n");
+  assert.strictEqual(parsed.blocks[0].content, "a\tb");
+});

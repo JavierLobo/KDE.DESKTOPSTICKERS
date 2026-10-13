@@ -23,12 +23,12 @@ sans décoration, avec une position et une taille persistantes, et une
 visibilité sur tous les bureaux virtuels en option, par sticker (épingle).
 
 <p align="center">
-  <img src="../img/screenshot-desktop.png" alt="Stickers flottants sur le bureau KDE Plasma" width="720">
+  <img src="../img/screenshot-desktop-1.2.0.png" alt="Stickers flottants sur le bureau KDE Plasma" width="720">
 </p>
 
 ## Prérequis
 
-- Plasma 6.x (vérifié avec 6.7.4) et KWin, session Wayland
+- Plasma 6.x (vérifié avec 6.7.4) et KWin, session Wayland ou X11
 - Qt 6.4+ (`Core`, `Gui`, `Qml`, `Quick`, `Widgets`, `DBus`)
 - CMake, Bash
 
@@ -56,6 +56,9 @@ pour le guide complet (premier lancement, données de test, dépannage) et
   (`desktopstickers-sticker-<id>`)
 - Redimensionner depuis le coin inférieur droit, avec la taille
   persistée et restaurée de la même façon que la position
+- Les stickers s'empilent comme n'importe quelle autre fenêtre : ils
+  passent derrière l'application qui a le focus, sous Wayland comme sous
+  X11 (ils ne restent pas « toujours au premier plan »)
 - Épingle par sticker (bouton 📍/📌) : à activer individuellement pour
   que ce sticker soit visible sur tous les bureaux virtuels à la fois,
   via la même règle de fenêtre KWin du sticker ; sans épingle, le
@@ -67,7 +70,7 @@ pour le guide complet (premier lancement, données de test, dépannage) et
   automatique : cliquer pour éditer, perdre le focus pour revenir à
   l'aperçu rendu
 - **Barre de formatage Markdown** pendant l'édition : gras, italique,
-  barré, titres H1-H3, liste à puces, liste numérotée, liste de tâches,
+  souligné (`<u>…</u>`, Ctrl+U), barré, titres H1-H3, liste à puces, liste numérotée, liste de tâches,
   lien, image, code en ligne, citation, bloc de code, ligne horizontale
   et tableau (avec un sélecteur de lignes/colonnes) — chaque bouton
   applique un *toggle* sur la sélection et possède son propre raccourci
@@ -78,6 +81,17 @@ pour le guide complet (premier lancement, données de test, dépannage) et
 - Dans l'aperçu, les liens sont cliquables (ouverts via le gestionnaire
   d'URL du système) et les blocs de code s'affichent dans un encadré au
   fond distinct
+- Texte sélectionnable dans l'aperçu : un glisser le sélectionne (y
+  compris dans les blocs de code) et Ctrl+C le copie ; un simple clic
+  ouvre toujours l'édition
+- Listes imbriquées lisibles : les sous-puces s'affichent avec un tiret
+  (`-`) et un retrait de 4 espaces, et les listes numérotées imbriquées
+  prolongent la numérotation du parent (`1.` → `1.1` → `1.2.1`)
+- En édition, le clic droit ouvre un menu propre à l'application
+  (Annuler, Rétablir, Couper, Copier, Coller, Tout sélectionner) sans
+  quitter l'édition, et Tab/Maj+Tab augmentent ou réduisent de 4 espaces
+  le retrait des lignes sélectionnées (ce dont le Markdown a besoin pour
+  imbriquer une sous-liste)
 - Contenu défilant : une longue note ne déborde jamais du sticker, et la
   zone d'édition défile automatiquement pour garder le curseur visible
   pendant la saisie
@@ -102,10 +116,19 @@ pour le guide complet (premier lancement, données de test, dépannage) et
 - L'icône de la zone de notification liste les 10 notes modifiées le
   plus récemment (sans pagination) — chaque ligne ouvre ou réactive
   cette note
+- **Masquer les stickers / Afficher les stickers** dans le menu de la
+  zone de notification (juste sous « Nouveau sticker ») : masque d'un
+  coup tous les stickers visibles et les réaffiche au même endroit.
+  C'est temporaire : cela ne compte pas comme les fermer, ils
+  réapparaissent donc au redémarrage de l'application
 - Le bouton « ✕ » du sticker ferme seulement sa fenêtre — la note existe
   toujours et peut être rouverte depuis le menu de la zone de
   notification ou le Panneau. Supprimer une note est une action séparée,
   toujours avec une option d'annulation
+- Chaque sticker se souvient s'il était ouvert ou fermé : un sticker
+  fermé (avec « ✕ », Alt+F4 ou le menu de fenêtre de KWin) reste fermé
+  au redémarrage de l'application. Quitter depuis la zone de
+  notification ou fermer la session ne compte pas comme les fermer
 - **Panneau des Paramètres** (clic droit sur l'icône de la zone de
   notification → Options → Paramètres) : apparence (couleur/polices),
   comportement (visibilité par défaut de la barre Markdown, confirmation
@@ -159,6 +182,7 @@ Les stickers sont enregistrés dans
       "width": 300,
       "height": 250,
       "pinned": false,
+      "visible": true,
       "fontFamily": "Liberation Serif",
       "fontSize": 10,
       "created": "2026-08-17T10:30:00Z",
@@ -167,6 +191,10 @@ Les stickers sont enregistrés dans
   ]
 }
 ```
+
+`visible` indique si la fenêtre du sticker s'ouvre au démarrage de
+l'application (un enregistrement sans ce champ, d'une version antérieure
+à la v1.2.0, compte comme visible).
 
 Les préférences de l'application sont enregistrées séparément, dans
 `$XDG_CONFIG_HOME/desktop-stickers/settings.json` (généralement

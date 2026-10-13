@@ -33,9 +33,10 @@ probarla ahora mismo sin reiniciar sesión:
 ```
 
 Deberías ver un icono en la bandeja del sistema ("Desktop Stickers") y,
-si ya tienes stickers guardados, sus ventanas aparecerán en su última
-posición real (persistida vía una regla de KWin por sticker — ver
-`QA_CHECKLIST.md`). Los datos viven en
+si ya tienes stickers guardados, los que dejaste abiertos aparecerán en su
+última posición real (persistida vía una regla de KWin por sticker — ver
+`QA_CHECKLIST.md`). Los que cerraste con "✕" siguen cerrados: reábrelos
+desde el menú de la bandeja o el Panel de Stickers. Los datos viven en
 `$XDG_DATA_HOME/desktop-stickers/stickers.json` (típicamente
 `~/.local/share/desktop-stickers/`), no en un directorio propio en el
 home.
@@ -46,14 +47,34 @@ bandeja → **Opciones → Configuración → Idiomas**.
 
 ## Crear tu primer sticker
 
-- Click en el icono de la bandeja → "Nuevo sticker", o
-- Click en el botón "+" de cualquier sticker existente
+- Clic en el icono de la bandeja → "Nuevo sticker", o
+- Clic en el botón "+" de cualquier sticker existente
+
+## Ocultar y mostrar
+
+Clic derecho en el icono de la bandeja → **Ocultar stickers** esconde de
+golpe todos los stickers visibles; la misma opción pasa a llamarse
+**Mostrar stickers** y los devuelve a su sitio. Es temporal: si reinicias
+la app, vuelven a aparecer.
 
 ## Editar
 
-Click dentro del sticker para editar en Markdown — aparece la barra de
-formato (negrita, encabezados, listas, tablas, enlaces...) sobre el área
-de texto. Click fuera para volver a la vista previa renderizada.
+Haz clic dentro del sticker para editar en Markdown — aparece la barra de
+formato (negrita, cursiva, subrayado, encabezados, listas, tablas,
+enlaces...) sobre el área de texto. Haz clic fuera para volver a la vista
+previa renderizada.
+
+- **Seleccionar y copiar en la vista previa:** arrastra sobre el texto para
+  seleccionarlo y pulsa Ctrl+C. Un clic simple (sin arrastrar) entra en
+  edición.
+- **Menú contextual:** en edición, clic derecho abre Deshacer, Rehacer,
+  Cortar, Copiar, Pegar y Seleccionar todo, sin salir del modo edición.
+- **Sublistas:** Tab sangra la línea (o las líneas seleccionadas) 4
+  espacios y Shift+Tab lo deshace. En la vista previa, las subviñetas se
+  muestran con guion (`-`) y las listas numeradas anidadas como `1.1`,
+  `1.2.1`...
+- **Subrayado:** botón **U** o Ctrl+U; escribe `<u>texto</u>`, porque
+  Markdown no tiene sintaxis propia para subrayar.
 
 ## Pin (todos los escritorios) y resize
 
@@ -119,14 +140,21 @@ funcionalidades.
   escritorios, verifica la regla de KWin de ese sticker específico:
   `kreadconfig6 --file kwinrulesrc --group desktopstickers-sticker-<id> --key desktopsrule`
   debe devolver `2` (Force). Si devuelve `1` o está vacío, el pin no llegó a
-  escribirse — reintenta el click en 📌.
+  escribirse — vuelve a hacer clic en 📌.
 - Verifica también que el grupo está listado:
   `kreadconfig6 --file kwinrulesrc --group General --key rules` debe incluir
   `desktopstickers-sticker-<id>`.
 - Si los valores son correctos pero no aplica en vivo, fuerza la recarga:
   `qdbus6 org.kde.KWin /KWin org.kde.KWin.reconfigure`
 
-**No aparece un idioma nuevo que agregué a `src/i18n/`:**
+**Un sticker no aparece al arrancar la app:**
+- Si lo cerraste con "✕" (o Alt+F4), sigue cerrado a propósito: cada
+  sticker recuerda si estaba abierto. Ábrelo desde el menú de la bandeja o
+  el Panel de Stickers y volverá a aparecer en los siguientes arranques.
+- Si usaste **Ocultar stickers**, pulsa **Mostrar stickers** en el mismo
+  menú.
+
+**No aparece un idioma nuevo que añadí a `src/i18n/`:**
 - Tiene que tener exactamente las mismas claves que `src/i18n/es.json`
   (incluidas `Language.name` y `Language.flag`).
 - Hace falta recompilar (`cmake --build build`) — el listado de

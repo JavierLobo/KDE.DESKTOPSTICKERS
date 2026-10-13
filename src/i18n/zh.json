@@ -7,6 +7,8 @@
 
     "Main.tray.tooltip": "Desktop Stickers",
     "Main.trayMenu.newSticker": "新建便签",
+    "Main.trayMenu.hideStickers": "隐藏便签",
+    "Main.trayMenu.showStickers": "显示便签",
     "Main.trayMenu.stickerPanel": "便签面板",
     "Main.trayMenu.options": "选项",
     "Main.trayMenu.help": "帮助",
@@ -27,6 +29,12 @@
     "StickerWindow.header.showToolbar": "显示格式工具栏",
     "StickerWindow.header.hideToolbar": "隐藏格式工具栏",
     "StickerWindow.header.close": "关闭",
+    "StickerWindow.edit.undo": "撤销",
+    "StickerWindow.edit.redo": "重做",
+    "StickerWindow.edit.cut": "剪切",
+    "StickerWindow.edit.copy": "复制",
+    "StickerWindow.edit.paste": "粘贴",
+    "StickerWindow.edit.selectAll": "全选",
 
     "StickerPanel.title": "便签面板",
     "StickerPanel.search.placeholder": "搜索便签",
@@ -109,6 +117,7 @@
 
     "MarkdownToolbar.bold": "粗体",
     "MarkdownToolbar.italic": "斜体",
+    "MarkdownToolbar.underline": "下划线",
     "MarkdownToolbar.strike": "删除线",
     "MarkdownToolbar.h1": "标题 1",
     "MarkdownToolbar.h2": "标题 2",

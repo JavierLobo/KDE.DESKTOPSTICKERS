@@ -7,6 +7,8 @@
 
     "Main.tray.tooltip": "Desktop Stickers",
     "Main.trayMenu.newSticker": "Neuer Sticker",
+    "Main.trayMenu.hideStickers": "Sticker ausblenden",
+    "Main.trayMenu.showStickers": "Sticker einblenden",
     "Main.trayMenu.stickerPanel": "Sticker-Panel",
     "Main.trayMenu.options": "Optionen",
     "Main.trayMenu.help": "Hilfe",
@@ -27,6 +29,12 @@
     "StickerWindow.header.showToolbar": "Formatierungsleiste anzeigen",
     "StickerWindow.header.hideToolbar": "Formatierungsleiste ausblenden",
     "StickerWindow.header.close": "Schließen",
+    "StickerWindow.edit.undo": "Rückgängig",
+    "StickerWindow.edit.redo": "Wiederholen",
+    "StickerWindow.edit.cut": "Ausschneiden",
+    "StickerWindow.edit.copy": "Kopieren",
+    "StickerWindow.edit.paste": "Einfügen",
+    "StickerWindow.edit.selectAll": "Alles auswählen",
 
     "StickerPanel.title": "Sticker-Panel",
     "StickerPanel.search.placeholder": "Sticker durchsuchen",
@@ -109,6 +117,7 @@
 
     "MarkdownToolbar.bold": "Fett",
     "MarkdownToolbar.italic": "Kursiv",
+    "MarkdownToolbar.underline": "Unterstrichen",
     "MarkdownToolbar.strike": "Durchgestrichen",
     "MarkdownToolbar.h1": "Überschrift 1",
     "MarkdownToolbar.h2": "Überschrift 2",
